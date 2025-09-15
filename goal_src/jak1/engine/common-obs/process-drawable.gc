@@ -697,7 +697,7 @@
 
 (defbehavior process-drawable-delay-player process-drawable ((arg0 time-frame))
   (while (and *target*
-              (logtest? (-> *target* control unknown-surface00 flags) (surface-flags jump))
+              (logtest? (-> *target* control cur-surf flags) (surface-flags jump))
               (not (logtest? (-> *target* control status) (cshape-moving-flags onsurf))))
     (suspend))
   (set! (-> self state-time) (-> *display* base-frame-counter))

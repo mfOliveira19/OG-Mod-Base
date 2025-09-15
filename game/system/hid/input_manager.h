@@ -65,9 +65,11 @@ class InputManager {
 
   std::optional<std::shared_ptr<PadData>> get_current_data(const int port) const;
   std::pair<int, int> get_mouse_pos() const { return m_mouse.get_mouse_pos(); }
+  std::pair<float, float> get_mouse_rel_pos() const { return m_mouse.get_mouse_rel_pos(); }
   MouseDevice::MouseButtonStatus get_mouse_button_status() const {
     return m_mouse.get_mouse_button_status();
   }
+  float get_mouse_scroll_y() const { return m_mouse.get_mouse_scroll_y(); }
 
   // These functions can be called from the EE and interact with SDL directly
   // These should be enqueued in the event that for example, you try to set
@@ -173,9 +175,9 @@ class InputManager {
   /// Collection of arbitrary commands to run on user actions
   CommandBindingGroups m_command_binds;
 
-  bool m_mouse_enabled = false;
+  bool m_mouse_enabled = true;
   int m_skip_polling_for_n_frames = 0;
-  bool m_auto_hide_mouse = true;
+  bool m_auto_hide_mouse = false;
   bool m_mouse_currently_hidden = false;
   bool m_ignore_background_controller_events = false;
 

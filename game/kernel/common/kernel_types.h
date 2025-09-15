@@ -43,3 +43,11 @@ struct FileStream {
   u32 name;  // basic
   s32 file;  // int32
 };
+
+struct MouseInfo {
+  bool mouse1;
+  bool mouse2;
+  float relx;
+  float rely;
+  float scroll_y;
+};

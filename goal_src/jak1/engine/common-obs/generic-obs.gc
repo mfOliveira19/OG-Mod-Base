@@ -94,7 +94,7 @@
   :code
     (behavior ()
       (suspend)
-      (while (and *target* (= (handle->process (-> *target* control unknown-handle10)) self))
+      (while (and *target* (= (handle->process (-> *target* control pole)) self))
         (suspend))
       (suspend-for (seconds 0.5))
       (go swingpole-stance)))

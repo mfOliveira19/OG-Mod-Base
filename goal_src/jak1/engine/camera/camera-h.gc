@@ -324,6 +324,7 @@
    cam-eye
    cam-fixed
    cam-fixed-read-entity
+   cam-fps
    cam-free-floating
    cam-launcher-longfall
    cam-launcher-shortfall

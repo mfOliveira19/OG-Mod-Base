@@ -110,7 +110,7 @@ void DisplayManager::process_sdl_event(const SDL_Event& event) {
         break;
       case SDL_EVENT_WINDOW_MOUSE_ENTER:
         if (m_input_manager && m_input_manager.value()->auto_hiding_cursor()) {
-          m_input_manager.value()->hide_cursor(true);
+          m_input_manager.value()->hide_cursor(false);
         }
         break;
       case SDL_EVENT_WINDOW_MOUSE_LEAVE:

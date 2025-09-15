@@ -909,6 +909,23 @@ void pc_set_keyboard_enabled(u32 sym_val) {
   }
 }
 
+u64 pc_get_mouse_data(u64 mouse_info) {
+  auto mouse = Ptr<MouseInfo>(mouse_info).c();
+  if (Display::GetMainDisplay()) {
+    auto rel_values = Display::GetMainDisplay()->get_input_manager()->get_mouse_rel_pos();
+    auto button_status = Display::GetMainDisplay()->get_input_manager()->get_mouse_button_status();
+    auto scroll_y = Display::GetMainDisplay()->get_input_manager()->get_mouse_scroll_y();
+    auto mouse = Ptr<MouseInfo>(mouse_info).c();
+    mouse->relx = rel_values.first;
+    mouse->rely = rel_values.second;
+    mouse->mouse1 = button_status.left;
+    mouse->mouse2 = button_status.right;
+    mouse->scroll_y = scroll_y;
+  }
+
+  return mouse_info;
+}
+
 void pc_set_mouse_options(u32 enabled, u32 control_camera, u32 control_movement) {
   if (Display::GetMainDisplay()) {
     Display::GetMainDisplay()->get_input_manager()->enqueue_update_mouse_options(
@@ -1275,6 +1292,7 @@ void init_common_pc_port_functions(
   make_func_symbol_func("pc-set-controller!", (void*)pc_set_controller);
   make_func_symbol_func("pc-get-keyboard-enabled?", (void*)pc_get_keyboard_enabled);
   make_func_symbol_func("pc-set-keyboard-enabled!", (void*)pc_set_keyboard_enabled);
+  make_func_symbol_func("pc-get-mouse-data", (void*)pc_get_mouse_data);
   make_func_symbol_func("pc-set-mouse-options!", (void*)pc_set_mouse_options);
   make_func_symbol_func("pc-set-mouse-camera-sens!", (void*)pc_set_mouse_camera_sens);
   make_func_symbol_func("pc-ignore-background-controller-events!",

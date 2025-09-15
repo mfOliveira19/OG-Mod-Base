@@ -150,7 +150,9 @@
    target-wheel
    (target-wheel-flip float float)
    target-yellow-blast
-   target-yellow-jump-blast))
+   target-yellow-jump-blast
+   target-hl-movement-ground
+   ))
 
 (define-perm *target* target #f)
 

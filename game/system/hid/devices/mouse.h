@@ -25,7 +25,7 @@ class MouseDevice : public InputDevice {
   MouseDevice(SDL_Window* window, std::shared_ptr<game_settings::InputSettings> settings);
   ~MouseDevice() {}
 
-  void poll_state(std::shared_ptr<PadData> data);
+  void poll_state();
   void clear_actions(std::shared_ptr<PadData> data);
   void process_event(const SDL_Event& event,
                      const CommandBindingGroups& commands,
@@ -41,7 +41,9 @@ class MouseDevice : public InputDevice {
   void enable_camera_control(const bool enable);
   void enable_movement_control(const bool enable) { m_control_movement = enable; }
   std::pair<int, int> get_mouse_pos() const { return {m_xcoord, m_ycoord}; }
+    std::pair<float, float> get_mouse_rel_pos() const { return {m_xrel_pos, m_yrel_pos}; }
   MouseButtonStatus get_mouse_button_status() const { return m_button_status; }
+    float get_mouse_scroll_y() const { return scroll_y; }
   void set_camera_sens(const float xsens, const float ysens);
   bool is_camera_being_controlled() { return m_control_camera; }
 
@@ -67,4 +69,11 @@ class MouseDevice : public InputDevice {
   int m_frame_counter = 0;
 
   bool is_action_already_active(const u32 sdl_keycode, const bool player_movement);
+
+  // Relative pos
+  float m_xrel_pos = 0.0;
+  float m_yrel_pos = 0.0;
+
+  // Scroll
+  float scroll_y = 0.0;
 };

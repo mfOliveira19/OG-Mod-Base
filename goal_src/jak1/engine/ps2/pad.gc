@@ -402,7 +402,7 @@
 (defmacro cpad-hold? (pad-idx &rest buttons)
   `(logtest? (cpad-hold ,pad-idx) (pad-buttons ,@buttons)))
 
-(defmacro recently-pressed? (&key (pad-idx (-> self control unknown-cpad-info00 number)) &key (frames 15) &rest buttons)
+(defmacro recently-pressed? (&key (pad-idx (-> self control cpad number)) &key (frames 15) &rest buttons)
   "Checks if a (pad-button) was pressed within the last 50ms, based on frames"
   `(logtest? ,(generate-frame-checks pad-idx frames) (pad-buttons ,@buttons)))
 

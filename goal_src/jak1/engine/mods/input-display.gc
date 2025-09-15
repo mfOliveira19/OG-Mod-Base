@@ -424,7 +424,96 @@ Down lets you edit buttons, left lets you edit the sticks, right for dpad, up to
     (when (cpad-hold? 0 right)
       (+! (-> dpad-origin x) 1))))
 
-;
+;; Mouse Input
+(defun draw-mouse-debug ((arg0 dma-buffer))
+  (when *mouse-data*
+    ;; draw X
+    (draw-string-xy-scaled
+      (string-format "Mouse X: ~f" (-> *mouse-data* mouse-relx))
+      arg0
+      5
+      150
+      (the font-color 12)
+      (font-flags shadow kerning)
+      1.0)
+
+    ;; draw Y
+    (draw-string-xy-scaled
+      (string-format "Mouse Y: ~f" (-> *mouse-data* mouse-rely))
+      arg0
+      5
+      165
+      (the font-color 12)
+      (font-flags shadow kerning)
+      1.0)
+
+    ;; draw scroll y
+    (draw-string-xy-scaled
+      (string-format "Scroll Y: ~f" (-> *mouse-data* mouse-scrolly))
+      arg0
+      5
+      180
+      (the font-color 12)
+      (font-flags shadow kerning)
+      1.0)
+
+    ;; draw MOUSE1
+    (when (!= (-> *mouse-data* mouse1) 0)
+    (draw-string-xy-scaled
+      (string-format "Mouse1")
+      arg0
+      5
+      140
+      (the font-color 12)
+      (font-flags shadow kerning)
+      1.0))
+
+    ;; draw MOUSE2
+    (when (!= (-> *mouse-data* mouse2) 0)
+    (draw-string-xy-scaled
+      (string-format "Mouse2")
+      arg0
+      50
+      140
+      (the font-color 12)
+      (font-flags shadow kerning)
+      1.0))
+      (draw-string-xy-scaled
+        (string-format "[~f, ~f, ~f]" 
+                      (-> *target* control ltransv x)
+                      (-> *target* control ltransv y)
+                      (-> *target* control ltransv z))
+        arg0
+        100
+        120
+        (the font-color 12)
+        (font-flags shadow kerning)
+        1.0)
+      (draw-string-xy-scaled
+        (string-format "[~f, ~f, ~f]" 
+                      (-> *target* control trans-targ x)
+                      (-> *target* control trans-targ y)
+                      (-> *target* control trans-targ z))
+        arg0
+        100
+        130
+        (the font-color 12)
+        (font-flags shadow kerning)
+        1.0)
+      (let* ((vx (-> *target* control ltransv x))
+            (vy (-> *target* control ltransv y))
+            (vz (-> *target* control ltransv z))
+            (speed (sqrtf (+ (* vx vx) (* vy vy) (* vz vz)))))
+        (draw-string-xy-scaled
+          (string-format "Speed: ~f" speed)
+          arg0
+          100
+          140
+          (the font-color 12)
+          (font-flags shadow kerning)
+          1.0))
+      ))
+; 
 ;
 ;this is the main function/process
 ;
@@ -467,7 +556,8 @@ Down lets you edit buttons, left lets you edit the sticks, right for dpad, up to
             (draw-other-buttons testbuf)
             (draw-dpad testbuf)
             (draw-stick testbuf)
-            (draw-stick2 testbuf))
+            (draw-stick2 testbuf)
+            (draw-mouse-debug testbuf))
           ;Processes should suspend themselves, the loop will resume next frame
           (suspend)))))
   ;Lisp returns the last form as the function return

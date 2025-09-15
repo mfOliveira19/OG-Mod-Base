@@ -567,7 +567,7 @@
          (if (>= (- (-> *display* game-frame-counter) (-> self last-talk)) (seconds 10)) (set! (-> self will-talk) #t)))
         ((begin
            (process-taskable-method-46 self)
-           (and (not (and (logtest? (-> *target* control unknown-surface00 flags) (surface-flags jump))
+           (and (not (and (logtest? (-> *target* control cur-surf flags) (surface-flags jump))
                           (not (logtest? (-> *target* control status) (cshape-moving-flags onsurf)))))
                 (< (-> (target-pos 0) y) (+ 8192.0 (-> self root root-prim prim-core world-sphere y)))
                 ;; og:preserve-this

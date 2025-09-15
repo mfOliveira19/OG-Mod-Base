@@ -350,6 +350,90 @@
             (vector-! (-> self trans) (-> *camera* tpos-curr) v1-76))
           (suspend)))))
 
+(deftype cam-fps-bank (basic)
+  ((rot-speed   float)
+   (max-degrees float)
+   (max-fov     float)
+   (min-fov     float)))
+
+(define *CAM_FPS-bank*
+  (new 'static 'cam-fps-bank :rot-speed 5.0889 :max-degrees 14743.111 :max-fov 11650.845 :min-fov 11650.845))
+
+;; main first-person camera for half-jak mod
+;; og:preserve-this modified for high fps
+(defstate cam-fps (camera-slave)
+  :event
+    (behavior ((proc process) (argc int) (message symbol) (block event-message-block))
+      (case message
+        (('teleport) #f)
+        (else (cam-standard-event-handler proc argc message block))))
+  :enter
+    (behavior ()
+      (when (not (-> self enter-has-run))
+        (let ((v1-3 (vector-float*! (new-stack-vector0) (-> *camera* local-down) (+ 1024.0 (-> *camera* target-height)))))
+          (vector-! (-> self trans) (-> *camera* tpos-curr) v1-3))
+        (set! (-> self blend-from-type) (the-as uint 0))
+        (set! (-> self blend-to-type) (the-as uint 0))
+        0)
+      (set! (-> self fov) 11650.845))
+  :exit
+    (behavior ()
+      (if (and *target*
+               (logtest? (-> *camera* master-options) 2)
+               (logtest? (-> *target* state-flags) (state-flags first-person-mode)))
+        (send-event *target* 'end-mode)))
+  :trans
+    (behavior ()
+      (if (not (logtest? (-> *camera* master-options) 2)) (go cam-free-floating)))
+  :code
+    (behavior ()
+      (let ((gp-0 (current-time)))
+        (loop
+          (when (not (paused?))
+            (let ((s4-0 (vector-reset! (new-stack-vector0)))
+                  (s5-0 (new-stack-matrix0)))
+              (when *mouse-data*
+                (let ((delta-x (-> *mouse-data* mouse-relx)) ; left/right
+                      (delta-y (-> *mouse-data* mouse-rely))) ; up/down
+                  ;; Y movement affects pitch (x axis)
+                  (set! (-> s4-0 x) (+ (-> s4-0 x) (* delta-y *mouse-sens*)))
+                  ;; X movement affects yaw (y axis)
+                  (set! (-> s4-0 y) (- (-> s4-0 y) (* delta-x *mouse-sens*)))))
+              (matrix-axis-angle! s5-0 (-> *camera* local-down) (-> s4-0 y))
+              (matrix*! (the-as matrix (-> self tracking)) (the-as matrix (-> self tracking)) s5-0)
+              (when (not (logtest? (-> self options) 8))
+                (if (< (vector-dot (-> self tracking inv-mat vector 1) (-> *camera* local-down)) 0.0)
+                  (forward-down->inv-matrix (the-as matrix (-> self tracking))
+                                            (-> self tracking inv-mat vector 2)
+                                            (-> *camera* local-down))
+                  (forward-down->inv-matrix (the-as matrix (-> self tracking))
+                                            (-> self tracking inv-mat vector 2)
+                                            (vector-negate! (new-stack-vector0) (-> *camera* local-down)))))
+              (matrix-axis-angle! s5-0 (the-as vector (-> self tracking)) (- (-> s4-0 x)))
+              (matrix*! (the-as matrix (-> self tracking)) (the-as matrix (-> self tracking)) s5-0))
+            (when (not (logtest? (-> self options) 8))
+              (let ((f30-1 (vector-dot (-> *camera* local-down) (-> self tracking inv-mat vector 2))))
+                (set! (-> (new 'stack-no-clear 'vector) quad) (the-as uint128 0))
+                (when (< (sin (-> *CAM_FPS-bank* max-degrees)) (fabs f30-1))
+                  (vector--float*! (-> self tracking inv-mat vector 2) (-> self tracking inv-mat vector 2) (-> *camera* local-down) f30-1)
+                  (vector-normalize! (-> self tracking inv-mat vector 2) (cos (-> *CAM_FPS-bank* max-degrees)))
+                  (if (< f30-1 0.0)
+                    (vector--float*! (-> self tracking inv-mat vector 2)
+                                     (-> self tracking inv-mat vector 2)
+                                     (-> *camera* local-down)
+                                     (sin (-> *CAM_FPS-bank* max-degrees)))
+                    (vector+float*! (-> self tracking inv-mat vector 2)
+                                    (-> self tracking inv-mat vector 2)
+                                    (-> *camera* local-down)
+                                    (sin (-> *CAM_FPS-bank* max-degrees))))
+                  (vector-cross! (-> self tracking inv-mat vector 1)
+                                 (-> self tracking inv-mat vector 2)
+                                 (the-as vector (-> self tracking)))
+                  (set! (-> self tracking inv-mat vector 1 w) 0.0)))))
+          (let ((v1-76 (vector-float*! (new-stack-vector0) (-> *camera* local-down) (+ 1024.0 (-> *camera* target-height)))))
+            (vector-! (-> self trans) (-> *camera* tpos-curr) v1-76))
+          (suspend)))))
+
 (deftype cam-billy-bank (basic)
   ((rot-speed    float)
    (tilt-degrees float)))

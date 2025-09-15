@@ -99,6 +99,19 @@
    (flutflut?    symbol)
    (time-of-day  (pointer float))))
 
+;; new type for mouse data
+(deftype mouse-info (basic)
+  ((mouse1 uint8 :offset-assert 4)
+   (mouse2 uint8 :offset-assert 5)
+   (mouse-relx float :offset-assert 8)
+   (mouse-rely float :offset-assert 12)
+   (mouse-scrolly float :offset-assert 16))
+  (:methods
+    (new (symbol type int) _type_))
+  :method-count-assert 9
+  :size-assert 20
+)
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;; debug settings
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -179,3 +192,8 @@
   (noedge 2)
   (nolineofsight 12)
   (unknowncamera 13))
+
+;; I dont know where to place this
+(define *mouse-data* (new 'global 'mouse-info 0))
+(define *mouse-sens* 8.0)
+(define *auto-jump* #t)

@@ -3,7 +3,8 @@
 MouseDevice::MouseDevice(SDL_Window* window, std::shared_ptr<game_settings::InputSettings> settings)
     : m_window(window) {
   m_settings = settings;
-  enable_relative_mode(m_control_camera);
+  // By default mouse is enabled
+  enable_relative_mode(true);
 }
 
 // I don't trust SDL's key repeat stuff, do it myself to avoid bug reports...(or cause more)
@@ -18,128 +19,18 @@ bool MouseDevice::is_action_already_active(const u32 sdl_code, const bool player
   return false;
 }
 
-void MouseDevice::poll_state(std::shared_ptr<PadData> data) {
-  auto& binds = m_settings->mouse_binds;
+void MouseDevice::poll_state() {
   float curr_mouse_x;
   float curr_mouse_y;
   const auto mouse_state = SDL_GetMouseState(&curr_mouse_x, &curr_mouse_y);
-  const auto keyboard_modifier_state = SDL_GetModState();
 
-  // We also poll for mouse position to see if the mouse has stopped moving
-  // if it has, and we are controlling the camera, neutralize the stick direction
-  //
-  // This can all be cleaned up if the game ever has proper mouse motion integration
-  // since you would normally just map the motion of the camera to the relative motion
-  // instead of mapping it to a virtual analog stick.
-  m_frame_counter++;
-  if (m_frame_counter > 3) {
-    m_frame_counter = 0;
-    if (m_control_camera) {
-      float curr_mouse_relx;
-      float curr_mouse_rely;
-      const auto mouse_state_rel = SDL_GetRelativeMouseState(&curr_mouse_relx, &curr_mouse_rely);
-      (void)mouse_state_rel;
-      if (m_mouse_moved_x && m_last_xcoord == curr_mouse_x && curr_mouse_relx == 0) {
-        data->analog_data.at(2) = 127;
-        m_mouse_moved_x = false;
-      }
-      if (m_mouse_moved_y && m_last_ycoord == curr_mouse_y && curr_mouse_rely == 0) {
-        data->analog_data.at(3) = 127;
-        m_mouse_moved_y = false;
-      }
-      m_last_xcoord = curr_mouse_x;
-      m_last_ycoord = curr_mouse_y;
-    }
-  }
-
-  // Iterate binds, see if there are any new actions we need to track
-  // - Normal Buttons
-  for (const auto& [sdl_code, bind_list] : binds.buttons) {
-    for (const auto& bind : bind_list) {
-      if (mouse_state & SDL_BUTTON_MASK(sdl_code) &&
-          bind.modifiers.has_necessary_modifiers(keyboard_modifier_state) &&
-          !is_action_already_active(sdl_code, false)) {
-        data->button_data.at(bind.pad_data_index) = true;  // press the button
-        const auto pressure_index = data->button_index_to_pressure_index(
-            static_cast<PadData::ButtonIndex>(bind.pad_data_index));
-        if (pressure_index != PadData::PressureIndex::INVALID_PRESSURE) {
-          data->pressure_data.at(pressure_index) = 255;
-        }
-        m_active_actions.push_back(
-            {sdl_code, bind, false, [](std::shared_ptr<PadData> data, InputBinding bind) {
-               // let go of the button
-               data->button_data.at(bind.pad_data_index) = false;
-               const auto pressure_index = data->button_index_to_pressure_index(
-                   static_cast<PadData::ButtonIndex>(bind.pad_data_index));
-               if (pressure_index != PadData::PressureIndex::INVALID_PRESSURE) {
-                 data->pressure_data.at(pressure_index) = 0;
-               }
-             }});
-      }
-    }
-  }
-  // - Analog Buttons (useless for keyboards, but here for completeness)
-  for (const auto& [sdl_code, bind_list] : binds.button_axii) {
-    for (const auto& bind : bind_list) {
-      if (mouse_state & SDL_BUTTON_MASK(sdl_code) &&
-          bind.modifiers.has_necessary_modifiers(keyboard_modifier_state) &&
-          !is_action_already_active(sdl_code, false)) {
-        data->button_data.at(bind.pad_data_index) = true;  // press the button
-        const auto pressure_index = data->button_index_to_pressure_index(
-            static_cast<PadData::ButtonIndex>(bind.pad_data_index));
-        if (pressure_index != PadData::PressureIndex::INVALID_PRESSURE) {
-          data->pressure_data.at(pressure_index) = 255;
-        }
-        m_active_actions.push_back(
-            {sdl_code, bind, false, [](std::shared_ptr<PadData> data, InputBinding bind) {
-               // let go of the button
-               data->button_data.at(bind.pad_data_index) = false;
-               const auto pressure_index = data->button_index_to_pressure_index(
-                   static_cast<PadData::ButtonIndex>(bind.pad_data_index));
-               if (pressure_index != PadData::PressureIndex::INVALID_PRESSURE) {
-                 data->pressure_data.at(pressure_index) = 0;
-               }
-             }});
-      }
-    }
-  }
-  // No analog stick simulation, not support via the mouse instead we allow for only this:
-  // WoW style mouse movement, if you have both buttons held down, you will move forward
-  if (m_control_movement && !is_action_already_active(0, true) &&
-      (mouse_state & SDL_BUTTON_LMASK && mouse_state & SDL_BUTTON_RMASK)) {
-    data->analog_data.at(1) += -127;  // move forward
-    data->update_analog_sim_tracker(false);
-    ActiveMouseAction action;
-    action.player_movement = true;
-    action.revert_action = [](std::shared_ptr<PadData> data, InputBinding /*bind*/) {
-      data->analog_data.at(1) += 127;  // stop moving forward
-      data->update_analog_sim_tracker(true);
-    };
-    m_active_actions.push_back(action);
-  }
-
-  // Check if any previously tracked actions are now invalidated by the new state of the keyboard
-  // if so, we'll run their revert code and remove them
-  for (auto it = m_active_actions.begin(); it != m_active_actions.end();) {
-    // Modifiers are easy, if the action required one and it's not pressed anymore, evict it
-    // Alternatively, was the primary key released
-    // Alternatively, alternatively the special case'd mouse movement
-    if (it->player_movement) {
-      if (!(mouse_state & SDL_BUTTON_LMASK) || !(mouse_state & SDL_BUTTON_RMASK)) {
-        it->revert_action(data, it->binding);
-        it = m_active_actions.erase(it);
-      } else {
-        it++;
-      }
-    } else {
-      if (!(mouse_state & SDL_BUTTON_MASK(it->sdl_mouse_button)) ||
-          !it->binding.modifiers.has_necessary_modifiers(keyboard_modifier_state)) {
-        it->revert_action(data, it->binding);
-        it = m_active_actions.erase(it);
-      } else {
-        it++;
-      }
-    }
+  const auto mouse_state_rel = SDL_GetRelativeMouseState(&m_xrel_pos, &m_yrel_pos);
+  m_button_status.left = mouse_state & SDL_BUTTON_MASK(SDL_BUTTON_LEFT);
+  m_button_status.right  = mouse_state & SDL_BUTTON_MASK(SDL_BUTTON_RIGHT);
+  SDL_Event e;
+  scroll_y = 0.0;
+  while (SDL_PeepEvents(&e, 1, SDL_GETEVENT, SDL_EVENT_MOUSE_WHEEL, SDL_EVENT_MOUSE_WHEEL) > 0) {
+    scroll_y += e.wheel.y;
   }
 }
 

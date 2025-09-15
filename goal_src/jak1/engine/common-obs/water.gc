@@ -651,7 +651,7 @@
          (let ((f30-3 (- (+ (-> this base-height) (-> this ocean-offset) (-> this bob-offset) (-> this align-offset)) (-> this swim-height))))
            (let* ((s4-2 (-> this process root))
                   (v1-146 (if (and (nonzero? s4-2) (type-type? (-> s4-2 type) control-info)) s4-2))
-                  (s4-3 (and v1-146 (not (time-elapsed? (-> (the-as control-info v1-146) unknown-dword11) (seconds 0.5))))))
+                  (s4-3 (and v1-146 (not (time-elapsed? (-> (the-as control-info v1-146) last-ground-time) (seconds 0.5))))))
              (if (and (logtest? (-> this flags) (water-flags wt04))
                       (and s4-3
                            (not (logtest? (-> (the-as collide-shape-moving (-> this process root)) status) (cshape-moving-flags on-water)))))

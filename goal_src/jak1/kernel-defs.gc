@@ -261,6 +261,8 @@
 
 (declare-type cpad-info basic)
 
+(declare-type mouse-info structure)
+
 (declare-type discord-info structure)
 
 (define-extern cpad-open (function cpad-info int cpad-info))
@@ -465,6 +467,8 @@
 (define-extern pc-get-keyboard-enabled? (function symbol))
 
 (define-extern pc-set-keyboard-enabled! (function symbol none))
+
+(define-extern pc-get-mouse-data (function mouse-info mouse-info))
 
 (define-extern pc-set-mouse-options! (function symbol symbol symbol none))
 

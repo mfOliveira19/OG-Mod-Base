@@ -238,10 +238,9 @@ void InputManager::clear_keyboard_actions() {
 }
 
 void InputManager::poll_mouse_data() {
-  if (m_mouse_enabled && m_skip_polling_for_n_frames <= 0 && !m_waiting_for_bind) {
-    if (m_data.find(m_keyboard_and_mouse_port) != m_data.end()) {
-      m_mouse.poll_state(m_data.at(m_keyboard_and_mouse_port));
-    }
+  // Mouse will always be enabled
+  if (m_skip_polling_for_n_frames <= 0 && !m_waiting_for_bind) {
+      m_mouse.poll_state();
   }
 }
 
@@ -596,8 +595,8 @@ void InputManager::update_mouse_options(const bool enabled,
     clear_inputs();
   }
   // Switch relevant flags over related to the mouse
-  m_mouse.enable_camera_control(enabled && control_camera);
-  m_mouse.enable_movement_control(enabled && control_movement);
+  //m_mouse.enable_camera_control(enabled && control_camera);
+  //m_mouse.enable_movement_control(enabled && control_movement);
 }
 
 void InputManager::set_wait_for_bind(const InputDeviceType device_type,

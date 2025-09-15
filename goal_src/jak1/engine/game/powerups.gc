@@ -452,8 +452,8 @@
       (('snow) (update-snow self))))
   (cond
     ((and (= (-> self control ground-pat material) (pat-material ice))
-          (and (>= (-> self control unknown-float01) 204.8)
-               (not (time-elapsed? (-> self control unknown-dword11) (seconds 0.05)))))
+          (and (>= (-> self control speed-mod) 204.8)
+               (not (time-elapsed? (-> self control last-ground-time) (seconds 0.05)))))
      (let ((gp-0 (vector<-cspace! (new 'stack-no-clear 'vector) (joint-node eichar-lod0-jg RbigToe))))
        (if (and (< (fabs (vector-dot (-> self control dynam gravity-normal) (vector-! (new 'stack-no-clear 'vector) gp-0 (-> self control trans))))
                    819.2)
@@ -465,11 +465,11 @@
                 (rand-vu-percent? 0.5))
          (launch-particles :system *sp-particle-system-3d* (-> *part-id-table* 2391) gp-1)))
      ;; og:preserve-this PAL patch here
-     (let ((f0-8 (lerp-scale 80.0 100.0 (-> self control unknown-float01) 0.0 81920.0)))
+     (let ((f0-8 (lerp-scale 80.0 100.0 (-> self control speed-mod) 0.0 81920.0)))
        (if (not (ja-group? eichar-ice-stance-ja)) (set! f0-8 (* 0.8 f0-8)))
        (seek! (-> self control unknown-float141) f0-8 (* 100.0 (seconds-per-frame))))
      (let ((f30-0 (-> self control unknown-float141))
-           (f0-13 (lerp-scale -0.3 0.3 (-> self control unknown-float01) 0.0 81920.0)))
+           (f0-13 (lerp-scale -0.3 0.3 (-> self control speed-mod) 0.0 81920.0)))
        (sound-play "ice-loop"
                    :id (-> self control unknown-soundid00)
                    :vol
@@ -541,7 +541,7 @@
        (change-sound! (-> self sound) (static-sound-name "blue-eco-jak"))
        (let ((v1-150 (rand-vu-int-range 3 (+ (-> self node-list length) -1))))
          (cond
-           ((and (logtest? (-> self control unknown-surface00 flags) (surface-flags jump))
+           ((and (logtest? (-> self control cur-surf flags) (surface-flags jump))
                  (not (logtest? (-> self control status) (cshape-moving-flags onsurf))))
             (set! (-> *part-id-table* 259 init-specs 4 initial-valuef) 0.0)
             (set! (-> *part-id-table* 259 init-specs 4 random-rangef) 65536.0))
