@@ -979,7 +979,7 @@
   (set! (-> self num-slaves) 0)
   (dotimes (v1-5 2)
     (set! (-> self slave v1-5) (the-as (pointer camera-slave) #f)))
-  (set! (-> self slave-options) (the-as uint 560))
+  (set! (-> self slave-options) (the-as uint 560)) ;; (logior 560 8) To make it so ALLOW_Z_ROT is ON by default
   (set! (-> self view-off-param-save) 1.0)
   (set! (-> self changer) (the-as uint (process->ppointer self)))
   (set! (-> self cam-entity) #f)

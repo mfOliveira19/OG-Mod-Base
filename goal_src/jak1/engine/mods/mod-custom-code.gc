@@ -25,11 +25,10 @@
   (if *show-input-display* (input-display-on) (input-display-off))
   (set! (-> *target* draw status) (draw-status hidden))
   ;;(set! *display-collision-marks* #t)
-  (send-event *camera* 'set-fov 14000.845)
+  (send-event *camera* 'set-fov 16384.845)
   (send-event *camera* 'change-state cam-fps 0)
-  ;;(print (-> *camera* slave 0))
-  ;;(-> (the-as camera-slave (-> *camera* slave 0)) tracking)
   (pc-get-mouse-data *mouse-data*)
+  ;;(send-event *camera* 'set-slave-option (cam-slave-options ALLOW_Z_ROT))
   ;; ensure orb-placer is spawned/killed as requested, debug menu is updated
   (when *debug-segment*
     (orb-placer-maintenance))

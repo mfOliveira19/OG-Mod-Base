@@ -152,6 +152,9 @@
    target-yellow-blast
    target-yellow-jump-blast
    target-hl-movement-ground
+   target-hl-movement-air
+   target-hl-movement-ground-duck
+   target-hl-movement-air-duck
    ))
 
 (define-perm *target* target #f)

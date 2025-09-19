@@ -352,6 +352,8 @@
   "orb-placer.o" ;; added
   "mod-custom-code.o" ;; added
   "mod-debug.o" ;; added
+  "target-hl-handler.o"
+  "target-hl-movement.o"
   ;; keep zoomer stuff loaded
   "target-racer-h.o"
   "racer-part.o"

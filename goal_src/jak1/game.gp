@@ -2106,7 +2106,8 @@
 
 (goal-src "engine/mods/input-display.gc")
 (goal-src "engine/mods/orb-placer.gc")
-
+(goal-src "engine/mods/target-hl-handler.gc")
+(goal-src "engine/mods/target-hl-movement.gc")
 
 (goal-src-sequence
  ;; prefix

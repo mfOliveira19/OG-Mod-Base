@@ -1,0 +1,561 @@
+(in-package goal)
+(require "engine/mods/target-hl-handler.gc")
+
+(defun should-jump? ()
+  (or (< (-> *mouse-data* mouse-scrolly) 0.0) (when *auto-jump* (cpad-hold? 0 x)) (cpad-pressed? 0 x)))
+
+(defun should-move-forward? ()
+  (< (-> *cpad-list* cpads 0 lefty) 127) 
+)
+
+(defun should-move-back? ()
+  (> (-> *cpad-list* cpads 0 lefty) 127)
+)
+
+(defun should-move-left? ()
+  (< (-> *cpad-list* cpads 0 leftx) 127)
+)
+
+(defun should-move-right? ()
+  (> (-> *cpad-list* cpads 0 leftx) 127)
+)
+
+(defun should-duck? ()
+  (or (> (-> *mouse-data* mouse-scrolly) 0.0) (cpad-hold? 0 l1))
+)
+
+(defun should-walk? ()
+  (cpad-hold? 0 r1)
+)
+
+(defun on-ground? ()
+  (logtest? (-> *target* control status) (cshape-moving-flags onground))
+)
+
+;; global camera duck offset (lerped each frame)
+(define *duck-camera-offset* 0.0)
+;; global camera bob offsets
+(define *view-bob-x* 0.0) ;; horizontal bob
+(define *view-bob-y* 0.0) ;; vertical bob
+(define *view-bob-phase* 0.0)
+
+(define *was-ducking* #f)
+
+;; bob constants
+(define *bob-speed* 0.012)
+(define *bob-vert-amp* 350.0)
+(define *bob-horiz-amp* 200.0)
+
+(defbehavior update-view-bob target ()
+  (let ((hvel (new 'stack-no-clear 'vector)))
+    ;; get horizontal velocity
+    (vector-copy! hvel (-> self control ltransv))
+    (set! (-> hvel y) 0.0)
+    (let ((speed (vector-length hvel)))
+      ;; advance phase only if moving
+      (if (> speed 0.1)
+          (set! *view-bob-phase* (+ *view-bob-phase* (* *bob-speed* speed)))
+          ;; idle phase advance
+          (set! *view-bob-phase* (+ *view-bob-phase* 0.08)))
+      ;; calculate target offsets
+      (let ((target-x (* (sin (* 0.5 *view-bob-phase*)) *bob-horiz-amp*))
+            (target-y (* (sin *view-bob-phase*) *bob-vert-amp*)))
+        ;; lerp offsets smoothly like duck camera
+        (set! *view-bob-x* (+ *view-bob-x* (* 1 (- target-x *view-bob-x*))))
+        (set! *view-bob-y* (+ *view-bob-y* (* 1 (- target-y *view-bob-y*))))))))
+
+(defun update-duck-camera-offset ()
+  (let* ((duck-depth -4500.0)
+         (target (if (should-duck?) duck-depth 0.0))
+         ;; different speeds for down vs up
+         (speed (if (and (should-duck?) (not (on-ground?))) 0.05 0.5))) ; slower down, faster up
+    (set! *duck-camera-offset*
+          (+ *duck-camera-offset* (* speed (- target *duck-camera-offset*))))))
+
+(defbehavior target-calc-camera-pos-hl target ()
+  (let ((cam-pos (new 'stack-no-clear 'vector)))
+    (vector-copy! cam-pos (-> self control trans))
+    ;; apply crouch offset
+    (update-duck-camera-offset)
+    (+! (-> cam-pos y) *duck-camera-offset*)
+    ;; apply view bob offsets
+    (update-view-bob)
+    (+! (-> cam-pos x) *view-bob-x*)
+    (+! (-> cam-pos y) *view-bob-y*)
+    ;; set final camera pos
+    (set! (-> (&-> (-> self control) unknown-qword00) 0) (-> cam-pos quad)))
+  0
+  (none))
+
+(defbehavior read-input target ((arg0 vector))
+  (when (!= (-> self control pad-read-time) (-> *display* real-frame-counter))
+    (set! (-> self control last-stick-vec quad) (-> self control stick-vec quad))
+    (set! (-> self control last-pad-stick-speed) (-> self control pad-stick-speed))
+    (set! (-> self control pad-read-time) (the-as uint (-> *display* real-frame-counter))))
+
+  ;; start clean
+  (set! (-> arg0 x) 0.0)
+  (set! (-> arg0 y) 0.0)
+  (set! (-> arg0 z) 0.0)
+  (set! (-> arg0 w) 0.0)
+
+  ;; build input vector
+  (when (should-move-forward?) (set! (-> arg0 z) (+ (-> arg0 z) 1.0)))
+  (when (should-move-back?)    (set! (-> arg0 z) (- (-> arg0 z) 1.0)))
+  (when (should-move-left?)    (set! (-> arg0 x) (+ (-> arg0 x) 1.0)))
+  (when (should-move-right?)   (set! (-> arg0 x) (- (-> arg0 x) 1.0)))
+
+  (let ((has-input (> (vector-length arg0) 0.0)))
+    (if has-input
+        ;; when input exists
+        (begin
+          (vector-normalize! arg0 1.0)
+          (set! (-> self control stick-vec quad) (-> arg0 quad))
+          (let ((base-speed (if (should-walk?) 0.5 1.5))
+                (duck-mult (if (should-duck?) 0.333 1.0)))
+            (set! (-> self control pad-stick-speed) (* base-speed duck-mult)))
+          (vector-matrix*! arg0 arg0 (matrix-local->world #t #f))
+))))
+
+;; HL-style movement constants
+(define *hl-max-speed*   50640.0)
+(define *hl-accel*       8.0)
+(define *hl-air-accel*   200.0)
+(define *hl-friction*    6.0)
+(define *hl-stopspeed*   20080.0)
+(define *foot-left* #f)
+(define *last-step-frame* 0) 
+(define *fall-start-height* 0.0)       ;; Y position when player starts falling
+(define *falling* #f)                  ;; Are we currently in a fall?
+(define *should-take-fall-damage* #f) ;; Flag we can check each frame
+(define *fall-damage-threshold* 30000.0) ;; Distance/impact to start taking damage (tweak to feel right)
+
+(defbehavior apply-fall-status target ()
+  (print "FALL DAMAGE")
+  (play-sound-file "sound_replacements/pl_jumpland2.wav" 50)
+  (play-sound-file "sound_replacements/pl_pain2.wav" 50)
+  (set! *should-take-fall-damage* #f)
+)
+
+(defbehavior update-fall-status target ()
+  (let ((cur-y (-> self control trans y)))
+    (if (on-ground?)
+        ;; Player has landed
+        (begin
+          (when *falling*
+            (let ((fall-dist (- *fall-start-height* cur-y)))
+              (set! *should-take-fall-damage* (> fall-dist *fall-damage-threshold*))))
+          (set! *falling* #f)
+          (set! *fall-start-height* cur-y)
+            (if *should-take-fall-damage*
+              (apply-fall-status))
+          )) ;; reset start height
+        ;; Player is in air
+        (begin
+          (unless *falling*
+            (set! *falling* #t)
+            (set! *fall-start-height* cur-y))
+          (set! *should-take-fall-damage* #f))))
+
+(defbehavior hl-play-step-sound target ((volume int))
+  ;; flip foot each step
+  (set! *foot-left* (not *foot-left*))
+  ;; get horizontal speed
+  (let ((hvel (new-stack-vector0)))
+    (vector-copy! hvel (-> self control ltransv))
+    (set! (-> hvel y) 0.0)
+
+    ;; don't play if too slow
+    (when (> (vector-length hvel) 220.0)
+      ;; check if in water
+      (if (logtest? (-> self water flags) (water-flags wt09))
+          ;; IN WATER: play water footsteps
+          (let ((rand-index (+ (rand-vu-int-range 0 1) (if *foot-left* 2 0))))
+            (case rand-index
+              ((0) (play-sound-file "sound_replacements/pl_slosh1.wav" volume))
+              ((1) (play-sound-file "sound_replacements/pl_slosh3.wav" volume))
+              ((2) (play-sound-file "sound_replacements/pl_slosh2.wav" volume))
+              ((3) (play-sound-file "sound_replacements/pl_slosh4.wav" volume))))
+        ;; NOT IN WATER: normal ground footsteps
+        (let ((mat (-> self control ground-pat material))
+              (sound-category 'concrete)) ;; default category
+          (case mat
+            (((pat-material sand) (pat-material dirt) (pat-material gravel))
+             (set! sound-category 'dirt))
+            (((pat-material metal) (pat-material pcmetal))
+             (set! sound-category 'metal))
+            (((pat-material swamp))
+             (set! sound-category 'slosh))
+            (else
+             (set! sound-category 'concrete)))
+          
+          ;; pick random variant for left/right foot
+          (let ((rand-index (+ (rand-vu-int-range 0 1) (if *foot-left* 2 0))))
+            (case sound-category
+              (('concrete)
+               (case rand-index
+                 ((0) (play-sound-file "sound_replacements/pl_step1.wav" volume))
+                 ((1) (play-sound-file "sound_replacements/pl_step3.wav" volume))
+                 ((2) (play-sound-file "sound_replacements/pl_step2.wav" volume))
+                 ((3) (play-sound-file "sound_replacements/pl_step4.wav" volume))))
+              (('dirt)
+               (case rand-index
+                 ((0) (play-sound-file "sound_replacements/pl_dirt1.wav" volume))
+                 ((1) (play-sound-file "sound_replacements/pl_dirt3.wav" volume))
+                 ((2) (play-sound-file "sound_replacements/pl_dirt2.wav" volume))
+                 ((3) (play-sound-file "sound_replacements/pl_dirt4.wav" volume))))
+              (('slosh)
+               (case rand-index
+                 ((0) (play-sound-file "sound_replacements/pl_slosh1.wav" volume))
+                 ((1) (play-sound-file "sound_replacements/pl_slosh3.wav" volume))
+                 ((2) (play-sound-file "sound_replacements/pl_slosh2.wav" volume))
+                 ((3) (play-sound-file "sound_replacements/pl_slosh4.wav" volume))))
+              (('metal)
+               (case rand-index
+                 ((0) (play-sound-file "sound_replacements/pl_metal1.wav" volume))
+                 ((1) (play-sound-file "sound_replacements/pl_metal3.wav" volume))
+                 ((2) (play-sound-file "sound_replacements/pl_metal2.wav" volume))
+                 ((3) (play-sound-file "sound_replacements/pl_metal4.wav" volume)))))))))))
+
+(defun ms-to-frames ((ms float))
+  (let ((frames (the int (+ 0.5 (/ ms (* 1000.0 (seconds-per-frame)))))))
+    (if (< frames 1) 1 frames)))
+
+(defbehavior hl-update-step-sound target ()
+  "Run once per frame; decide if we should play a footstep sound (HL-style)."
+  (let* ((cur-frame (the int (-> *display* real-frame-counter)))
+         ;; copy horizontal velocity
+         (tmpv (new-stack-vector0)))
+    (vector-copy! tmpv (-> self control ltransv))
+    (set! (-> tmpv y) 0.0)
+    (let* ((speed (vector-length tmpv))
+           ;; HL constants (units as in original code)
+           (velwalk 20500.0)
+           (velrun 30010.0)
+           (flduck 0)
+           (on-ladder #f)
+           ;; decide if we should even consider stepping now
+           (consider-step (and (or on-ladder (on-ground?))
+                               (> speed 0.0)
+                               (or (>= speed velwalk) (= *last-step-frame* 0)))))
+      (when consider-step
+        (let* ((fWalking (< speed velrun))
+               (base-ms 600.0)
+               (interval-ms (+ base-ms flduck))
+               (interval-frames (ms-to-frames interval-ms)))
+          (when (>= (- cur-frame *last-step-frame*) interval-frames)
+            (let* ((fvol 50) 
+                   (vol-int (the int (* 100 fvol))))
+              (if (not fWalking)
+                (hl-play-step-sound 50)
+              )
+              ;; record the frame we played
+              (set! *last-step-frame* cur-frame)))))))
+  (none))
+
+(defbehavior hl-add-gravity target ()
+  (let ((s5-0 (new-stack-vector0))
+        (gp-0 (new-stack-vector0)))
+    (compute-acc-due-to-gravity (-> self control) s5-0 (-> self control new-surf slip-factor))
+    
+    ;; SCALE GRAVITY
+    (let ((gravity-factor 0.5)) ;;
+      (vector-float*! s5-0 s5-0 gravity-factor))
+
+    (vector-matrix*! gp-0 s5-0 (-> self control unknown-matrix00))
+    (vector-v++! (-> self control ltransv) gp-0)
+    )
+  (let* ((s5-1 (vector-matrix*! (new-stack-vector0) (-> self control dynam gravity-normal) (-> self control unknown-matrix00)))
+         (gp-1 (new-stack-vector0))
+         (f30-0 (vector-dot s5-1 (-> self control ltransv))))
+    0.0
+    (vector-! gp-1 (-> self control ltransv) (vector-float*! gp-1 s5-1 f30-0))
+    (let* ((f0-4 (vector-length gp-1))
+           (f1-0 f0-4))
+      (if (< f0-4 0.00004096) (set! f0-4 0.0))
+      (if (< f30-0 (- (-> self control dynam gravity-max))) (set! f30-0 (- (-> self control dynam gravity-max))))
+      (vector+! (-> self control ltransv)
+                (vector-float*! (-> self control ltransv) s5-1 f30-0)
+                (vector-float*! gp-1 gp-1 (/ f0-4 f1-0))))))
+
+(defbehavior hl-add-thrust target ()
+  (let* ((wishvel   (-> self control trans-targ))
+         (curvel    (-> self control ltransv))
+         (frametime (seconds-per-frame)))
+
+    ;; preserve vertical velocity
+    (let ((saved-y (-> curvel y)))
+      (set! (-> wishvel y) 0.0)
+      (set! (-> curvel  y) 0.0)
+
+      ;; ----------------------
+      ;; APPLY FRICTION FIRST
+      ;; ----------------------
+      (let ((speed (vector-xz-length curvel)))
+        (when (> speed 0.0)
+          (let* ((control (if (< speed *hl-stopspeed*) *hl-stopspeed* speed))
+                 (drop (* control *hl-friction* frametime))
+                 (new-speed (max 0.0 (- speed drop))))
+            (if (> new-speed 0.0)
+                (vector-xz-normalize! curvel new-speed)
+                (begin
+                  (set! (-> curvel x) 0.0)
+                  (set! (-> curvel z) 0.0))))))
+
+      ;; ----------------------
+      ;; APPLY ACCELERATION
+      ;; ----------------------
+      (let ((wishspeed (vector-xz-length wishvel)))
+        (when (> wishspeed 0.0)
+          ;; normalize wish direction
+          (vector-normalize! wishvel 1.0)
+          ;; cap to max speed
+          (when (> wishspeed *hl-max-speed*)
+            (set! wishspeed *hl-max-speed*))
+          ;; how much velocity is already in wish direction
+          (let ((curr-speed (vector-dot curvel wishvel)))
+            (let ((addspeed (- wishspeed curr-speed)))
+              (when (> addspeed 0.0)
+                (let ((accelspeed (* *hl-accel* frametime wishspeed)))
+                  (when (> accelspeed addspeed)
+                    (set! accelspeed addspeed))
+                  (vector+! curvel curvel
+                            (vector-float*! (new-stack-vector0) wishvel accelspeed))))))))
+
+      ;; clamp final horizontal velocity
+      (let ((speed (vector-xz-length curvel)))
+        (when (> speed *hl-max-speed*)
+          (vector-xz-normalize! curvel *hl-max-speed*)))
+
+      ;; restore vertical
+      (set! (-> curvel y) saved-y))))
+
+(defbehavior hl-add-air-thrust target ()
+  (let* ((curvel   (-> self control ltransv))     ;; current local velocity
+         (wishvel  (-> self control trans-targ))  ;; desired direction
+         (frametime (seconds-per-frame)))
+
+    ;; preserve vertical component
+    (let ((saved-y (-> curvel y)))
+      (set! (-> curvel y) 0.0)
+      (set! (-> wishvel y) 0.0)
+
+      ;; normalize wishdir
+      (let ((wishspeed (vector-xz-length wishvel)))
+        (when (> wishspeed 0.0)
+          (vector-normalize! wishvel 1.0)
+
+          ;; clamp wishspeed like HL
+          (when (> wishspeed 3040.0)
+            (set! wishspeed 3040.0))
+
+          ;; project current velocity onto wishdir
+          (let* ((currspeed (vector-dot curvel wishvel))
+                 (addspeed (- wishspeed currspeed)))
+            (when (> addspeed 0.0)
+              ;; HL: accelspeed = accel * wishspeed * frametime * friction
+              (let ((accelspeed (* *hl-air-accel*
+                                   wishspeed
+                                   frametime
+                                   1.2)))
+                ;; don’t exceed what’s needed
+                (when (> accelspeed addspeed)
+                  (set! accelspeed addspeed))
+                ;; apply extra velocity
+                (vector+! curvel curvel
+                          (vector-float*! (new-stack-vector0) wishvel accelspeed)))))))
+
+      ;; restore vertical velocity
+      (set! (-> curvel y) saved-y))))
+
+(defbehavior target-hl-movement-ground-post target ()
+  (let ((gp-0 (the int (-> *display* time-ratio))))
+    (set-time-ratios *display* 1.0)
+    (countdown (s5-0 gp-0)
+      (flag-setup)
+      (build-conversions (-> self control transv))
+      (hl-update-step-sound)
+      (let ((s4-0 (new-stack-vector0)))
+        (read-input s4-0)
+        (let ((f30-0 (-> self control pad-stick-speed)))
+          (turn-to-vector s4-0 f30-0)
+        )
+      )
+      (unless (should-jump?)
+        (hl-add-thrust)
+      )
+      (hl-add-gravity)
+      (reverse-conversions (-> self control transv))
+      (if *debug-segment*
+        (add-frame (-> *display* frames (-> *display* on-screen) frame profile-bar 0)
+                   'draw
+                   (new 'static 'rgba :r #x40 :b #x40 :a #x80)))
+      (fill-cache-integrate-and-collide! (-> self control) (-> self control transv) (-> self control root-prim collide-with))
+
+      (if *debug-segment*
+        (add-frame (-> *display* frames (-> *display* on-screen) frame profile-bar 0)
+                   'draw
+                   (new 'static 'rgba :r #x80 :g #x60 :b #x40 :a #x80)))
+      )
+    (set-time-ratios *display* (the float gp-0)))
+    (post-flag-setup)
+  (if *debug-segment*
+    (add-frame (-> *display* frames (-> *display* on-screen) frame profile-bar 0)
+               'draw
+               (new 'static 'rgba :r #x40 :b #x40 :a #x80)))
+  (ja-post)
+  (if *debug-segment*
+    (add-frame (-> *display* frames (-> *display* on-screen) frame profile-bar 0) 'draw (new 'static 'rgba :r #x80 :a #x80)))
+  (target-calc-camera-pos-hl)
+  (target-powerup-process)
+  (set! *was-ducking* (should-duck?))
+  (none))
+
+(defbehavior target-hl-movement-air-post target ()
+  (let ((gp-0 (the int (-> *display* time-ratio))))
+    (set-time-ratios *display* 1.0)
+    (countdown (s5-0 gp-0)
+      (flag-setup)
+      (build-conversions (-> self control transv))
+      (let ((s4-0 (new-stack-vector0)))
+        (read-input s4-0)
+        (let ((f30-0 (-> self control pad-stick-speed)))
+          (turn-to-vector s4-0 f30-0)
+        )
+      )
+      (hl-add-air-thrust)
+      (hl-add-gravity)
+      (reverse-conversions (-> self control transv))
+      (if *debug-segment*
+        (add-frame (-> *display* frames (-> *display* on-screen) frame profile-bar 0)
+                   'draw
+                   (new 'static 'rgba :r #x40 :b #x40 :a #x80)))
+      (fill-cache-integrate-and-collide! (-> self control) (-> self control transv) (-> self control root-prim collide-with))
+
+      (if *debug-segment*
+        (add-frame (-> *display* frames (-> *display* on-screen) frame profile-bar 0)
+                   'draw
+                   (new 'static 'rgba :r #x80 :g #x60 :b #x40 :a #x80)))
+      )
+    (set-time-ratios *display* (the float gp-0)))
+    (post-flag-setup)
+  (if *debug-segment*
+    (add-frame (-> *display* frames (-> *display* on-screen) frame profile-bar 0)
+               'draw
+               (new 'static 'rgba :r #x40 :b #x40 :a #x80)))
+  (ja-post)
+  (if *debug-segment*
+    (add-frame (-> *display* frames (-> *display* on-screen) frame profile-bar 0) 'draw (new 'static 'rgba :r #x80 :a #x80)))
+  (target-calc-camera-pos-hl)
+  (target-powerup-process)
+  (none))
+
+(defbehavior apply-ground-duck-hop target ()
+  ;; only when duck pressed this frame while on ground
+  (when (and (should-duck?) (on-ground?) (not *was-ducking*))
+    (+! (-> self control trans y) 500.0))) ;; tweak value for HL feel
+
+(defbehavior apply-air-duck-offset target ()
+  ;; only add when in air and ducking
+  (when (and (should-duck?) (not (on-ground?)))
+    ;; push origin upward a bit to simulate HL duck jump
+    (+! (-> self control trans y) 50.0))) ; tweak this value
+
+(defstate target-hl-movement-air-duck (target)
+  :event target-hl-standard-event-handler
+  :enter
+    (behavior ()
+      (set! (-> self control bend-target) 1.0)
+      (target-collide-set! 'duck (the-as float 1.0)))
+  :exit
+  (behavior ()
+    (target-collide-set! 'normal (the-as float 0.0)))
+  :trans 
+  (behavior ()
+    (when (not (should-duck?))
+      (go target-hl-movement-air))
+    (when (on-ground?)
+      (go target-hl-movement-ground))
+  )
+  :code
+    (behavior ()
+      (loop (suspend)))
+
+  :post 
+  (behavior ()
+    (apply-air-duck-offset)
+    (update-fall-status)
+    (target-hl-movement-air-post)
+    (set! *was-ducking* (should-duck?))
+  )
+)
+
+(defstate target-hl-movement-air (target)
+  :event target-hl-standard-event-handler
+  :trans 
+  (behavior ()
+    (when (should-duck?)
+      (go target-hl-movement-air-duck))
+    (when (on-ground?)
+      (go target-hl-movement-ground))
+  )
+  :code
+    (behavior ()
+      (loop (suspend)))
+
+  :post 
+  (behavior ()
+    (update-fall-status)
+    (target-hl-movement-air-post)
+  )
+)
+
+;; HL-style Ground Movement State for Target
+(defstate target-hl-movement-ground (target)
+  :event target-hl-standard-event-handler
+  :trans
+  (behavior ()
+    (when (should-jump?)
+      (set! (-> (-> self control transv) y) 38000.0)) ;; Jump speed (which combined with gravity also affects height)
+      (when (not (on-ground?))
+        (go target-hl-movement-air))
+      (when (should-duck?)
+        (go target-hl-movement-ground-duck)))
+
+  :code
+  (behavior ()
+    (loop (suspend)))
+  :post 
+  (behavior ()
+    (update-fall-status)
+    (target-hl-movement-ground-post)
+  )
+)
+
+(defstate target-hl-movement-ground-duck (target)
+  :event target-hl-standard-event-handler
+  :enter
+    (behavior ()
+      (set! (-> self control bend-target) 1.0)
+      (target-collide-set! 'duck (the-as float 1.0)))
+  :exit
+  (behavior ()
+    (target-collide-set! 'normal (the-as float 0.0)))
+  :trans
+  (behavior ()
+    (when (not (should-duck?))
+      (go target-hl-movement-ground))
+    (when (should-jump?)
+      (set! (-> (-> self control transv) y) 38000.0)) ;; Jump speed (which combined with gravity also affects height)
+      (when (not (on-ground?))
+        (go target-hl-movement-air)))
+  :code
+  (behavior ()
+    (loop (suspend)))
+  :post 
+  (behavior ()
+      (apply-ground-duck-hop)
+      (update-fall-status)
+      (target-hl-movement-ground-post)
+  )
+)

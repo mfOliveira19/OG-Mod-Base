@@ -13004,6 +13004,9 @@
     target-title-wait
     (target-warp-in vector vector)
     target-hl-movement-ground
+    target-hl-movement-air
+    target-hl-movement-ground-duck
+    target-hl-movement-air-duck
     )
   )
 
