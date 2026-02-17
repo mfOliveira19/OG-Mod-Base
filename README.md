@@ -1,6 +1,6 @@
 # Gordon And Daxter
 
-A Jak 1 OpenGOAL Mod that "attempts" replicating Half-Life 1 movement and some weapons within GOAL.
+A Jak 1 OpenGOAL Mod that attempts replicating Half-Life 1 movement and some weapons within GOAL.
 
 Overall experience is smoother with the frame rate limit set to 150 fps.
 ## Main Changes
@@ -68,58 +68,63 @@ A small change was made to target collision to be closer to Half-Life’s player
 
 ### Controls
 
-Controls were changed for supporting mouse and keyboard only and currently cannot be rebound.
+It is recommended to use a keyboard and mouse. Some controls can be rebound, but controller controls cannot.
 
+Default keyboard and controller controls:
 <ul>
-  <li>WASD</li>
+  <li>WASD / Left Analog</li>
   <ul>
     <li>Moves forward, back, left and right</li>
   </ul>
-  <li>CTRL</li>
+  <li>Space / L1</li>
+  <ul>
+    <li>Jump</li>
+  </ul>
+  <li>CTRL / L2</li>
   <ul>
     <li>Duck</li>
   </ul>
-  <li>Shift</li>
+  <li>Shift / L3</li>
   <ul>
     <li>Walks</li>
   </ul>
-  <li>E</li>
+  <li>E / Circle</li>
   <ul>
     <li>Same as pressing circle</li>
   </ul>
-  <li>Tab</li>
+  <li>Tab / R3</li>
   <ul>
     <li>Shows the HUD</li>
   </ul>
-  <li>Q</li>
+  <li>Q / Down</li>
   <ul>
     <li>Last weapon switch</li>
   </ul>
-  <li>1, 2, 3</li>
+  <li>1, 2, 3 / Left, Up, Right</li>
   <ul>
     <li>Switch to Crowbar, pistol and SMG respectively</li>
   </ul>
-  <li>R</li>
+  <li>R / Square</li>
   <ul>
     <li>Reload</li>
   </ul>
-  <li>Mouse1</li>
+  <li>Mouse1 / R1</li>
   <ul>
     <li>Primary Attack</li>
   </ul>
-  <li>Mouse2</li>
+  <li>Mouse2 / R2</li>
   <ul>
     <li>Secondary Attack</li>
   </ul>
-  <li>ESC</li>
+  <li>ESC / Start</li>
   <ul>
     <li>Pause</li>
   </ul>
-  <li>Arrow Keys</li>
+  <li>Arrow Keys / Dpad</li>
   <ul>
     <li>Navigating in menus</li>
   </ul>
-  <li>Backspace</li>
+  <li>Backspace / Triangle</li>
   <ul>
     <li>Return in menus, skip cutscenes, select "NO"</li>
   </ul>
@@ -127,7 +132,9 @@ Controls were changed for supporting mouse and keyboard only and currently canno
 
 It was also added settings for jumping and ducking using the mouse wheel.
 
-In debug mode, to open the debug menu use ``. + ESC``, ``arrow keys`` to navigate and ``ENTER`` and ``BACKSPACE`` to select and return.
+In debug mode, to open the debug menu use ``. + ESC``, ``arrow keys`` to navigate and ``ENTER`` and ``BACKSPACE`` to select and return. In debug mode there is also a method of setting custom checkpoints for practice, use `TAB + ENTER` to set a checkpoint and `TAB + BACKSPACE` to load.
+
+In speedrunner mode use `BACKSPACE + ESC` to open the speedrunner menu.
 
 ### Weapons
 
@@ -145,4 +152,4 @@ Deals the same damage as the SMG but has higher accuracy. It also has a secondar
 
 #### SMG
 
-Same damage as the pistol, less accuracy but higher firerate. Its secondary attack is the grenade launcher which deals the most damage, but its most useful function is the grenade jump which is needed in order to perform most of the jumps to be able to progress in the game. The grenade its basically a bomb from the cannons of the vanilla game but with changes to its gravity and a new model.
+Same damage as the pistol, less accuracy but higher firerate. Its secondary attack is the grenade launcher which deals the most damage, but its most useful function is the grenade jump which is needed in order to perform most of the jumps to be able to progress in the game. The grenade is basically a bomb from the cannons of the vanilla game but with changes to its gravity and a new model.
