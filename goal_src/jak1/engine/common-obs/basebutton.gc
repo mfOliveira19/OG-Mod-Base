@@ -465,9 +465,7 @@
       (play-sound-file
         "sound_replacements/warpgate-tele.mp3"
         (the int
-          (max
-            0
-            (the int (- (the int (-> *pc-settings* mod-sfx-volume)) 30)))))
+          (* (-> *pc-settings* mod-sfx-volume) 0.4)))
       (until (ja-done? 0)
         (suspend)
         (ja :num! (seek! (ja-aframe 40.0 0))))

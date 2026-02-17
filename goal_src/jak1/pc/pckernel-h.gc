@@ -161,6 +161,8 @@
    (hev-sounds?                      symbol) ;; Added for hl mod
    (teleport-effect?                 symbol) ;; Added for hl mod
    (show-speed?                      symbol) ;; Added for hl mod
+   (controller-aim?                  symbol) ;; Added for hl mod
+   (controller-sens                  float)  ;; Added for hl mod
    ;; audio settings
    (audio-latency-ms                 int16) ;; audio latency in milliseconds
    (audio-pan-override               float) ;; audio pan modifier
@@ -393,10 +395,12 @@
     (set! (-> obj longjump-enabled?) #t)
     (set! (-> obj mouse-wheel-behavior) 1)
     (set! (-> obj fov) 90.0)
-    (set! (-> obj mod-sfx-volume) 50.0)
+    (set! (-> obj mod-sfx-volume) 35.0)
     (set! (-> obj hev-sounds?) #t)
     (set! (-> obj teleport-effect?) #t)
     (set! (-> obj show-speed?) #f)
+    (set! (-> obj controller-aim?) #f)
+    (set! (-> obj controller-sens) 5.0)
   0)
 
 (defmethod reset-ps2 ((obj pc-settings) (call-handlers symbol))

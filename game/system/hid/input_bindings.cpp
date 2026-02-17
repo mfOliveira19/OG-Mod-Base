@@ -95,31 +95,33 @@ const InputBindingGroups DEFAULT_CONTROLLER_BINDS = InputBindingGroups(
      {SDL_GAMEPAD_BUTTON_DPAD_LEFT, {InputBinding(PadData::ButtonIndex::DPAD_LEFT)}},
      {SDL_GAMEPAD_BUTTON_DPAD_RIGHT, {InputBinding(PadData::ButtonIndex::DPAD_RIGHT)}}});
 
+// Changed for HL MOD, we will map the binds to the controller buttons but we map it through actions in the goal side
 const InputBindingGroups DEFAULT_KEYBOARD_BINDS =
     InputBindingGroups(KEYBOARD,
-                       {{SDLK_A, {InputBinding(PadData::AnalogIndex::LEFT_X, true)}},
-                        {SDLK_D, {InputBinding(PadData::AnalogIndex::LEFT_X)}},
-                        {SDLK_S, {InputBinding(PadData::AnalogIndex::LEFT_Y)}},
-                        {SDLK_W, {InputBinding(PadData::AnalogIndex::LEFT_Y, true)}},
+                       {{SDLK_A, {InputBinding(PadData::AnalogIndex::LEFT_X, true)}}, // LEFT ANALOG LEFT
+                        {SDLK_D, {InputBinding(PadData::AnalogIndex::LEFT_X)}},       // LEFT ANALOG RIGHT
+                        {SDLK_S, {InputBinding(PadData::AnalogIndex::LEFT_Y)}},       // LEFT ANALOG BACK
+                        {SDLK_W, {InputBinding(PadData::AnalogIndex::LEFT_Y, true)}}, // LEFT ANALOG FORWARD
                         {SDLK_L, {InputBinding(PadData::AnalogIndex::RIGHT_X, true)}},
                         {SDLK_J, {InputBinding(PadData::AnalogIndex::RIGHT_X)}},
                         {SDLK_K, {InputBinding(PadData::AnalogIndex::RIGHT_Y)}},
                         {SDLK_I, {InputBinding(PadData::AnalogIndex::RIGHT_Y, true)}}},
                        {},
-                       {{SDLK_SPACE, {InputBinding(PadData::ButtonIndex::CROSS)}},
+                        // Some defaults were changed
+                       {{SDLK_DOWN, {InputBinding(PadData::ButtonIndex::CROSS)}},
                         {SDLK_E, {InputBinding(PadData::ButtonIndex::CIRCLE)}},
-                        {SDLK_F, {InputBinding(PadData::ButtonIndex::SQUARE)}},
-                        {SDLK_R, {InputBinding(PadData::ButtonIndex::TRIANGLE)}},
-                        {SDLK_COMMA, {InputBinding(PadData::ButtonIndex::L3)}},
-                        {SDLK_PERIOD, {InputBinding(PadData::ButtonIndex::R3)}},
+                        {SDLK_R, {InputBinding(PadData::ButtonIndex::SQUARE)}},
+                        {SDLK_F, {InputBinding(PadData::ButtonIndex::TRIANGLE)}},
+                        {SDLK_LSHIFT, {InputBinding(PadData::ButtonIndex::L3)}},
+                        {SDLK_TAB, {InputBinding(PadData::ButtonIndex::R3)}},
                         {SDLK_APOSTROPHE, {InputBinding(PadData::ButtonIndex::SELECT)}},
                         {SDLK_RETURN, {InputBinding(PadData::ButtonIndex::START)}},
-                        {SDLK_Q, {InputBinding(PadData::ButtonIndex::L1)}},
+                        {SDLK_SPACE, {InputBinding(PadData::ButtonIndex::L1)}},
                         {SDLK_O, {InputBinding(PadData::ButtonIndex::R1)}},
-                        {SDLK_1, {InputBinding(PadData::ButtonIndex::L2)}},
+                        {SDLK_LCTRL, {InputBinding(PadData::ButtonIndex::L2)}},
                         {SDLK_P, {InputBinding(PadData::ButtonIndex::R2)}},
                         {SDLK_UP, {InputBinding(PadData::ButtonIndex::DPAD_UP)}},
-                        {SDLK_DOWN, {InputBinding(PadData::ButtonIndex::DPAD_DOWN)}},
+                        {SDLK_Q, {InputBinding(PadData::ButtonIndex::DPAD_DOWN)}},
                         {SDLK_LEFT, {InputBinding(PadData::ButtonIndex::DPAD_LEFT)}},
                         {SDLK_RIGHT, {InputBinding(PadData::ButtonIndex::DPAD_RIGHT)}}});
 

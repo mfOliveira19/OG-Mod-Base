@@ -138,19 +138,20 @@ void from_json(const json& j, InputSettings& obj) {
 }
 
 InputSettings::InputSettings() {}
-
+// Changed for hl mod
+// In here, the filenames were changed to force creating a new file with the new default inputs so we dont need to restore defaults if we already had a file
 void InputSettings::load_settings() {
   try {
     keyboard_binds = DEFAULT_KEYBOARD_BINDS;
     mouse_binds = DEFAULT_MOUSE_BINDS;
     std::string file_path =
-        (file_util::get_user_settings_dir(g_game_version) / "input-settings.json").string();
+        (file_util::get_user_settings_dir(g_game_version) / "input-settings-mod.json").string();
     if (!file_util::file_exists(file_path)) {
       return;
     }
     lg::info("Loading input settings at {}", file_path);
     auto raw = file_util::read_text_file(file_path);
-    from_json(parse_commented_json(raw, "input-settings.json"), *this);
+    from_json(parse_commented_json(raw, "input-settings-mod.json"), *this);
   } catch (std::exception& e) {
     // do nothing
     lg::error("Error encountered when attempting to load input settings {}", e.what());
@@ -161,7 +162,7 @@ void InputSettings::save_settings() {
   // Update the version string as we are now saving it back ground
   version = current_version;
   json data = *this;
-  auto file_path = file_util::get_user_settings_dir(g_game_version) / "input-settings.json";
+  auto file_path = file_util::get_user_settings_dir(g_game_version) / "input-settings-mod.json";
   file_util::create_dir_if_needed_for_file(file_path);
   file_util::write_text_file(file_path, data.dump(2));
 }

@@ -40,12 +40,13 @@
     (when (or (!= (-> this value) arg0)
               (!= (-> this value2) arg1)
               (-> this force-on-screen)
-              (or (and (key-status? tab-held) (not (-> this disable))) (and (not *cheat-mode*) (cpad-hold? 0 r2)) (-> this first-init)))
+              (or (and (should-show-hud?) (not (-> this disable))) (and (not *cheat-mode*) (cpad-hold? 0 r2)) (-> this first-init)))
       ;; modified for pc port
-      (cond
+      ;; Removed in hl mod due to new key binds
+      #|(cond
         ((cpad-hold? 0 up) (set! *hud-collectable-view* (hud-collectable-view game-totals)))
         ((cpad-hold? 0 down) (set! *hud-collectable-view* (hud-collectable-view level-totals)))
-        ((or (cpad-hold? 0 left) (cpad-hold? 0 right)) (set! *hud-collectable-view* (hud-collectable-view original))))
+        ((or (cpad-hold? 0 left) (cpad-hold? 0 right)) (set! *hud-collectable-view* (hud-collectable-view original))))|#
       (cond
         ((and (-> this increment-on-event)
               (< (-> this value) arg0)
