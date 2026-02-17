@@ -229,7 +229,13 @@
    (tab-pressed          uint8)
    ;; CTRL
    (ctrl-held             uint8)
-   (ctrl-pressed          uint8)))
+   (ctrl-pressed          uint8)
+   ;; A
+   (a-held             uint8)
+   (a-pressed          uint8)
+   ;; D
+   (d-held             uint8)
+   (d-pressed          uint8)))
 
 (deftype mouse-edge (structure)
   ((mouse1-held         uint8)

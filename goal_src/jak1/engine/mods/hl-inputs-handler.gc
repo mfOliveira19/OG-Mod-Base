@@ -25,7 +25,9 @@
   (set! (-> *keyboard-edge* q-pressed) 0)
   (set! (-> *keyboard-edge* period-pressed) 0)
   (set! (-> *keyboard-edge* tab-pressed) 0)
-  (set! (-> *keyboard-edge* ctrl-pressed) 0))
+  (set! (-> *keyboard-edge* ctrl-pressed) 0)
+  (set! (-> *keyboard-edge* a-pressed) 0)
+  (set! (-> *keyboard-edge* d-pressed) 0))
 
 (defun clear-mouse-edge-pressed! ()
   (set! (-> *mouse-edge* mouse1-pressed) 0)
@@ -86,7 +88,11 @@
   ;; TAB
   (update-key-edge key_tab tab-held tab-pressed)
   ;; CTRL
-  (update-key-edge key_ctrl ctrl-held ctrl-pressed))
+  (update-key-edge key_ctrl ctrl-held ctrl-pressed)
+  ;; A
+  (update-key-edge key_a a-held a-pressed)
+  ;; D
+  (update-key-edge key_d d-held d-pressed))
 
 (defun update-mouse-input-stuff ()
   (clear-mouse-edge-pressed!)
@@ -100,40 +106,53 @@
 
 (defun mouse-wheel-jump? ()
   (unless (= (-> *pc-settings* mouse-wheel-behavior) 0)
-    (if (= (-> *pc-settings* mouse-wheel-behavior) 1)
-      (< (-> *mouse-data* mouse-scrolly) 0.0)
-      (> (-> *mouse-data* mouse-scrolly) 0.0))))
+    (cond
+      ((= (-> *pc-settings* mouse-wheel-behavior) 1)
+        (< (-> *mouse-data* mouse-scrolly) 0.0)
+      )
+      ((= (-> *pc-settings* mouse-wheel-behavior) 2)
+        (> (-> *mouse-data* mouse-scrolly) 0.0)
+      )
+      ((or (= (-> *pc-settings* mouse-wheel-behavior) 2) (= (-> *pc-settings* mouse-wheel-behavior) 3))
+        (!= (-> *mouse-data* mouse-scrolly) 0.0)
+      )
+    )    
+))
 
 (defun should-update-jump-buffer? ()
- (when (or (mouse-wheel-jump?) (key-status? space-pressed))
+ (when (and (or (mouse-wheel-jump?) (cpad-pressed? 0 l1)) (not (paused?)))
   (set-time! *hl-target-jump-buffer*)))
 
 (defun should-jump? ()
   (if (-> *pc-settings* auto-jump?)
     (begin 
-      (when (or (not (time-elapsed? *hl-target-jump-buffer* hl-target-jump-buffer-time)) (!= (-> *keyboard-data* key_space) 0)) #t)
+      (when (and (not (paused?)) (or (not (time-elapsed? *hl-target-jump-buffer* hl-target-jump-buffer-time)) (cpad-hold? 0 l1))) #t)
     )
     (begin
-      (when (not (time-elapsed? *hl-target-jump-buffer* hl-target-jump-buffer-time)) #t))))
+      (when (and (not (paused?)) (not (time-elapsed? *hl-target-jump-buffer* hl-target-jump-buffer-time))) #t))))
+
+(defun should-swim-up? ()
+  (or (cpad-hold? 0 l1) (should-jump?))
+)
 
 (defun should-move-forward? ()
-  ;;(< (-> *cpad-list* cpads 0 lefty) 127)
-  (!= (-> *keyboard-data* key_w) 0)
+  (< (-> *cpad-list* cpads 0 lefty) 127)
+  ;;(!= (-> *keyboard-data* key_w) 0)
 )
 
 (defun should-move-back? ()
-  ;;(> (-> *cpad-list* cpads 0 lefty) 127)
-  (!= (-> *keyboard-data* key_s) 0)
+  (> (-> *cpad-list* cpads 0 lefty) 127)
+  ;;(!= (-> *keyboard-data* key_s) 0)
 )
 
 (defun should-move-left? ()
-  ;;(< (-> *cpad-list* cpads 0 leftx) 127)
-  (!= (-> *keyboard-data* key_a) 0)
+  (< (-> *cpad-list* cpads 0 leftx) 127)
+  ;;(!= (-> *keyboard-data* key_a) 0)
 )
 
 (defun should-move-right? ()
-  ;;(> (-> *cpad-list* cpads 0 leftx) 127)
-  (!= (-> *keyboard-data* key_d) 0)
+  (> (-> *cpad-list* cpads 0 leftx) 127)
+  ;;(!= (-> *keyboard-data* key_d) 0)
 )
 
 (defun should-be-moving? ()
@@ -142,17 +161,17 @@
 
 (defun raw-duck-input? ()
   (or (> (-> *mouse-data* mouse-scrolly) 0.0)
-      (!= (-> *keyboard-data* key_ctrl) 0)))
+      (cpad-hold? 0 l2)))
 
 (defun mouse-wheel-duck? ()
-  (unless (= (-> *pc-settings* mouse-wheel-behavior) 0)
+  (unless (or (= (-> *pc-settings* mouse-wheel-behavior) 0) (= (-> *pc-settings* mouse-wheel-behavior) 3))
     (if (= (-> *pc-settings* mouse-wheel-behavior) 1)
       (> (-> *mouse-data* mouse-scrolly) 0.0)
       (< (-> *mouse-data* mouse-scrolly) 0.0))))
 
 (defun should-duck? ()
   (cond
-    ((key-status? ctrl-held) #t)
+    ((cpad-hold? 0 l2) #t)
     ((and (mouse-wheel-duck?)
           (time-elapsed? *last-duck-time* duck-cooldown))
      (set-time! *last-duck-time*)
@@ -161,44 +180,47 @@
     (else #f)))
 
 (defun should-walk? ()
-  ;;(cpad-hold? 0 r1)
-  (!= (-> *keyboard-data* key_shift) 0)
+  (cpad-hold? 0 l3)
+  ;;(!= (-> *keyboard-data* key_shift) 0)
 )
 
 (defun should-reload? ()
-  (and (!= (-> *target* state name) 'target-hl-death) (!= (-> *keyboard-data* key_r) 0) (not (paused?)) (not (movie?)) (not (= (-> *target* state name) 'target-hl-grab)))
+  (and (!= (-> *target* state name) 'target-hl-death) (cpad-hold? 0 square) (not (paused?)) (not (movie?)) (not (= (-> *target* state name) 'target-hl-grab)))
 )
 
 (defun should-attack? ()
-  (and (in-hl-state?) (!= (-> *mouse-data* mouse1) 0)))
+  (and (in-hl-state?) (not (paused?))(or (!= (-> *mouse-data* mouse1) 0) (cpad-hold? 0 r1))))
 
 (defun mouse1? ()
   (!= (-> *mouse-data* mouse1) 0))
 
 (defun should-second-attack? ()
-  (and (in-hl-state?) (!= (-> *mouse-data* mouse2) 0))
+  (and (in-hl-state?) (not (paused?)) (or (!= (-> *mouse-data* mouse2) 0) (cpad-hold? 0 r2)))
 )
 
 (defun should-switch-slot1? ()
-  (and (!= (-> *keyboard-data* key_1) 0) (not (paused?)))
+  (and (or (!= (-> *keyboard-data* key_1) 0) (cpad-pressed? 0 left)) (not (paused?)) (not (= (-> *target* state name) 'target-hl-grab)))
 )
 
 (defun should-switch-slot2? ()
-  (and (!= (-> *keyboard-data* key_2) 0) (not (paused?)))
+  (and (or (!= (-> *keyboard-data* key_2) 0) (cpad-pressed? 0 up)) (not (paused?)) (not (= (-> *target* state name) 'target-hl-grab)))
 )
 
 (defun should-switch-slot3? ()
-  (and (!= (-> *keyboard-data* key_3) 0) (not (paused?)))
+  (and (or (!= (-> *keyboard-data* key_3) 0) (cpad-pressed? 0 right)) (not (paused?)) (not (= (-> *target* state name) 'target-hl-grab)))
 )
 
 (defun should-use? ()
   (key-status? e-pressed))
 
 (defun should-exit? ()
-  (key-status? backspace-pressed))
+  (or (key-status? backspace-pressed) (cpad-pressed? 0 triangle)))
 
 (defun should-switch-last-weapon? ()
-  (and (key-status? q-pressed) (not (paused?))))
+  (and (cpad-pressed? 0 down) (not (paused?))))
+
+(defun should-show-hud? ()
+  (cpad-pressed? 0 r3))
 
 (defun clear-keyboard ((kb keyboard-info))
   (set! (-> kb key_w) 0)
@@ -226,10 +248,9 @@
   (set! (-> mouse mouse-rely) 0.0)
   (set! (-> mouse mouse-scrolly) 0.0))
 
-
 (defbehavior target-hl-is-in-duck? target ()
   (or (= (-> self state name) 'target-hl-movement-ground-duck) (= (-> self state name) 'target-hl-movement-air-duck)))
-
+#|
 (defbehavior read-input target ((arg0 vector))
   (when (!= (-> self control pad-read-time) (-> *display* real-frame-counter))
     (set! (-> self control last-stick-vec quad) (-> self control stick-vec quad))
@@ -255,7 +276,40 @@
                 (duck-mult (if (target-hl-is-in-duck?) 0.3 1.0)))
             (set! (-> self control pad-stick-speed) (* base-speed duck-mult)))
           (vector-matrix*! arg0 arg0 (matrix-local->world #t #f))
-))))
+))))|#
+
+(defun walk-speed-multiplier ()
+  (if (should-walk?) 0.48 1.5))
+
+(defun duck-speed-multiplier ()
+  (if (target-hl-is-in-duck?) 0.3 1.0))
+
+(defbehavior read-input target ((arg0 vector))
+  ;; frame sync
+  (when (!= (-> self control pad-read-time) (-> *display* real-frame-counter))
+    (set! (-> self control last-stick-vec quad) (-> self control stick-vec quad))
+    (set! (-> self control last-pad-stick-speed) (-> self control pad-stick-speed))
+    (set! (-> self control pad-read-time) (the-as uint (-> *display* real-frame-counter))))
+
+  ;; fill arg0 with controller analog (angle-based)
+  (set! (-> arg0 x) (sin (-> self control cpad stick0-dir)))
+  (set! (-> arg0 y) 0.0)
+  (set! (-> arg0 z) (cos (-> self control cpad stick0-dir)))
+  (set! (-> arg0 w) 0.0)
+
+  ;; no need to normalize — the direction is already correct from sin/cos
+
+  ;; store the quad for other systems
+  (set! (-> self control stick-vec quad) (-> arg0 quad))
+
+  ;; scale pad-stick-speed by analog magnitude * walk/duck
+  (set! (-> self control pad-stick-speed)
+        (* (if (> (-> self control cpad stick0-speed) 0.0) 1.0 (-> self control cpad stick0-speed))
+           (walk-speed-multiplier)
+           (duck-speed-multiplier)))
+
+  ;; finally, apply world transform
+  (vector-matrix*! arg0 arg0 (matrix-local->world #t #f)))
 
 (defun get-camera-pitch ()
   (-> (the-as camera-slave (-> *camera* slave 0))

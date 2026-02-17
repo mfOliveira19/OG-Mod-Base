@@ -644,7 +644,9 @@
              (not (and (= (-> self control ground-pat material) (pat-material ice)) (< 4096.0 (-> self control speed-mod)))))
       (send-event self 'change-mode 'look-around)))
   (when (and (= *cheat-mode* 'debug)
-             (cpad-hold? (-> self control cpad number) r2)
+             ;;(cpad-hold? (-> self control cpad number) r2)
+             ;; Changed for hl mod
+             (cpad-hold? (-> self control cpad number) x)
              (not *pause-lock*)
              (not (logtest? (-> self state-flags) (state-flags grabbed first-person-mode))))
     (if (!= (-> self next-state name) 'target-falling) (send-event self 'change-mode 'falling))

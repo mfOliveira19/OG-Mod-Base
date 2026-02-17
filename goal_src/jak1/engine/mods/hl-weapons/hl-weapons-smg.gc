@@ -89,7 +89,7 @@
     (loop (suspend)))
   :post
   (behavior ()
-    (when (and (!= (-> *mouse-edge* mouse1-pressed) 0) *should-show-swim-screen?*) (play-mod-sound "no_shot"))
+    (when (and (or (!= (-> *mouse-edge* mouse1-pressed) 0) (cpad-pressed? 0 r1)) *should-show-swim-screen?*) (play-mod-sound "no_shot"))
     (update-aim-punch smg-aim-punch-decay)))
 
 (defstate smg-idle-anim (hl-weapons)
@@ -117,7 +117,7 @@
     (loop (suspend)))
   :post
   (behavior ()
-    (when (and (!= (-> *mouse-edge* mouse1-pressed) 0) *should-show-swim-screen?*) (play-mod-sound "no_shot"))
+    (when (and (or (!= (-> *mouse-edge* mouse1-pressed) 0) (cpad-pressed? 0 r1)) *should-show-swim-screen?*) (play-mod-sound "no_shot"))
     (update-aim-punch smg-aim-punch-decay)))
 
 (defstate smg-attack (hl-weapons)

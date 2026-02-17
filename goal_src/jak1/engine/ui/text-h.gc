@@ -807,6 +807,9 @@
   (fov #x1629)
   (teleport-effect #x1630)
   (show-speed #x1631)
+  (controller-aim #x1632)
+  (controller-sens #x1633)
+  (wheel-up-down-jump #x1634)
   ;; mod text mod-base-change
   (pad-triangle #x2000)
   (pad-circle #x2001)

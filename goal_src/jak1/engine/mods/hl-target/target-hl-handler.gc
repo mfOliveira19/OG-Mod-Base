@@ -675,7 +675,7 @@
        (('billy) (go target-hl-billy-game))
        ;;(('falling) (go target-falling #f))
        (('racing) (go target-hl-racing-start (process->handle (the-as process (-> arg3 param 1)))))
-       (('flut) (go target-flut-start (process->handle (the-as process (-> arg3 param 1)))))
+       ;;(('flut) (go target-flut-start (process->handle (the-as process (-> arg3 param 1)))))
        ;;(('snowball) (go target-snowball-start (process->handle (the-as process (-> arg3 param 1)))))
        (('tube)
        #|
@@ -706,13 +706,14 @@
     ))
 
 (defstate target-hl-hit (target)
+#|
   :enter
   ;; this was added so we instantly die when we lose all health
   (behavior ()
     (when (and (= (-> self game mode) 'play) (<= (-> self fact health) 1.0))
       (pickup-collectable! (-> self fact) (pickup-type eco-green) (- (-> *FACT-bank* health-single-inc)) (the-as handle #f))
       (go target-hl-death (-> self attack-info mode)))
-  )
+  )|#
   :event target-hl-standard-event-handler
   :exit
     (behavior ()
@@ -768,8 +769,6 @@
             ((= arg0 'attack)
              (logior! (-> self state-flags) (state-flags being-attacked))
              (set-time! (-> self game hit-time))
-             (when (and (>= (-> self fact health) 1.0) (!= (-> gp-0 mode) 'endlessfall) (!= (-> gp-0 mode) 'instant-death) (!= (-> gp-0 mode) 'drown-death) (!= (-> gp-0 mode) 'dark-eco-pool) (!= (-> gp-0 mode) 'lava) (!= (-> gp-0 mode) 'death) (!= (-> gp-0 mode) 'sharkey)) 
-              (play-mod-sound "hev_beep"))
              (case (-> gp-0 mode)
                (('endlessfall)
                 (cond
@@ -791,9 +790,18 @@
                (('death) (pickup-collectable! (-> self fact) (pickup-type eco-green) (the-as float -1000.0) (the-as handle #f)))
                (('plant-boss)
                 (pickup-collectable! (-> self fact) (pickup-type eco-green) (- (-> *FACT-bank* health-single-inc)) (the-as handle #f))
+                  (when (and (>= (-> self fact health) 1.0) (!= (-> gp-0 mode) 'endlessfall) (!= (-> gp-0 mode) 'instant-death) (!= (-> gp-0 mode) 'drown-death) (!= (-> gp-0 mode) 'dark-eco-pool) (!= (-> gp-0 mode) 'lava) (!= (-> gp-0 mode) 'death) (!= (-> gp-0 mode) 'sharkey)) 
+                    (play-mod-sound "hev_beep"))
                 (if (and (= (-> self game mode) 'play) (>= 0.0 (-> self fact health))) (go target-hl-death (-> gp-0 mode))))
                (else
-                (pickup-collectable! (-> self fact) (pickup-type eco-green) (- (-> *FACT-bank* health-single-inc)) (the-as handle #f))))
+                (pickup-collectable! (-> self fact) (pickup-type eco-green) (- (-> *FACT-bank* health-single-inc)) (the-as handle #f))
+                  (when (and (>= (-> self fact health) 1.0) (!= (-> gp-0 mode) 'endlessfall) (!= (-> gp-0 mode) 'instant-death) (!= (-> gp-0 mode) 'drown-death) (!= (-> gp-0 mode) 'dark-eco-pool) (!= (-> gp-0 mode) 'lava) (!= (-> gp-0 mode) 'death) (!= (-> gp-0 mode) 'sharkey)) 
+                    (play-mod-sound "hev_beep"))
+                  (when (and (= (-> self fact health) 1.0) (-> *pc-settings* hev-sounds?)) (play-mod-sound "health_critical"))
+                  (when (and (= (-> self game mode) 'play) (< (-> self fact health) 1.0))
+                    (pickup-collectable! (-> self fact) (pickup-type eco-green) (- (-> *FACT-bank* health-single-inc)) (the-as handle #f))
+                    (go target-hl-death (-> self attack-info mode)))
+                ))
              (target-hl-hit-effect gp-0))
             (else
              (case (-> gp-0 mode)
@@ -802,7 +810,6 @@
           (target-hit-setup-anim gp-0)
           (target-hit-move gp-0 (target-hit-orient gp-0 s5-0) target-falling-anim-trans (the-as float 1.0))
           )
-          (when (and (= (-> self fact health) 1.0) (-> *pc-settings* hev-sounds?)) (play-mod-sound "health_critical"))
         (if (and (= (-> self game mode) 'play) (>= 0.0 (-> self fact health))) (go target-hl-death (-> gp-0 mode)))
         (go target-hl-hit-ground #f)
         )

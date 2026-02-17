@@ -104,7 +104,7 @@
 (define *carousell-frame-rate* *carousell-frame-rate-150fps*)
 
 ;; Added for hl mod
-(def-progress-carousell *carousell-mouse-wheel* (off wheel-down-jump wheel-up-jump))
+(def-progress-carousell *carousell-mouse-wheel* (off wheel-down-jump wheel-up-jump wheel-up-down-jump))
 
 
 ;; pad remap stuff
@@ -720,6 +720,31 @@
        game-option
        (new 'static
             'game-option
+            :option-type (game-option-type menu)
+            :name (text-id input-options)
+            :scale #t
+            :param3 (game-option-menu mod-input))
+       (new 'static
+            'game-option
+            :option-type (game-option-type menu)
+            :name (text-id graphic-options)
+            :scale #t
+            :param3 (game-option-menu mod-graphic))
+       (new 'static
+            'game-option
+            :option-type (game-option-type menu)
+            :name (text-id sound-options)
+            :scale #t
+            :param3 (game-option-menu mod-sound))
+       (new 'static 'game-option :option-type (game-option-type button) :name (text-id back) :scale #t)))
+
+(define *mod-input*
+  (new 'static
+       'boxed-array
+       :type
+       game-option
+       (new 'static
+            'game-option
             :option-type (game-option-type slider)
             :name (text-id mouse-sensitivity)
             :scale #t
@@ -731,9 +756,39 @@
             (lambda ()
               (update-mouse-controls! *pc-settings*)
               (none)))
+      (new 'static
+            'game-option
+            :option-type (game-option-type menu)
+            :name (text-id input-opts-binds-keyboard)
+            :scale #t
+            :param3 (game-option-menu mod-keyboard-binds))
        (new 'static 'game-option :option-type (game-option-type on-off) :name (text-id auto-jump) :scale #t)
        (new 'static 'game-option :option-type (game-option-type on-off) :name (text-id long-jump) :scale #t)
        (new 'static 'game-option :option-type (game-option-type mouse-wheel) :name (text-id mouse-wheel) :scale #t)
+       (new 'static 'game-option :option-type (game-option-type on-off) :name (text-id controller-aim) :scale #t)
+       (new 'static
+            'game-option
+            :option-type (game-option-type slider)
+            :name (text-id controller-sens)
+            :scale #t
+            :param1 0.0
+            :param2 10.0
+            :slider-step-size 0.005
+            :slider-show-decimal? #t)
+       (new 'static 'game-option :option-type (game-option-type button) :name (text-id back) :scale #t)))
+
+#|(define *mod-keyboard-binds*
+  (new 'static
+       'boxed-array
+       :type
+       game-option
+       (new 'static 'game-option :option-type (game-option-type button) :name (text-id back) :scale #t)))|#
+
+(define *mod-graphic*
+  (new 'static
+       'boxed-array
+       :type
+       game-option
        (new 'static
             'game-option
             :option-type (game-option-type slider)
@@ -744,6 +799,14 @@
             :slider-step-size 0.1
             :slider-show-decimal? #f)
        (new 'static 'game-option :option-type (game-option-type on-off) :name (text-id teleport-effect) :scale #t)
+       (new 'static 'game-option :option-type (game-option-type on-off) :name (text-id show-speed) :scale #t)
+       (new 'static 'game-option :option-type (game-option-type button) :name (text-id back) :scale #t)))
+
+(define *mod-sound*
+  (new 'static
+       'boxed-array
+       :type
+       game-option
        (new 'static
             'game-option
             :option-type (game-option-type slider)
@@ -753,83 +816,6 @@
             :slider-step-size 0.1
             :slider-show-decimal? #f)
        (new 'static 'game-option :option-type (game-option-type on-off) :name (text-id hev-sounds) :scale #t)
-       (new 'static 'game-option :option-type (game-option-type on-off) :name (text-id show-speed) :scale #t)
-       #|
-       (new 'static
-            'game-option
-            :option-type (game-option-type menu)
-            :name (text-id camera-options)
-            :scale #t
-            :param3 (game-option-menu camera-options))
-       (new 'static
-            'game-option
-            :option-type (game-option-type menu)
-            :name (text-id input-opts-controller-opts)
-            :scale #t
-            :param3 (game-option-menu controller-options)
-            :option-disabled-func
-            (lambda ()
-              (<= (pc-get-controller-count) 0)))
-       (new 'static
-            'game-option
-            :option-type (game-option-type on-off)
-            :name (text-id input-opts-enable-kb)
-            :scale #t
-            :on-change
-            (lambda ((val object))
-              (let ((val-sym (the-as symbol val)))
-                (pc-set-keyboard-enabled! val-sym)
-                (set! (-> *pc-settings* keyboard-enabled?) val-sym)
-                (none))))
-       (new 'static
-            'game-option
-            :option-type (game-option-type on-off)
-            :name (text-id input-opts-enable-mouse)
-            :scale #t
-            :on-change
-            (lambda ((val object))
-              (let ((val-sym (the-as symbol val)))
-                (set! (-> *pc-settings* mouse-enabled?) val-sym)
-                (update-mouse-controls! *pc-settings*)
-                (none))))
-       (new 'static
-            'game-option
-            :option-type (game-option-type menu)
-            :name (text-id input-opts-mouse-opts)
-            :scale #t
-            :param3 (game-option-menu mouse-options)
-            :option-disabled-func
-            (lambda ()
-              (not (-> *pc-settings* mouse-enabled?))))
-       (new 'static
-            'game-option
-            :option-type (game-option-type on-off)
-            :name (text-id input-opts-auto-hide-cursor)
-            :scale #t
-            :on-change
-            (lambda ((val object))
-              (let ((val-sym (the-as symbol val)))
-                (set! (-> *pc-settings* auto-hide-cursor?) val-sym)
-                (update-mouse-controls! *pc-settings*)
-                (none))))
-       (new 'static
-            'game-option
-            :option-type (game-option-type menu)
-            :name (text-id input-opts-reassign-binds)
-            :scale #t
-            :param3 (game-option-menu reassign-binds-options))
-       (new 'static
-            'game-option
-            :option-type (game-option-type confirmation)
-            :name (text-id restore-defaults)
-            :scale #t
-            :on-confirm
-            (lambda ()
-              (reset-input *pc-settings* 'input #t)
-              (pc-set-keyboard-enabled! (-> *pc-settings* keyboard-enabled?))
-              (update-mouse-controls! *pc-settings*)
-              (none)))
-        |#
        (new 'static 'game-option :option-type (game-option-type button) :name (text-id back) :scale #t)))
 
 (define *misc-options*
@@ -1494,6 +1480,29 @@
        "CROSS"
        "SQUARE"))
 
+;; Added for hl mod
+(define *keyboard-action-bind-names*
+  (new 'static
+       'boxed-array
+       :type
+       string
+       "JUMP"
+       "DUCK"
+       "WALK"
+       "RELOAD"
+       "LAST WEAPON USED"
+       "SHOW HUD"))
+
+(define *keyboard-movement-bind-names*
+  (new 'static
+       'boxed-array
+       :type
+       string
+       "MOVE LEFT"
+       "MOVE RIGHT"
+       "MOVE BACK"
+       "MOVE FORWARD"))
+
 ;; TODO - make a common function for these dynamic menus instead of the duplication / macros
 (defun build-binding-reassignment-options ((screen progress-screen))
   "Dynamically creates menu options for reassigning bindings for controllers/mice/keyboard"
@@ -1555,6 +1564,171 @@
       (((progress-screen keyboard-binds))
        (set! (-> option on-confirm) (lambda () (pc-reset-bindings-to-defaults! 0 1) (none))))
       (((progress-screen mouse-binds)) (set! (-> option on-confirm) (lambda () (pc-reset-bindings-to-defaults! 0 2) (none)))))
+    (1+! (-> *temp-options* length)))
+  (add-back-option)
+  *temp-options*)
+
+;; Added for hl mod
+(defun build-mod-keyboard-binding-reassignment-options ((screen progress-screen))
+  (set! (-> *temp-options* length) 0)
+  #|(dotimes (i 4)
+    (let ((option (-> *temp-options* (length *temp-options*))))
+      (set! (-> option bind-info port) 0)
+      (set! (-> option bind-info device-type) 1)
+      (set! (-> option bind-info for-buttons?) #f)
+      (set! (-> option bind-info input-idx) i)
+      (set! (-> option bind-info analog-min-range?) #t)
+      (set! (-> option option-type) (game-option-type binding-assignment))
+      (set! (-> option name-override) (copy-string<-string (-> option name-override) (-> *keyboard-movement-bind-names* i)))
+      (set! (-> option scale) #t)
+      (1+! (-> *temp-options* length))))|#
+
+  ;; The way it handles the analog inputs is weird so we will do it manually
+
+  ;; LEFT ANALOG FORWARD (MOVE FORWARD)
+  (let ((option (-> *temp-options* (length *temp-options*))))
+    (set! (-> option bind-info port) 0)
+    (set! (-> option bind-info device-type) 1)
+    (set! (-> option bind-info for-buttons?) #f)
+    (set! (-> option bind-info input-idx) 1)
+    (set! (-> option bind-info analog-min-range?) #t)
+    (set! (-> option option-type) (game-option-type binding-assignment))
+    (set! (-> option name-override) (copy-string<-string (-> option name-override) (-> *keyboard-movement-bind-names* 3)))
+    (set! (-> option scale) #t)
+    (1+! (-> *temp-options* length)))
+
+  ;; LEFT ANALOG BACK (MOVE BACKWARD)
+  (let ((option (-> *temp-options* (length *temp-options*))))
+    (set! (-> option bind-info port) 0)
+    (set! (-> option bind-info device-type) 1)
+    (set! (-> option bind-info for-buttons?) #f)
+    (set! (-> option bind-info input-idx) 1)
+    (set! (-> option bind-info analog-min-range?) #f)
+    (set! (-> option option-type) (game-option-type binding-assignment))
+    (set! (-> option name-override) (copy-string<-string (-> option name-override) (-> *keyboard-movement-bind-names* 2)))
+    (set! (-> option scale) #t)
+    (1+! (-> *temp-options* length)))
+
+  ;; LEFT ANALOG LEFT (MOVE LEFT)
+  (let ((option (-> *temp-options* (length *temp-options*))))
+    (set! (-> option bind-info port) 0)
+    (set! (-> option bind-info device-type) 1)
+    (set! (-> option bind-info for-buttons?) #f)
+    (set! (-> option bind-info input-idx) 0)
+    (set! (-> option bind-info analog-min-range?) #t)
+    (set! (-> option option-type) (game-option-type binding-assignment))
+    (set! (-> option name-override) (copy-string<-string (-> option name-override) (-> *keyboard-movement-bind-names* 0)))
+    (set! (-> option scale) #t)
+    (1+! (-> *temp-options* length)))
+
+  ;; LEFT ANALOG RIGHT (MOVE RIGHT)
+  (let ((option (-> *temp-options* (length *temp-options*))))
+    (set! (-> option bind-info port) 0)
+    (set! (-> option bind-info device-type) 1)
+    (set! (-> option bind-info for-buttons?) #f)
+    (set! (-> option bind-info input-idx) 0)
+    (set! (-> option bind-info analog-min-range?) #f)
+    (set! (-> option option-type) (game-option-type binding-assignment))
+    (set! (-> option name-override) (copy-string<-string (-> option name-override) (-> *keyboard-movement-bind-names* 1)))
+    (set! (-> option scale) #t)
+    (1+! (-> *temp-options* length)))
+
+;; I couldn't figure out how to change the order of the inputs, so we will also do it manually here
+;; The controller map will follow the HL PS2 controls
+
+;; L1 (JUMP) 
+(let ((option (-> *temp-options* (length *temp-options*))))
+  (set! (-> option bind-info device-type) 1)
+  (set! (-> option bind-info port) 0)
+  (set! (-> option bind-info for-buttons?) #t)
+  (set! (-> option bind-info input-idx) 10)
+  (set! (-> option bind-info analog-min-range?) #f)
+  (set! (-> option option-type) (game-option-type binding-assignment))
+  (set! (-> option name-override) (copy-string<-string (-> option name-override) (-> *keyboard-action-bind-names* 0)))
+  (set! (-> option scale) #t)
+  (1+! (-> *temp-options* length)))
+
+;; L2 (DUCK)
+(let ((option (-> *temp-options* (length *temp-options*))))
+  (set! (-> option bind-info device-type) 1)
+  (set! (-> option bind-info port) 0)
+  (set! (-> option bind-info for-buttons?) #t)
+  (set! (-> option bind-info input-idx) 8)
+  (set! (-> option bind-info analog-min-range?) #f)
+  (set! (-> option option-type) (game-option-type binding-assignment))
+  (set! (-> option name-override) (copy-string<-string (-> option name-override) (-> *keyboard-action-bind-names* 1)))
+  (set! (-> option scale) #t)
+  (1+! (-> *temp-options* length)))
+
+;; L3 (WALK)
+(let ((option (-> *temp-options* (length *temp-options*))))
+  (set! (-> option bind-info device-type) 1)
+  (set! (-> option bind-info port) 0)
+  (set! (-> option bind-info for-buttons?) #t)
+  (set! (-> option bind-info input-idx) 1)
+  (set! (-> option bind-info analog-min-range?) #f)
+  (set! (-> option option-type) (game-option-type binding-assignment))
+  (set! (-> option name-override) (copy-string<-string (-> option name-override) (-> *keyboard-action-bind-names* 2)))
+  (set! (-> option scale) #t)
+  (1+! (-> *temp-options* length)))
+
+;; SQUARE (RELOAD)
+(let ((option (-> *temp-options* (length *temp-options*))))
+  (set! (-> option bind-info device-type) 1)
+  (set! (-> option bind-info port) 0)
+  (set! (-> option bind-info for-buttons?) #t)
+  (set! (-> option bind-info input-idx) 15)
+  (set! (-> option bind-info analog-min-range?) #f)
+  (set! (-> option option-type) (game-option-type binding-assignment))
+  (set! (-> option name-override) (copy-string<-string (-> option name-override) (-> *keyboard-action-bind-names* 3)))
+  (set! (-> option scale) #t)
+  (1+! (-> *temp-options* length)))
+
+;; D-PAD DOWN (SWITCH TO LAST USED WEAPON)
+(let ((option (-> *temp-options* (length *temp-options*))))
+  (set! (-> option bind-info device-type) 1)
+  (set! (-> option bind-info port) 0)
+  (set! (-> option bind-info for-buttons?) #t)
+  (set! (-> option bind-info input-idx) 6)
+  (set! (-> option bind-info analog-min-range?) #f)
+  (set! (-> option option-type) (game-option-type binding-assignment))
+  (set! (-> option name-override) (copy-string<-string (-> option name-override) (-> *keyboard-action-bind-names* 4)))
+  (set! (-> option scale) #t)
+  (1+! (-> *temp-options* length)))
+
+;; R3 (SHOW HUD)
+(let ((option (-> *temp-options* (length *temp-options*))))
+  (set! (-> option bind-info device-type) 1)
+  (set! (-> option bind-info port) 0)
+  (set! (-> option bind-info for-buttons?) #t)
+  (set! (-> option bind-info input-idx) 2)
+  (set! (-> option bind-info analog-min-range?) #f)
+  (set! (-> option option-type) (game-option-type binding-assignment))
+  (set! (-> option name-override) (copy-string<-string (-> option name-override) (-> *keyboard-action-bind-names* 5)))
+  (set! (-> option scale) #t)
+  (1+! (-> *temp-options* length)))
+
+#|
+  (dotimes (i 6)
+    (let ((option (-> *temp-options* (length *temp-options*))))
+      (set! (-> option bind-info device-type) 1)
+      (set! (-> option bind-info port) 0)
+      (set! (-> option bind-info for-buttons?) #t)
+      (set! (-> option bind-info input-idx) i)
+      (set! (-> option bind-info analog-min-range?) #f)
+      (set! (-> option option-type) (game-option-type binding-assignment))
+      (set! (-> option name-override) (copy-string<-string (-> option name-override) (-> *keyboard-action-bind-names* i)))
+      (set! (-> option scale) #t)
+      (1+! (-> *temp-options* length))))|#
+  ;; We add a restore defaults button at the bottom of each binding menu
+  (let ((option (-> *temp-options* (length *temp-options*))))
+    (set! (-> option option-type) (game-option-type confirmation))
+    (set! (-> option name) (text-id restore-defaults))
+    (set! (-> option scale) #t)
+    ;; No closures :(
+    (case screen
+      (((progress-screen mod-keyboard-binds))
+       (set! (-> option on-confirm) (lambda () (pc-reset-bindings-to-defaults! 0 1) (none)))))
     (1+! (-> *temp-options* length)))
   (add-back-option)
   *temp-options*)
@@ -2219,7 +2393,12 @@
   ;; set up options for each screen
   (set! (-> *options-remap* (progress-screen settings))
         (if (or *cheat-mode* (nonzero? (-> *pc-settings* cheats-known))) *main-options-secrets* *main-options-pc*))
+  ;; Added for hl mod
   (set! (-> *options-remap* (progress-screen mod-options)) *mod-options*)
+  (set! (-> *options-remap* (progress-screen mod-input)) *mod-input*)
+  (set! (-> *options-remap* (progress-screen mod-graphic)) *mod-graphic*)
+  (set! (-> *options-remap* (progress-screen mod-sound)) *mod-sound*)
+  (set! (-> *options-remap* (progress-screen mod-keyboard-binds)) *temp-options*)
   (set! (-> *options-remap* (progress-screen game-settings)) *game-options-pc*)
   (set! (-> *options-remap* (progress-screen graphic-settings)) *graphic-options-pc*)
   (let ((max-refresh-rate (pc-get-active-display-refresh-rate)))
@@ -2329,25 +2508,23 @@
   (set! (-> *mouse-options* 1 value-to-modify) (&-> *pc-settings* mouse-xsens))
   (set! (-> *mouse-options* 2 value-to-modify) (&-> *pc-settings* mouse-ysens))
   (set! (-> *mouse-options* 3 value-to-modify) (&-> *pc-settings* mouse-movement?))
-  #|
-  (set! (-> *input-options* 0 value-to-modify) (&-> *pc-settings* mouse-xsens)) ;; xsens will be used for both x and y
-  (set! (-> *input-options* 1 value-to-modify) (&-> *pc-settings* auto-jump?))
-  (set! (-> *input-options* 2 value-to-modify) (&-> *pc-settings* longjump-enabled?))
-  (set! (-> *input-options* 3 value-to-modify) (&-> *progress-carousell* int-backup))|#
 
-  (set! (-> *mod-options* 0 value-to-modify) (&-> *pc-settings* mouse-xsens)) ;; xsens will be used for both x and y
-  (set! (-> *mod-options* 1 value-to-modify) (&-> *pc-settings* auto-jump?))
-  (set! (-> *mod-options* 2 value-to-modify) (&-> *pc-settings* longjump-enabled?))
-  (set! (-> *mod-options* 3 value-to-modify) (&-> *progress-carousell* int-backup)) ;; This is the mouse wheel setting
-  (set! (-> *mod-options* 4 value-to-modify) (&-> *pc-settings* fov))
-  (set! (-> *mod-options* 5 value-to-modify) (&-> *pc-settings* teleport-effect?))
-  (set! (-> *mod-options* 6 value-to-modify) (&-> *pc-settings* mod-sfx-volume))
-  (set! (-> *mod-options* 7 value-to-modify) (&-> *pc-settings* hev-sounds?))
-  (set! (-> *mod-options* 8 value-to-modify) (&-> *pc-settings* show-speed?))
+  ;; MOD OPTIONS
+  (set! (-> *mod-input* 0 value-to-modify) (&-> *pc-settings* mouse-xsens)) ;; xsens will be used for both x and y
+  (set! (-> *mod-input* 2 value-to-modify) (&-> *pc-settings* auto-jump?))
+  (set! (-> *mod-input* 3 value-to-modify) (&-> *pc-settings* longjump-enabled?))
+  (set! (-> *mod-input* 4 value-to-modify) (&-> *progress-carousell* int-backup)) ;; This is the mouse wheel setting
+  (set! (-> *mod-input* 5 value-to-modify) (&-> *pc-settings* controller-aim?))
+  (set! (-> *mod-input* 6 value-to-modify) (&-> *pc-settings* controller-sens))
 
-  ;;(set! (-> *input-options* 1 value-to-modify) (&-> *pc-settings* keyboard-enabled?))
-  ;;(set! (-> *input-options* 2 value-to-modify) (&-> *pc-settings* mouse-enabled?))
-  ;;(set! (-> *input-options* 4 value-to-modify) (&-> *pc-settings* auto-hide-cursor?))
+  (set! (-> *mod-graphic* 0 value-to-modify) (&-> *pc-settings* fov))
+  (set! (-> *mod-graphic* 1 value-to-modify) (&-> *pc-settings* teleport-effect?))
+  (set! (-> *mod-graphic* 2 value-to-modify) (&-> *pc-settings* show-speed?))
+
+  (set! (-> *mod-sound* 0 value-to-modify) (&-> *pc-settings* mod-sfx-volume))
+  (set! (-> *mod-sound* 1 value-to-modify) (&-> *pc-settings* hev-sounds?))
+  ;;
+
   (set! (-> *gfx-ps2-options* 0 value-to-modify) (&-> *progress-carousell* int-backup))
   (set! (-> *gfx-ps2-options* 1 value-to-modify) (&-> *progress-carousell* int-backup))
   (set! (-> *gfx-ps2-options* 2 value-to-modify) (&-> *pc-settings* ps2-parts?))
@@ -2382,6 +2559,9 @@
        (set! (-> *options-remap* (-> obj display-state)) *secrets*)))
     (((progress-screen monitor)) (build-monitor-options))
     (((progress-screen select-controller)) (build-controller-options))
+    ;; Added for hl mod
+    (((progress-screen mod-keyboard-binds))
+     (build-mod-keyboard-binding-reassignment-options (-> obj display-state)))
     (((progress-screen controller-binds) (progress-screen keyboard-binds) (progress-screen mouse-binds))
      (build-binding-reassignment-options (-> obj display-state))))
   ;; run nav code
@@ -2393,7 +2573,7 @@
     (when (and options (not (or (progress-scrolling?) (-> obj in-transition))))
       ;; only respond to inputs when transition is done (and also there's options at all)
       (cond
-        ((key-status? up-pressed) ;; Previously: (cpad-pressed? 0 up)
+        ((or (key-status? up-pressed) (cpad-pressed? 0 up)) ;; Previously: (cpad-pressed? 0 up)
          ;; pressed up
          ;; original code checked hold and then press, because hold can be used during center screen option. which we don't use.
          (when (not (-> obj selected-option))
@@ -2407,7 +2587,7 @@
              (else
               (set! (-> obj option-index) (1- (length options)))
               (set! (-> *progress-scroll* start-index) (max 0 (- (length options) PROGRESS_PC_PAGE_HEIGHT -1)))))))
-        ((key-status? down-pressed) ;; Previously: (cpad-pressed? 0 down)
+        ((or (key-status? down-pressed) (cpad-pressed? 0 down)) ;; Previously: (cpad-pressed? 0 down)
          ;; pressed down.
          (when (not (-> obj selected-option))
            (if (!= (length options) 1) (sound-play "cursor-up-down"))
@@ -2418,10 +2598,10 @@
               (when (and (> (length options) PROGRESS_PC_PAGE_HEIGHT) (>= (-> obj option-index) *progress-scroll-end*))
                 (progress-scroll-down!)))
              (else (set! (-> obj option-index) 0) (set! (-> *progress-scroll* start-index) 0)))))
-        ((key-status? left-held) ;; Previously: (cpad-hold? 0 left)
+        ((or (key-status? left-held) (cpad-hold? 0 left)) ;; Previously: (cpad-hold? 0 left)
          ;; holding left. sliders use hold.
          (cond
-           ((key-status? left-pressed) ;; Previously: (cpad-pressed? 0 left)
+           ((or (key-status? left-pressed) (cpad-pressed? 0 left)) ;; Previously: (cpad-pressed? 0 left)
             ;; navigate left.
             (when (or (-> obj selected-option) (= (-> options (-> obj option-index) option-type) (game-option-type yes-no)))
               (let ((sound? #f))
@@ -2511,10 +2691,10 @@
                     (when (< (seconds 0.3) (- (-> *display* real-frame-counter) (-> *progress-state* last-slider-sound)))
                       (set! (-> *progress-state* last-slider-sound) (-> *display* real-frame-counter))
                       (sound-play "slider2001" :vol vol)))))))))
-        ((key-status? right-held) ;; Previously: (cpad-hold? 0 right)
+        ((or (key-status? right-held) (cpad-hold? 0 right)) ;; Previously: (cpad-hold? 0 right)
          ;; holding right
          (cond
-           ((key-status? right-pressed) ;; Previously: (cpad-pressed? 0 right)
+           ((or (key-status? right-pressed) (cpad-pressed? 0 right)) ;; Previously: (cpad-pressed? 0 right)
             ;; pressed right
             (when (or (-> obj selected-option) (= (-> options (-> obj option-index) option-type) (game-option-type yes-no)))
               (let ((sound? #f))
@@ -2626,7 +2806,7 @@
               (progress-reset-music-parms))
             (load-level-text-files (-> *level-task-data* (-> obj display-level-index) text-group-index))
             (set! (-> obj next-display-state) (progress-screen invalid)))))
-        ((key-status? enter-pressed) ;; Previously (or (cpad-pressed? 0 x) (cpad-pressed? 0 circle))
+        ((or (key-status? enter-pressed) (cpad-pressed? 0 x) (cpad-pressed? 0 circle)) ;; Previously (or (cpad-pressed? 0 x) (cpad-pressed? 0 circle))
          ;; pressed x or circle. advance!
          ;; first check if the option is disabled, if so leave early and do nothing
          (when (and (nonzero? (-> options (-> obj option-index) option-disabled-func))
@@ -2865,6 +3045,7 @@
                   (case (-> *pc-settings* mouse-wheel-behavior)
                     ((1) (set! (-> *progress-carousell* int-backup) 1))
                     ((2) (set! (-> *progress-carousell* int-backup) 2))
+                    ((3) (set! (-> *progress-carousell* int-backup) 3))
                     (else (set! (-> *progress-carousell* int-backup) 0))))
                  (((game-option-type display-mode))
                   ;; display-mode just reuses language stuff
@@ -2961,7 +3142,8 @@
                (case (-> *progress-carousell* int-backup)
                  ((0) (set! (-> *pc-settings* mouse-wheel-behavior) 0))
                  ((1) (set! (-> *pc-settings* mouse-wheel-behavior) 1))
-                 ((2) (set! (-> *pc-settings* mouse-wheel-behavior) 2))))
+                 ((2) (set! (-> *pc-settings* mouse-wheel-behavior) 2))
+                 ((3) (set! (-> *pc-settings* mouse-wheel-behavior) 3))))
               (((game-option-type display-mode))
                ;; same thing.
                (case (-> *progress-carousell* int-backup)
@@ -3013,7 +3195,7 @@
   "logic for handling input in memcard screens."
   (let ((s5-0 (-> obj card-info)))
     (when (and s5-0 (not (-> obj in-transition)))
-      (when (or (key-status? enter-pressed) (key-status? space-pressed)) ;; Previously: (or (cpad-pressed? 0 x) (cpad-pressed? 0 circle))
+      (when (or (key-status? enter-pressed) (key-status? space-pressed) (cpad-pressed? 0 x) (cpad-pressed? 0 circle)) ;; Previously: (or (cpad-pressed? 0 x) (cpad-pressed? 0 circle))
         (clear-keyboard *keyboard-data*)
         (cpad-clear! 0 x)
         (cpad-clear! 0 circle)
@@ -3720,7 +3902,7 @@
              (hide-progress-icons)
              (draw-options self 115 25 0.65))
             (((progress-screen gfx-ps2-options)) (hide-progress-icons) (draw-options self 115 25 0.67))
-            (((progress-screen game-settings) (progress-screen mod-options)) (hide-progress-icons) (draw-options self 115 25 0.70))
+            (((progress-screen game-settings) (progress-screen mod-options) (progress-screen mod-input) (progress-screen mod-keyboard-binds) (progress-screen mod-graphic) (progress-screen mod-sound)) (hide-progress-icons) (draw-options self 115 25 0.70))
             (((progress-screen memcard-removed) (progress-screen memcard-auto-save-error))
              (draw-notice-screen self)
              (draw-options self 192 0 0.82))

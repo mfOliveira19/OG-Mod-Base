@@ -527,6 +527,8 @@
     (("hev-sounds?") (set! (-> obj hev-sounds?) (file-stream-read-symbol file))) ;; added for hl mod
     (("teleport-effect?") (set! (-> obj teleport-effect?) (file-stream-read-symbol file))) ;; added for hl mod
     (("show-speed?") (set! (-> obj show-speed?) (file-stream-read-symbol file))) ;; added for hl mod
+    (("controller-aim?") (set! (-> obj controller-aim?) (file-stream-read-symbol file))) ;; added for hl mod
+    (("controller-sens") (set! (-> obj controller-sens) (file-stream-read-float file))) ;; added for hl mod
     (("mouse-movement?") (set! (-> obj mouse-movement?) (file-stream-read-symbol file)))
     (("auto-hide-cursor?") (set! (-> obj auto-hide-cursor?) (file-stream-read-symbol file)))
     (("ps2-read-speed?") (set! (-> obj ps2-read-speed?) (file-stream-read-symbol file)))
@@ -612,6 +614,9 @@
   (format file "  (hev-sounds? ~A)~%" (-> obj hev-sounds?)) ;; added for hl mod
   (format file "  (teleport-effect? ~A)~%" (-> obj teleport-effect?)) ;; added for hl mod
   (format file "  (show-speed? ~A)~%" (-> obj show-speed?)) ;; added for hl mod
+  (format file "  (controller-aim? ~A)~%" (-> obj controller-aim?)) ;; added for hl mod
+  (format file "  (controller-sens ~f)~%" (-> obj controller-sens)) ;; added for hl mod
+  (format file "  (mouse-ysens ~f)~%" (-> obj mouse-ysens))
   (format file "  (mouse-ysens ~f)~%" (-> obj mouse-ysens))
   (format file "  (mouse-movement? ~A)~%" (-> obj mouse-movement?))
   (format file "  (auto-hide-cursor? ~A)~%" (-> obj auto-hide-cursor?))

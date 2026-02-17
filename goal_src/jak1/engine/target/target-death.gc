@@ -416,7 +416,7 @@
     (('jump 'up 'up-forward)
      (when (and (not (logtest? (-> self control root-prim prim-core action) (collide-action racer flut)))
                 (not (and (= (-> self game mode) 'play) (>= 0.0 (-> self fact health)))))
-       (if (and (cpad-pressed? (-> self control cpad number) circle) (can-feet?)) (go target-attack-air #f))
+       ;;(if (and (cpad-pressed? (-> self control cpad number) circle) (can-feet?)) (go target-attack-air #f))
        (if (and (cpad-pressed? (-> self control cpad number) square)
                 (< (vector-dot (-> self control dynam gravity-normal) (-> self control transv)) 26624.0)
                 (and (< -61440.0 (vector-dot (-> self control dynam gravity-normal) (-> self control transv)))

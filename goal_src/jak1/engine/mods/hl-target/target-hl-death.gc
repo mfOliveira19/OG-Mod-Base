@@ -41,8 +41,14 @@
     (behavior ((arg0 symbol))
       (runs-on-jak-death 'dying) ;;mod-base-change
       (set! (-> self control temp-flop-end-checks) (the-as uint #f))
-      (set! (-> self control unknown-int21)
-            (the-as int (send-event (handle->process (-> self attack-info attacker)) 'target 'die arg0)))
+      (let ((attacker (-> self attack-info attacker)))
+        (when (and attacker (not (= attacker 0)))
+          (the-as int
+            (send-event
+              (handle->process attacker)
+              'target
+              'die
+              arg0))))
       (set! (-> self neck flex-blend) 0.0)
       (target-hl-timed-invulnerable-off self)
       (set-setting! 'process-mask 'set 0.0 (process-mask enemy platform projectile death))

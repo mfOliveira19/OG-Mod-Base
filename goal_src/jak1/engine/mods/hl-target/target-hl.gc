@@ -65,6 +65,10 @@
 
   :post 
   (behavior ()
+    ;; This helps getting out of the water
+    (when (and (should-swim-up?) (near-wall? (meters 1.5)) (logtest? (-> self water flags) (water-flags wt09))) 
+      (+! (-> self control transv y) 5000.0))
+
     (apply-air-duck)
     (target-hl-movement-post)))
 
@@ -214,7 +218,7 @@
 ;;
 ;;
 (defbehavior target-hl-falling-trans target ((arg0 basic) (arg1 time-frame))
-  (if (and (cpad-pressed? (-> self control cpad number) circle) (can-feet?)) (go target-attack-air #f))
+  ;;(if (and (cpad-pressed? (-> self control cpad number) circle) (can-feet?)) (go target-attack-air #f))
   (when (= arg0 'target-eco-powerup)
     ;; og:preserve-this - High FPS Fix
     (if (and (recently-pressed? x)
@@ -626,7 +630,6 @@
   :event target-hl-standard-event-handler
   :enter
   (behavior ()
-    (format 0 "ENTERED SWIM ~%")
     (set! (-> (-> self control body-spheres 0) collide-with)
       (collide-kind background cak-1 cak-2 cak-3
                     powerup crate enemy wall-object ground-object mother-spider))

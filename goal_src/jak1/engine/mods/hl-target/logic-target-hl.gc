@@ -1340,8 +1340,8 @@
       (set! (-> curvel y) (- hl-max-speed-swim)))
     (let ((vert-input (-> wishvel y)))
       (cond
-        ((should-jump?)
-          (+! (-> curvel y) (if (near-wall? 5000.0) (swim-exit-help-speed) swim-jump-speed)))  
+        ((should-swim-up?)
+          (+! (-> curvel y) swim-jump-speed))  
 
         ((not (= vert-input 0.0))
         (+! (-> curvel y) (* vert-input accel frametime)))

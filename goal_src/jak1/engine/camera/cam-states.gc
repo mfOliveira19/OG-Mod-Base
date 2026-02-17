@@ -363,6 +363,16 @@
 (define *CAM_FPS-bank*
   (new 'static 'cam-fps-bank :rot-speed 5.0889 :max-degrees 16350.000 :max-fov 11650.845 :min-fov 11650.845))
 
+(defun analog-input-cam-fps ((in int) (center-val float) (max-val float) (out-range float) (deadzone float))
+  (let* ((raw (- (the float in) center-val))
+         (max-displacement (- max-val center-val))
+         (sign (if (< raw 0.0) -1.0 1.0))
+         (mag (fabs raw)))
+
+    (if (<= mag deadzone)
+        0.0
+        (* sign (min (/ (* mag out-range) max-displacement) out-range)))))
+
 ;; main first-person camera for hl mod
 ;; og:preserve-this modified for high fps
 (defstate cam-fps (camera-slave)
@@ -396,27 +406,38 @@
         (when (not (paused?))
           (let ((s4-0 (vector-reset! (new-stack-vector0)))
                 (s5-0 (new-stack-matrix0)))
-            (when *mouse-data*
-              (let ((delta-x (-> *mouse-data* mouse-relx))
-                    (delta-y (-> *mouse-data* mouse-rely)))
-                
-                (let* ((fwd (-> self tracking inv-mat vector 2))
-                      (down (-> *camera* local-down))
-                      (current-pitch (asin (vector-dot down fwd)))
-                      (max-pitch (-> *CAM_FPS-bank* max-degrees))
-                      (min-pitch (- max-pitch))
-                      (total-delta (+ (* delta-y (-> *pc-settings* mouse-xsens) 3.2)
-                                      (- (* *current-aim-punch* 10000))))
-                      (clamped-delta (max (min total-delta (- max-pitch current-pitch))
-                                          (- min-pitch current-pitch))))
+          (when *mouse-data*
+            (let ((delta-x (-> *mouse-data* mouse-relx))
+                  (delta-y (-> *mouse-data* mouse-rely)))
 
-                  (set! (-> s4-0 x) (+ (-> s4-0 x) clamped-delta))
-                  (set! (-> s4-0 y) (- (-> s4-0 y) (* delta-x (-> *pc-settings* mouse-xsens) 3.2)))
-                  (set! *current-aim-punch* 0.0)
-                  ;; Not an exact 180, but is enough
-                  (when *do-180?*
-                    (set! (-> s4-0 y) (+ (-> s4-0 y) 32775.0))
-                    (set! *do-180?* #f)))))
+              (let* ((rx (-> *cpad-list* cpads 0 rightx))
+                    (ry (-> *cpad-list* cpads 0 righty))
+                    (stick-max 255.0)
+                    (stick-center 128.0)
+                    (stick-range (* 5.0 (-> *pc-settings* controller-sens)))
+                    (deadzone 9.5))
+                (when (-> *pc-settings* controller-aim?)
+                (set! delta-x (+ delta-x (analog-input-cam-fps (the-as int rx) stick-center stick-max stick-range deadzone)))
+                (set! delta-y (+ delta-y (analog-input-cam-fps (the-as int ry) stick-center stick-max stick-range deadzone))))
+                )
+
+              (let* ((fwd (-> self tracking inv-mat vector 2))
+                    (down (-> *camera* local-down))
+                    (current-pitch (asin (vector-dot down fwd)))
+                    (max-pitch (-> *CAM_FPS-bank* max-degrees))
+                    (min-pitch (- max-pitch))
+                    (total-delta (+ (* delta-y (-> *pc-settings* mouse-xsens) 3.2)
+                                    (- (* *current-aim-punch* 10000))))
+                    (clamped-delta (max (min total-delta (- max-pitch current-pitch))
+                                        (- min-pitch current-pitch))))
+
+                (set! (-> s4-0 x) (+ (-> s4-0 x) clamped-delta))
+                (set! (-> s4-0 y) (- (-> s4-0 y) (* delta-x (-> *pc-settings* mouse-xsens) 3.2)))
+                (set! *current-aim-punch* 0.0)
+
+                (when *do-180?*
+                  (set! (-> s4-0 y) (+ (-> s4-0 y) 32775.0))
+                  (set! *do-180?* #f)))))
 
             (matrix-axis-angle! s5-0 (-> *camera* local-down) (-> s4-0 y))
             (matrix*! (the-as matrix (-> self tracking)) (the-as matrix (-> self tracking)) s5-0)

@@ -59,9 +59,7 @@
       (play-sound-file
         "sound_replacements/warpgate-tele.mp3"
         (the int
-          (max
-            0
-            (the int (- (the int (-> *pc-settings* mod-sfx-volume)) 30)))))
+          (* (-> *pc-settings* mod-sfx-volume) 0.4)))
       (ja-no-eval :group! eichar-duck-high-jump-ja :num! (seek! (ja-aframe 50.0 0)) :frame-num (ja-aframe 40.0 0))
       (until (ja-done? 0)
         (suspend)
@@ -182,12 +180,12 @@
           (loop
             (when (zero? s2-0)
               (cond
-                ((or (cpad-pressed? 0 right) (should-move-right?) (key-status? right-held))
+                ((or (cpad-pressed? 0 right) (key-status? d-pressed) (key-status? right-pressed))
                  (set! s5-0 #t)
                  (set! s4-0 #f)
                  (sound-play "cursor-up-down")
                  (set! s3-0 (get-next-slot-up self s3-0)))
-                ((or (cpad-pressed? 0 left) (should-move-left?) (key-status? left-held))
+                ((or (cpad-pressed? 0 left) (key-status? a-pressed) (key-status? left-pressed))
                  (set! s5-0 #t)
                  (set! s4-0 #t)
                  (sound-play "cursor-up-down")

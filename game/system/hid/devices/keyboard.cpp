@@ -19,10 +19,16 @@ void KeyboardDevice::poll_state(std::shared_ptr<PadData> data) {
   auto& binds = m_settings->keyboard_binds;
   const auto keyboard_state = SDL_GetKeyboardState(NULL);
   auto keyboard_modifier_state = SDL_GetModState();
-  /*
+
   // Iterate binds, see if there are any new actions we need to track
   // - Normal Buttons
   for (const auto& [sdl_keycode, bind_list] : binds.buttons) {
+    // Changed for hl mod, skip these keys which are used for the controller
+    if (sdl_keycode == SDLK_UP || sdl_keycode == SDLK_DOWN || sdl_keycode == SDLK_LEFT ||
+        sdl_keycode == SDLK_RIGHT || sdl_keycode == SDLK_O || sdl_keycode == SDLK_P ||
+        sdl_keycode == SDLK_RETURN) {
+      continue;
+    }
     for (const auto& bind : bind_list) {
       if (keyboard_state[SDL_GetScancodeFromKey(sdl_keycode, &keyboard_modifier_state)] &&
           bind.modifiers.has_necessary_modifiers(keyboard_modifier_state) &&
@@ -101,7 +107,6 @@ void KeyboardDevice::poll_state(std::shared_ptr<PadData> data) {
       it++;
     }
   }
-  */
 
   // To check the keyboard status without mapping to a controller
   m_key_status.w = keyboard_state[SDL_SCANCODE_W];
@@ -155,6 +160,16 @@ void KeyboardDevice::process_event(const SDL_Event& event,
     // Binding re-assignment
     if (bind_assignment) {
       if (bind_assignment->device_type != InputDeviceType::KEYBOARD) {
+        return;
+      }
+      // We do not allow rebinding these keys
+      if (key_event.key == SDLK_RETURN || key_event.key == SDLK_ESCAPE || key_event.key == SDLK_1 ||
+          key_event.key == SDLK_2 || key_event.key == SDLK_3 || key_event.key == SDLK_E) {
+        return;
+      }
+      // Backspace cancels
+      if (key_event.key == SDLK_BACKSPACE) {
+        bind_assignment = std::nullopt;
         return;
       }
       // A normal key down event (a new key was pressed) and it's not a modifier

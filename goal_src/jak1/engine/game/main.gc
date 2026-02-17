@@ -172,11 +172,11 @@
                               (else
                                (cond
                                  ;; ignore anything below here, unless we are pressing start, or debug.
-                                 ((and (not *debug-segment*) (not (key-status? esc-held))) *master-mode*) ;; Previously  (cpad-hold? 0 start)
+                                 ((and (not *debug-segment*) (not (or (key-status? esc-held) (cpad-hold? 0 start)))) *master-mode*) ;; Previously  (cpad-hold? 0 start)
                                  ;; if you pressed start, and progress isn't allowed, but pause is, do a pause.
                                  ((not (progress-allowed?)) (if (pause-allowed?) 'pause *master-mode*))
                                  ;; Changed for hl mod Previously (cpad-hold? 0 start)
-                                 ((key-status? esc-held)
+                                 ((or (key-status? esc-held) (cpad-hold? 0 start))
                                   ;; toggle between progress/game
                                   (if *progress-process* 'game 'progress))
                                  (else
@@ -209,7 +209,7 @@
                            ((and *cheat-mode* (cpad-hold? 0 select r2)) 'game)
                            ;; pause -> game
                            ;; og:preserve-this changed to allow select pause in retail
-                           ((key-status? esc-held) 'game) ;; previously (cpad-hold? 0 start select)
+                           ((or (key-status? esc-held) (cpad-hold? 0 start select)) 'game) ;; previously (cpad-hold? 0 start select)
                            (else *master-mode*)))))
      (set! *pause-lock* (and *cheat-mode* (cpad-hold? 0 r2))))
     (('progress)
@@ -218,7 +218,7 @@
                         ((key-status? period-held) (if *debug-segment* 'menu *master-mode*)) ;; (cpad-hold? 0 r3)
                         (else
                          ;; Changed for hl mod, Previously (cpad-hold? 0 start)
-                         (if (key-status? esc-held) *last-master-mode* *master-mode*))))
+                         (if (or (key-status? esc-held) (cpad-hold? 0 start)) *last-master-mode* *master-mode*))))
      (set! *pause-lock* (and *cheat-mode* (cpad-hold? 0 r2)))))
   0)
 

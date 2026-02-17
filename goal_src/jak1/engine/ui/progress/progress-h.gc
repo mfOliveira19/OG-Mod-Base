@@ -97,7 +97,6 @@
      (quit 34)
      ;; extra screens for pc port
      ;; input options
-     (mod-options) ;; Added for hl mod - a dedicated screen for the mod options
      (input-options)
      (select-controller)
      (controller-binds) ;; 0x25
@@ -134,6 +133,11 @@
      (save-and-load-game)
      (memcard-saving-and-loading)
      (memcard-data-exists-save-and-load)
+     (mod-options) ;; Added for hl mod - a dedicated screen for the mod options
+     (mod-input) ;; Added for hl mod
+     (mod-graphic) ;; Added for hl mod
+     (mod-sound) ;; Added for hl mod
+     (mod-keyboard-binds) ;; Added for hl mod
      ;; the last one!
      (max))
    (defenum game-option-type
