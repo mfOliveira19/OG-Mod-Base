@@ -68,7 +68,7 @@ A small change was made to target collision to be closer to Half-Life’s player
 
 ### Controls
 
-It is recommended to use a keyboard and mouse. Some controls can be rebound, but controller controls cannot.
+It is recommended to use keyboard and mouse. Some controls can be rebound, but controller controls cannot.
 
 Default keyboard and controller controls:
 <ul>
