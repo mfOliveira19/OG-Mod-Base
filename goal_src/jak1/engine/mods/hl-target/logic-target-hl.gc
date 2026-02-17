@@ -1340,7 +1340,7 @@
       (set! (-> curvel y) (- hl-max-speed-swim)))
     (let ((vert-input (-> wishvel y)))
       (cond
-        ((should-jump?)
+        ((should-swim-up?)
           (+! (-> curvel y) swim-jump-speed))  
 
         ((not (= vert-input 0.0))

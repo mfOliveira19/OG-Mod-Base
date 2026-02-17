@@ -131,6 +131,10 @@
     (begin
       (when (and (not (paused?)) (not (time-elapsed? *hl-target-jump-buffer* hl-target-jump-buffer-time))) #t))))
 
+(defun should-swim-up? ()
+  (or (cpad-hold? 0 l1) (should-jump?))
+)
+
 (defun should-move-forward? ()
   (< (-> *cpad-list* cpads 0 lefty) 127)
   ;;(!= (-> *keyboard-data* key_w) 0)
