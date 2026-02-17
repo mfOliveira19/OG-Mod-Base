@@ -102,6 +102,9 @@
     ;; draw green screen while time has not elapsed
     (when (and *show-green-screen?* (-> *pc-settings* teleport-effect?))
       (green-screen))
+    ;; not warping in/out -> make sure we're not forcing blackout
+    (when (not (or (= (-> *target* state name) 'target-warp-in) (= (-> *target* state name) 'target-warp-out)))
+      (set! *should-blackout?* #f))
 
     ;; check if current flash duration has finished
     (when (and *green-flash-started*
