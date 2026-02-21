@@ -169,10 +169,12 @@
       (> (-> *mouse-data* mouse-scrolly) 0.0)
       (< (-> *mouse-data* mouse-scrolly) 0.0))))
 
+
 (defun should-duck? ()
   (cond
     ((cpad-hold? 0 l2) #t)
-    ((and (mouse-wheel-duck?)
+    ;; To prevent crouch spamming so we dont continuously gain height due to our crouching approach differing from HL
+    ((and (or (mouse-wheel-duck?) (cpad-pressed? 0 l2))
           (time-elapsed? *last-duck-time* duck-cooldown))
      (set-time! *last-duck-time*)
      #t)
