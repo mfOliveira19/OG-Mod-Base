@@ -276,6 +276,7 @@
     (set! *last-duck-time* 0)
     (set! *last-step-time* 0)
     (set! *hl-target-explosion-invinc-time* 0)
+    ;; This is what allows us to do the % warp when doing LTS to get the suit upgrade
     (when (and (string= (-> *game-info* current-continue name) "lavatube-middle") (< (-> *game-info* total-deaths) 3))
       (set! (-> *game-info* total-deaths) 2))
 
