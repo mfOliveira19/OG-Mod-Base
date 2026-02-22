@@ -480,11 +480,15 @@
                              :disp1 #f
                              )
     )
+(define *tmp-continue-transv* (new 'static 'vector))
+(define *tmp-continue-rotv* (new 'static 'vector))
 
 (defun generic-post-init ()
   (when *last-real-continue-point*
     (set! (-> *game-info* current-continue) *last-real-continue-point*)
     )
+  (vector-copy! (-> *target* control transv) *tmp-continue-transv*)
+  (vector-copy! (-> *target* control rotv) *tmp-continue-rotv*)
   (none)
   )
 
@@ -502,23 +506,19 @@
   )
 
 (defun speedrun-practice-store-temp-checkpoint ()
-  (case (-> *target* state)
-    ;; only store temp checkpoint if in one of these states
-    ((target-stance target-wade-stance target-swim-stance target-flut-stance target-racing
-      target-hl-movement-ground target-hl-movement-ground-duck target-hl-racing)
-      ;; copy levels from current continue
-      (continue-point-copy! *tmp-continue-point* (-> *game-info* current-continue))
-      ;; copy position of target + camera
-      (vector-copy! (-> *tmp-continue-point* trans) (-> *target* root trans))
-      (quaternion-copy! (-> *tmp-continue-point* quat) (-> *target* control quat-targ))
-      (vector-copy! (-> *tmp-continue-point* camera-trans) (-> *camera-combiner* trans))
-      (camera-rot-copy! *tmp-continue-point* (-> *camera-combiner* inv-camera-rot))
-      
-      (sound-play "select-menu")
-      )
-    (else
-      (sound-play "caught-eel" :pitch -0.7)
-      )
+  (when *target*
+    ;; copy levels from current continue
+    (continue-point-copy! *tmp-continue-point* (-> *game-info* current-continue))
+    ;; copy position of target + camera
+    (vector-copy! (-> *tmp-continue-point* trans) (-> *target* root trans))
+    (quaternion-copy! (-> *tmp-continue-point* quat) (-> *target* control quat-targ))
+    (vector-copy! (-> *tmp-continue-point* camera-trans) (-> *camera-combiner* trans))
+    (camera-rot-copy! *tmp-continue-point* (-> *camera-combiner* inv-camera-rot))
+    ;; copy velocities to restore after respawn
+    (vector-copy! *tmp-continue-transv* (-> *target* control transv))
+    (vector-copy! *tmp-continue-rotv* (-> *target* control rotv))
+    
+    (sound-play "select-menu")
     )
   (none)
   )
