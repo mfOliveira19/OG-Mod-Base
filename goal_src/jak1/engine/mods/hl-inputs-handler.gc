@@ -136,22 +136,22 @@
 )
 
 (defun should-move-forward? ()
-  (< (-> *cpad-list* cpads 0 lefty) 127)
+  (< (-> *cpad-list* cpads 0 lefty)(- 127 (* 128.0 (-> *pc-settings* stick-deadzone))))
   ;;(!= (-> *keyboard-data* key_w) 0)
 )
 
 (defun should-move-back? ()
-  (> (-> *cpad-list* cpads 0 lefty) 127)
+  (> (-> *cpad-list* cpads 0 lefty) (+ 127 (* 128.0 (-> *pc-settings* stick-deadzone))))
   ;;(!= (-> *keyboard-data* key_s) 0)
 )
 
 (defun should-move-left? ()
-  (< (-> *cpad-list* cpads 0 leftx) 127)
+  (< (-> *cpad-list* cpads 0 leftx) (- 127 (* 128.0 (-> *pc-settings* stick-deadzone))))
   ;;(!= (-> *keyboard-data* key_a) 0)
 )
 
 (defun should-move-right? ()
-  (> (-> *cpad-list* cpads 0 leftx) 127)
+  (> (-> *cpad-list* cpads 0 leftx) (+ 127(* 128.0 (-> *pc-settings* stick-deadzone))))
   ;;(!= (-> *keyboard-data* key_d) 0)
 )
 
