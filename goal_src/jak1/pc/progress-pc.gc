@@ -1491,7 +1491,8 @@
        "WALK"
        "RELOAD"
        "LAST WEAPON USED"
-       "SHOW HUD"))
+       "SHOW HUD"
+       "USE"))
 
 (define *keyboard-movement-bind-names*
   (new 'static
@@ -1636,7 +1637,7 @@
 ;; I couldn't figure out how to change the order of the inputs, so we will also do it manually here
 ;; The controller map will follow the HL PS2 controls
 
-;; L1 (JUMP) 
+;; L1 (JUMP)
 (let ((option (-> *temp-options* (length *temp-options*))))
   (set! (-> option bind-info device-type) 1)
   (set! (-> option bind-info port) 0)
@@ -1681,6 +1682,18 @@
   (set! (-> option bind-info analog-min-range?) #f)
   (set! (-> option option-type) (game-option-type binding-assignment))
   (set! (-> option name-override) (copy-string<-string (-> option name-override) (-> *keyboard-action-bind-names* 3)))
+  (set! (-> option scale) #t)
+  (1+! (-> *temp-options* length)))
+
+;; CIRCLE (USE)
+(let ((option (-> *temp-options* (length *temp-options*))))
+  (set! (-> option bind-info device-type) 1)
+  (set! (-> option bind-info port) 0)
+  (set! (-> option bind-info for-buttons?) #t)
+  (set! (-> option bind-info input-idx) 13)
+  (set! (-> option bind-info analog-min-range?) #f)
+  (set! (-> option option-type) (game-option-type binding-assignment))
+  (set! (-> option name-override) (copy-string<-string (-> option name-override) (-> *keyboard-action-bind-names* 6)))
   (set! (-> option scale) #t)
   (1+! (-> *temp-options* length)))
 

@@ -1176,15 +1176,15 @@
                                           128.0 48.0 110.0 -1.0))
 
                   ;; add keyboard override:
-                  (kbd-x (+ (if (should-move-right?)  -1.0 0.0)
-                            (if (should-move-left?)  1.0 0.0)))
+                  ;(kbd-x (+ (if (should-move-right?)  -1.0 0.0)
+                  ;          (if (should-move-left?)  1.0 0.0)))
 
-                  (kbd-y (+ (if (should-move-back?)   -1.0 0.0)
-                            (if (should-move-forward?) 1.0 0.0)))
+                  ;(kbd-y (+ (if (should-move-back?)   -1.0 0.0)
+                  ;          (if (should-move-forward?) 1.0 0.0)))
 
                   ;; final combined inputs
-                  (f30-0 (+ analog-x kbd-x)) ;; horizontal
-                  (f28-0 (+ analog-y kbd-y))) ;; vertical
+                  (f30-0 analog-x) ;; horizontal
+                  (f28-0 analog-y)) ;; vertical
 
               (rotate! self f30-0)
               (tilt! self (- f28-0))
@@ -1192,7 +1192,7 @@
               (if (or (!= f30-0 0.0) (!= f28-0 0.0))
                   (sound-play "telescope" :id (-> self aim-sound-id))
                   (sound-stop (-> self aim-sound-id)))))
-          (when (or (cpad-pressed? 0 triangle) (should-use?))
+          (when (or (cpad-pressed? 0 triangle) (key-status? backspace-pressed) (cpad-pressed? 0 circle))
             (process-entity-status! self (entity-perm-status bit-3) #t)
             (sound-stop (-> self sound-id))
             (send-event *camera* 'change-to-entity-by-name "camera-111")

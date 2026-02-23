@@ -164,7 +164,7 @@ void KeyboardDevice::process_event(const SDL_Event& event,
       }
       // We do not allow rebinding these keys
       if (key_event.key == SDLK_RETURN || key_event.key == SDLK_ESCAPE || key_event.key == SDLK_1 ||
-          key_event.key == SDLK_2 || key_event.key == SDLK_3 || key_event.key == SDLK_E) {
+          key_event.key == SDLK_2 || key_event.key == SDLK_3) {
         return;
       }
       // Backspace cancels

@@ -183,7 +183,7 @@
                    (let ((v1-60 s5-2)) (set! (-> v1-60 height) (the float 80)))
                    (set! (-> s5-2 flags) (font-flags shadow kerning large))
                    (print-game-text (lookup-text! *common-text* (text-id press-to-use) #f) s5-2 #f 128 22))
-                 (when (and (or (cpad-pressed? 0 circle) (key-status? e-pressed)) (process-grab? *target*))
+                 (when (and (or (cpad-pressed? 0 circle) (should-use?)) (process-grab? *target*))
                    (if arg0 (go-virtual ride-down) (go-virtual ride-up))))))))
         (spool-push *art-control* (-> self anim name) 0 self -99.0)
         (suspend))))
