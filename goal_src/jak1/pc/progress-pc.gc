@@ -1492,7 +1492,8 @@
        "RELOAD"
        "LAST WEAPON USED"
        "SHOW HUD"
-       "USE"))
+       "USE"
+       "CANCEL"))
 
 (define *keyboard-movement-bind-names*
   (new 'static
@@ -1694,6 +1695,18 @@
   (set! (-> option bind-info analog-min-range?) #f)
   (set! (-> option option-type) (game-option-type binding-assignment))
   (set! (-> option name-override) (copy-string<-string (-> option name-override) (-> *keyboard-action-bind-names* 6)))
+  (set! (-> option scale) #t)
+  (1+! (-> *temp-options* length)))
+
+;; TRIANGLE (CANCEL)
+(let ((option (-> *temp-options* (length *temp-options*))))
+  (set! (-> option bind-info device-type) 1)
+  (set! (-> option bind-info port) 0)
+  (set! (-> option bind-info for-buttons?) #t)
+  (set! (-> option bind-info input-idx) 12)
+  (set! (-> option bind-info analog-min-range?) #f)
+  (set! (-> option option-type) (game-option-type binding-assignment))
+  (set! (-> option name-override) (copy-string<-string (-> option name-override) (-> *keyboard-action-bind-names* 7)))
   (set! (-> option scale) #t)
   (1+! (-> *temp-options* length)))
 

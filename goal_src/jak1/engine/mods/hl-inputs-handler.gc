@@ -224,6 +224,18 @@
 (defun should-show-hud? ()
   (cpad-pressed? 0 r3))
 
+(defun get-use-bind-string ()
+  (let ((info (new 'static 'bind-assignment-info)))
+    (set! (-> info device-type) 1)
+    (set! (-> info port) 0)
+    (set! (-> info for-buttons?) #t)
+    (set! (-> info input-idx) 13)
+    (set! (-> info analog-min-range?) #f)
+
+    (if (pc-get-current-bind info *pc-cpp-temp-string*)
+        *pc-cpp-temp-string*
+        #f)))
+
 (defun clear-keyboard ((kb keyboard-info))
   (set! (-> kb key_w) 0)
   (set! (-> kb key_a) 0)

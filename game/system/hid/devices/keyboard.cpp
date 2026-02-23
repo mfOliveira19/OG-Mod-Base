@@ -167,11 +167,7 @@ void KeyboardDevice::process_event(const SDL_Event& event,
           key_event.key == SDLK_2 || key_event.key == SDLK_3) {
         return;
       }
-      // Backspace cancels
-      if (key_event.key == SDLK_BACKSPACE) {
-        bind_assignment = std::nullopt;
-        return;
-      }
+
       // A normal key down event (a new key was pressed) and it's not a modifier
       if (event.type == SDL_EVENT_KEY_DOWN && !sdl_util::is_modifier_key(key_event.key)) {
         if (bind_assignment->for_analog) {

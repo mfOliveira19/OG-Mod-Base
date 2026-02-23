@@ -111,7 +111,7 @@ const InputBindingGroups DEFAULT_KEYBOARD_BINDS =
                        {{SDLK_DOWN, {InputBinding(PadData::ButtonIndex::CROSS)}},
                         {SDLK_E, {InputBinding(PadData::ButtonIndex::CIRCLE)}},
                         {SDLK_R, {InputBinding(PadData::ButtonIndex::SQUARE)}},
-                        {SDLK_F, {InputBinding(PadData::ButtonIndex::TRIANGLE)}},
+                        {SDLK_BACKSPACE, {InputBinding(PadData::ButtonIndex::TRIANGLE)}},
                         {SDLK_LSHIFT, {InputBinding(PadData::ButtonIndex::L3)}},
                         {SDLK_TAB, {InputBinding(PadData::ButtonIndex::R3)}},
                         {SDLK_APOSTROPHE, {InputBinding(PadData::ButtonIndex::SELECT)}},
