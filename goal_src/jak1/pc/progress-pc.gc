@@ -1698,7 +1698,7 @@
   (set! (-> option scale) #t)
   (1+! (-> *temp-options* length)))
 
-;; TRIANGLE (EXIT)
+;; TRIANGLE (CANCEL)
 (let ((option (-> *temp-options* (length *temp-options*))))
   (set! (-> option bind-info device-type) 1)
   (set! (-> option bind-info port) 0)
