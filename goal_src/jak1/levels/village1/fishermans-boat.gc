@@ -648,7 +648,12 @@
           (let ((v1-17 s5-1)) (set! (-> v1-17 width) (the float 440)))
           (let ((v1-18 s5-1)) (set! (-> v1-18 height) (the float 80)))
           (set! (-> s5-1 flags) (font-flags shadow kerning large))
-          (print-game-text (lookup-text! *common-text* (text-id press-to-use) #f) s5-1 #f 128 22))
+          ;;(print-game-text (lookup-text! *common-text* (text-id press-to-use) #f) s5-1 #f 128 22)
+          ;; Changed for hl mod so we display the current bind USE key
+          (let ((str (get-use-bind-string)))
+            (when str
+              (print-game-text (string-format "PRESS ~A TO USE." str) s5-1 #f 128 22)))
+          )
         (when (and (or (cpad-pressed? 0 circle) (should-use?)) (process-grab? *target*))
           (set! (-> self waiting-for-player) #f)
           (set! (-> self player-riding) #t)

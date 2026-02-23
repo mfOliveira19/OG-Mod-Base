@@ -1089,7 +1089,12 @@
                     (let ((v1-43 s2-2)) (set! (-> v1-43 width) (the float 440)))
                     (let ((v1-44 s2-2)) (set! (-> v1-44 height) (the float 80)))
                     (set! (-> s2-2 flags) (font-flags shadow kerning large))
-                    (print-game-text (lookup-text! *common-text* (text-id press-to-use) #f) s2-2 #f 128 22))
+                    ;;(print-game-text (lookup-text! *common-text* (text-id press-to-use) #f) s2-2 #f 128 22)
+                    ;; Changed for hl mod so we display the current bind USE key
+                    (let ((str (get-use-bind-string)))
+                      (when str
+                        (print-game-text (string-format "PRESS ~A TO USE." str) s2-2 #f 128 22)))
+                    )
                   (when (or (cpad-pressed? 0 circle) (should-use?))
                     (set! (-> self grips-moving?) #f)
                     (loop

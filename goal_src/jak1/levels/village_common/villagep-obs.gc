@@ -109,7 +109,7 @@
                         #f)
                        (else #t))
                      (time-elapsed? (-> self state-time) (seconds 0.1)))
-            ;; added e bind for using warpgate
+            ;; added USE bind for using warpgate
             (if (and (or (cpad-pressed? 0 circle) (should-use?)) (process-grab? *target*)) (go-virtual active))
             (if (and *cheat-mode* (cpad-pressed? 0 l3)) (set! (-> self max-slot) 4))
             (let ((gp-0 (new 'stack 'font-context *font-default-matrix* 32 160 0.0 (font-color default) (font-flags shadow kerning))))
@@ -117,7 +117,12 @@
               (let ((v1-54 gp-0)) (set! (-> v1-54 height) (the float 80)))
               (let ((v1-55 gp-0)) (set! (-> v1-55 scale) 0.9))
               (set! (-> gp-0 flags) (font-flags shadow kerning large))
-              (print-game-text (lookup-text! *common-text* (text-id press-to-use) #f) gp-0 #f 128 22))))
+              ;;(print-game-text (lookup-text! *common-text* (text-id press-to-use) #f) gp-0 #f 128 22)
+              ;; Changed for hl mod so we display the current bind USE key
+              (let ((str (get-use-bind-string)))
+                (when str
+                  (print-game-text (string-format "PRESS ~A TO USE." str) gp-0 #f 128 22)))              
+              )))
         (suspend))))
 
 (defun get-next-slot-up ((arg0 warp-gate) (arg1 int))
@@ -248,9 +253,15 @@
                 (let ((a0-47 s1-3)) (set! (-> a0-47 color) (font-color progress-yellow))))
               (print-level-name gp-0 s1-3 s2-0 (the-as int s4-0))
               (+! (-> s1-3 origin y) 20.0)
-              (print-game-text (lookup-text! *common-text* (text-id press-to-warp) #f) s1-3 #f 128 22)
+              ;;(print-game-text (lookup-text! *common-text* (text-id press-to-warp) #f) s1-3 #f 128 22)
+              ;; Changed for hl mod so we display the current bind USE key
+              (let ((str (get-use-bind-string)))
+                (when str
+                  (print-game-text (string-format "PRESS ~A TO WARP." str) s1-3 #f 128 22)))
               (+! (-> s1-3 origin y) 15.0)
-              (print-game-text (lookup-text! *common-text* (text-id press-to-exit) #f) s1-3 #f 128 22))
+              ;;(print-game-text (lookup-text! *common-text* (text-id press-to-exit) #f) s1-3 #f 128 22)
+              (print-game-text "PRESS \"BACKSPACE\" TO EXIT." s1-3 #f 128 22)
+              )
             (suspend))))))
 
 (defstate hidden (warp-gate)

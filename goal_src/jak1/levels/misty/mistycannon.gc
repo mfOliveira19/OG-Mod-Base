@@ -1118,7 +1118,12 @@
               (let ((v1-15 gp-0)) (set! (-> v1-15 width) (the float 440)))
               (let ((v1-16 gp-0)) (set! (-> v1-16 height) (the float 80)))
               (set! (-> gp-0 flags) (font-flags shadow kerning large))
-              (print-game-text (lookup-text! *common-text* (text-id press-to-use) #f) gp-0 #f 128 22))
+              ;;(print-game-text (lookup-text! *common-text* (text-id press-to-use) #f) gp-0 #f 128 22)
+              ;; Changed for hl mod so we display the current bind USE key
+              (let ((str (get-use-bind-string)))
+                (when str
+                  (print-game-text (string-format "PRESS ~A TO USE." str) gp-0 #f 128 22)))
+              )
             (when (or (cpad-pressed? 0 circle) (should-use?))
               (loop
                 (send-event *target* 'change-mode 'periscope self)

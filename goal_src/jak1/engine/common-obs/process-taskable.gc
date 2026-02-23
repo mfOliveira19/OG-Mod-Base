@@ -84,10 +84,15 @@
          (let ((v1-22 s5-0)) (set! (-> v1-22 width) (the float 400)))
          (let ((v1-23 s5-0)) (set! (-> v1-23 height) (the float 100)))
          (set! (-> s5-0 flags) (font-flags shadow kerning large))
-         (print-game-text (lookup-text! *common-text* (text-id confirm) #f) s5-0 #f 128 22))))
+         ;; Changed for hl mod
+         ;;(print-game-text "(lookup-text! *common-text* (text-id confirm) #f)" s5-0 #f 128 22)
+          (let ((str (get-use-bind-string)))
+            (when str
+              (print-game-text (string-format "YES = ~A, NO = \"BACKSPACE\"" str) s5-0 #f 128 22)))
+         )))
     (cond
       ((!= (-> this decision) 'undecided))
-      ((and (or (cpad-pressed? 0 x) (should-use?)) (not (-> this only-allow-cancel)))
+      ((and (or (cpad-pressed? 0 x) (cpad-pressed? 0 circle)) (not (-> this only-allow-cancel)))
        (logclear! (-> *cpad-list* cpads 0 button0-abs 0) (pad-buttons x))
        (logclear! (-> *cpad-list* cpads 0 button0-rel 0) (pad-buttons x))
        (set! (-> this decision) 'yes))
@@ -596,7 +601,26 @@
                   (let ((v1-58 gp-1)) (set! (-> v1-58 height) (the float 60)))
                   (let ((v1-59 gp-1)) (set! (-> v1-59 scale) 0.9))
                   (set! (-> gp-1 flags) (font-flags shadow kerning middle-vert large))
-                  (print-game-text (lookup-text! *common-text* (-> self talk-message) #f) gp-1 #f 128 22))
+                  ;; Changed for hl mod so we display the current bind USE key
+                  ;;(print-game-text (lookup-text! *common-text* (-> self talk-message) #f) gp-1 #f 128 22))
+                  (let ((str (get-use-bind-string)))
+                    (when str
+                      (cond 
+                      ((= (-> self talk-message) (text-id press-to-trade-money))
+                        (print-game-text (string-format "PRESS ~A TO TRADE 90 ORBS FOR A POWER CELL." str) gp-1 #f 128 22)
+                      )
+                      ((= (-> self talk-message) (text-id press-to-trade-money-oracle))
+                        (print-game-text (string-format "PRESS ~A TO TRADE 120 ORBS FOR A POWER CELL." str) gp-1 #f 128 22)
+                      )
+                      ((= (-> self talk-message) (text-id press-to-talk-to-sage))
+                        (print-game-text (string-format "PRESS ~A TO TALK TO SAMOS" str) gp-1 #f 128 22)
+                      )
+                      ((= (-> self talk-message) (text-id press-to-talk-to-assistant))
+                        (print-game-text (string-format "PRESS ~A TO TALK TO KEIRA" str) gp-1 #f 128 22)
+                      )
+                      (else 
+                        (print-game-text (string-format "PRESS ~A TO TALK." str) gp-1 #f 128 22)
+                      )))))
                 ;; This is where it reads the "use" button for entering a cutscene i think?
                 (when (and (or (cpad-pressed? 0 circle) (should-use?)) (process-grab? *target*))
                   (logclear! (-> *cpad-list* cpads 0 button0-abs 0) (pad-buttons circle))
