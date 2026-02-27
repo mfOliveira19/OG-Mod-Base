@@ -36,7 +36,9 @@
             (< *last-cell-val* val)
             (>= fuel val)
             (< last-hint 1))
-       (when (-> *pc-settings* hev-sounds?) (play-mod-sound "cell-reach-20"))
+       (when (and (-> *pc-settings* hev-sounds?) 
+                  (not (is-speedrun-category? 'new-game-plus))) ;; NG+ skip 20 cell audio, only play 72 cell audio
+        (play-mod-sound "cell-reach-20"))
        (start-suit-upgrade-message val)
        (set! (-> *game-info* total-deaths) 1))
 
