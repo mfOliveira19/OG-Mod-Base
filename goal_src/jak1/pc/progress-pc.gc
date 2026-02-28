@@ -943,6 +943,7 @@
        game-option
        (new 'static 'game-option :option-type (game-option-type button) :name (text-id speedrun-reset-current-run) :scale #t)
        (new 'static 'game-option :option-type (game-option-type button) :name (text-id speedrun-new-full-game) :scale #t)
+       (new 'static 'game-option :option-type (game-option-type button) :name (text-id speedrun-new-ng-plus-run) :scale #t)
        (new 'static
             'game-option
             :option-type (game-option-type menu)
@@ -2949,7 +2950,7 @@
                  (((text-id speedrun-il-cave)) (progress-fast-save-and-start-speedrun (speedrun-category il-cave)))
                  (((text-id speedrun-il-lavatube)) (progress-fast-save-and-start-speedrun (speedrun-category il-lavatube)))
                  (((text-id speedrun-il-citadel)) (progress-fast-save-and-start-speedrun (speedrun-category il-citadel)))
-                 (((text-id speedrun-new-game-plus)) (progress-fast-save-and-start-speedrun (speedrun-category new-game-plus)))
+                 (((text-id speedrun-new-game-plus) (text-id speedrun-new-ng-plus-run)) (progress-fast-save-and-start-speedrun (speedrun-category new-game-plus)))
                  (((text-id speedrun-hub1-100)) (progress-fast-save-and-start-speedrun (speedrun-category hub1-100)))
                  (((text-id speedrun-hub2-100)) (progress-fast-save-and-start-speedrun (speedrun-category hub2-100)))
                  (((text-id speedrun-hub3-100)) (progress-fast-save-and-start-speedrun (speedrun-category hub3-100)))
@@ -3908,7 +3909,7 @@
             (((progress-screen misc-options)) (hide-progress-icons) (draw-options self 115 25 0.79))
             (((progress-screen music-player)) (hide-progress-icons) (draw-options self 128 21 0.82))
             (((progress-screen flava-player)) (hide-progress-icons) (draw-options self 128 21 0.82))
-            (((progress-screen speedrun-options)) (hide-progress-icons) (draw-notice-screen self) (draw-options self 155 25 0.65))
+            (((progress-screen speedrun-options)) (hide-progress-icons) (draw-notice-screen self) (draw-options self 155 20 0.65))
             ((
               (progress-screen camera-options)
               (progress-screen checkpoint-select)
