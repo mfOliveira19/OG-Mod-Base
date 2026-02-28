@@ -705,7 +705,8 @@
    (pos    float)
    (vel    float)
    (mode   basic)
-   (size   meters))
+   (size   meters)
+   (root   collide-shape-moving :override))
   (:states
    fisher-fish-caught
    fisher-fish-die
@@ -783,7 +784,7 @@
   (none))
 
 (defbehavior fisher-fish-move fisher-fish ()
-  (+! (-> self pos) (* (-> self vel) (seconds-per-frame)))
+  (+! (-> self pos) (* (-> self vel) 1.5 (seconds-per-frame)))
   (eval-path-curve-div! (-> (the-as fisher (-> self parent 0)) path) (-> self root trans) (-> self pos) 'interp)
   (path-control-method-12 (-> (the-as fisher (-> self parent 0)) path) (-> self dir) (-> self pos))
   (seek-toward-heading-vec! (-> self root) (-> self dir) 291271.12 (seconds 0.2))
@@ -794,13 +795,21 @@
     (set! (-> gp-0 z) (cos f30-1))
     (set! (-> gp-0 w) 1.0)
     (vector-normalize! gp-0 (* 2.0 (+ -0.5 (-> self offset)) (-> *FISHER-bank* width)))
-    (vector+! (-> self root trans) (-> self root trans) gp-0))
+    (vector+! (-> self root trans) (-> self root trans) gp-0)
+    )
+  (transform-post) ;; This makes the collision update so it moves with the fish
   (fisher-fish-water (-> self root trans) (y-angle (-> self root)))
   (if (nonzero? (-> self part)) (spawn (-> self part) (-> self root trans)))
   0
   (none))
 
+(defbehavior fisher-fish-default-event-handler fisher-fish ((arg0 process) (arg1 int) (arg2 symbol) (arg3 event-message-block))
+  (case arg2
+    (('attack-hl)
+      (go fisher-fish-caught))))
+
 (defstate fisher-fish-fall (fisher-fish)
+  :event fisher-fish-default-event-handler
   :code
     (behavior ()
       (set-heading-vec! (-> self root)
@@ -809,9 +818,9 @@
         (ja-no-eval :group! (ja-group) :num! (seek!) :frame-num 0.0)
         (until (ja-done? 0)
           (fisher-fish-move)
-          (if (< (vector-vector-xz-distance (-> self root trans) (-> (the-as fisher (-> self parent 0)) paddle-pos))
+          #|(if (< (vector-vector-xz-distance (-> self root trans) (-> (the-as fisher (-> self parent 0)) paddle-pos))
                  (+ (-> *FISHER-bank* net-radius) (* (-> self size) (-> self root scale x))))
-            (go fisher-fish-caught))
+            (go fisher-fish-caught))|#
           (if (or (>= (-> self pos) (the float (+ (-> (the-as fisher (-> self parent 0)) path curve num-cverts) -1)))
                   (>= (-> self pos) 7.2))
             (go fisher-fish-die))
@@ -857,7 +866,7 @@
          (send-event (ppointer->process (-> self parent)) 'fisher-fish-caught 1)))
       (set! (-> self vel) (/ (-> self vel) 4))
       (while (< 0.1 (-> self root scale x))
-        (set! (-> self offset) (-> (the-as fisher (-> self parent 0)) paddle))
+        ;;(set! (-> self offset) (-> (the-as fisher (-> self parent 0)) paddle))
         (fisher-fish-move)
         (vector-float*! (-> self root scale) (-> self root scale) 0.93)
         (ja-post)
@@ -895,8 +904,21 @@
 (defbehavior fisher-fish-init-by-other fisher-fish ((arg0 symbol) (arg1 float) (arg2 float))
   (set! (-> self mode) arg0)
   (logclear! (-> self mask) (process-mask actor-pause))
-  (set! (-> self root) (new 'process 'trsqv))
+  ;;(set! (-> self root) (new 'process 'trsqv))
   (set! (-> self size) 3276.8)
+  (let ((s4-0 (new 'process 'collide-shape-moving self (collide-list-enum usually-hit-by-player))))
+    (let ((s3-0 (new 'process 'collide-shape-prim-sphere s4-0 (the-as uint 3))))
+      (set! (-> s3-0 prim-core collide-as) (collide-kind wall-object))
+      (set! (-> s3-0 collide-with) (collide-kind target))
+      (set! (-> s3-0 prim-core action) (collide-action solid))
+      (set! (-> s3-0 prim-core offense) (collide-offense touch))
+      (set! (-> s3-0 transform-index) 3)
+      (set-vector! (-> s3-0 local-sphere) 0.0 0.0 0.0 3276.8)
+      (set-root-prim! s4-0 s3-0))
+    (set! (-> s4-0 nav-radius) (* 0.75 (-> s4-0 root-prim local-sphere w)))
+    (backup-collide-with-as s4-0)
+    (set! (-> self root) s4-0))
+
   (initialize-skeleton self
                        (cond
                          ((or (= arg0 'deadly) (= arg0 'bad))
@@ -1040,13 +1062,13 @@
       (set-time! (-> self state-time))
       (while (-> self child)
         (deactivate (-> self child 0)))
-      (set! *camera-look-through-other* 2)
+      ;;(set! *camera-look-through-other* 2)
       (cond
         ((>= (-> self caught) (-> *FISHER-bank* max-caught))
          (send-event *target* 'end-mode)
          (set! (-> self trans-hook)
                (lambda :behavior fisher ()
-                 (set! *camera-look-through-other* 2)
+                 ;;(set! *camera-look-through-other* 2)
                  (when (process-grab? *target*)
                    (close-current! (-> self tasks))
                    (go-virtual play-anim))
@@ -1099,7 +1121,7 @@
         (process-grab? *target*)))
   :trans
     (behavior ()
-      (set! *camera-look-through-other* 2)
+      ;;(set! *camera-look-through-other* 2)
       (cond
         ((>= (-> self caught) (-> *FISHER-bank* max-caught)))
         ((< (-> self caught) 0))
@@ -1211,7 +1233,7 @@
          (set! (-> self missed) (the-as int v0-2))
          v0-2)
         (('fisher-fish-caught)
-         (send-event *target* 'bounce)
+         ;;(send-event *target* 'bounce)
          (set! v0-2 (+ (-> self caught) (-> block param 0)))
          (set! (-> self caught) (the-as int v0-2))
          v0-2)
@@ -1232,12 +1254,13 @@
           (none))
         :to
         self)
-      (send-event *camera* 'change-to-entity-by-name "camera-152")
+      ;;(send-event *camera* 'change-to-entity-by-name "camera-152")
       (init! (-> self query) (the-as string #f) 40 150 25 #t (lookup-text! *common-text* (text-id quit) #f)))
   :exit
     (behavior ()
       (remove-setting! 'ambient-volume)
-      (let* ((v1-2 *camera-other-matrix*)
+      (restore-collide-with-as (-> self root))
+      #|(let* ((v1-2 *camera-other-matrix*)
              (a3-0 (-> *camera-combiner* inv-camera-rot))
              (a0-2 (-> a3-0 vector 0 quad))
              (a1-1 (-> a3-0 vector 1 quad))
@@ -1250,10 +1273,9 @@
       (set! (-> *camera-other-fov* data) (-> *camera-combiner* fov))
       (set! (-> *camera-other-trans* quad) (-> *camera-combiner* trans quad))
       (set! (-> *camera-other-root* quad) (-> self root trans quad))
-      (restore-collide-with-as (-> self root))
       (send-event *camera* 'blend-from-as-fixed)
       (send-event *camera* 'change-state *camera-base-mode* 0)
-      (send-event *camera* 'clear-entity)
+      (send-event *camera* 'clear-entity)|#
       0)
   :trans
     (behavior ()
@@ -1297,7 +1319,8 @@
   :trans
     (behavior ()
       (set-blackout-frames (seconds 0.017))
-      (if (send-event *target* 'change-mode 'fishing self) (go fisher-playing))))
+      (if (send-event *target* 'change-mode 'fishing self) (go fisher-playing))
+      (send-event *hl-weapons* 'change-mode 'fishing self)))
 
 ;; og:preserve-this pc port needs its own implementation of play-anim for cutscene skipping
 (#when PC_PORT
@@ -1541,6 +1564,50 @@
   (process-taskable-method-42 this)
   (none))
 
+(defstate target-hl-fishing (target)
+  :event
+    (behavior ((proc process) (argc int) (message symbol) (block event-message-block))
+      (cond
+        ((= message 'bounce)
+         (set-zero! (-> self control unknown-smush00))
+         (activate! (-> self control unknown-smush00) 1.0 120 210 0.3 1.0))
+        ((= message 'lose) (set! (-> self control temp-flop-end-checks) (the-as uint message)) message)
+        (else ((-> target-hl-grab event) proc argc message block))))
+  :enter
+    (behavior ((arg0 handle))
+      (set! (-> self control cur-surf) *empty-mods*)
+      (logior! (-> self state-flags) (state-flags invulnerable))
+      (set-zero! (-> self control unknown-smush00))
+      (set! (-> self control temp-flop-end-checks) (the-as uint #f))
+      (let ((pos (new 'stack-no-clear 'vector))
+            (rot (new 'stack-no-clear 'matrix)))
+
+        (set-vector! pos 1067827.2 9420.8 -955596.8 1.0)
+        (matrix-identity! rot)
+
+        (matrix-rotate-y! rot (degrees 260.0))
+
+        (debug-set-camera-pos-rot! pos rot))
+        (set-camera-pitch -0.2)
+      )
+  :exit
+    (behavior ()
+      (logclear! (-> self state-flags) (state-flags invulnerable))
+      (let ((v1-2 (-> self manipy)))
+        (when v1-2
+          (deactivate (-> v1-2 0))
+          (set! (-> self manipy) (the-as (pointer manipy) #f))))
+      (-> target-hl-periscope exit))
+  :code
+    (behavior ((arg0 handle))
+      ;; This is what positions the target when the fishing game starts
+      (set-vector! (-> self control trans) 1067827.2 9420.8 -955596.8 1.0)
+
+      (loop
+      (suspend)))
+  :post 
+    target-post)
+
 (defstate target-fishing (target)
   :event
     (behavior ((proc process) (argc int) (message symbol) (block event-message-block))
@@ -1564,98 +1631,6 @@
           (deactivate (-> v1-2 0))
           (set! (-> self manipy) (the-as (pointer manipy) #f))))
       (-> target-periscope exit))
-  :code
-    (behavior ((arg0 handle))
-      (let ((v1-1 (handle->process arg0)))
-        (when (and v1-1 (type-type? (-> v1-1 type) fisher))
-          (set-vector! (-> self control trans) 1067827.2 9420.8 -955596.8 1.0)
-          (set-yaw-angle-clear-roll-pitch! (-> self control) -20024.889)
-          (rot->dir-targ! (-> self control))))
-      (ja-channel-set! 1)
-      (let ((s5-0 (get-process *default-dead-pool* manipy #x4000)))
-        (set! (-> self manipy)
-              (the-as (pointer manipy)
-                      (when s5-0
-                        (let ((t9-5 (method-of-type manipy activate))) (t9-5 (the-as manipy s5-0) self 'manipy (the-as pointer #x70004000)))
-                        (let ((t9-6 run-function-in-process)
-                              (a0-11 s5-0)
-                              (a1-5 manipy-init)
-                              (a2-2 (-> self control trans))
-                              (v1-16 (handle->process arg0)))
-                          ((the-as (function object object object object object object none) t9-6)
-                           a0-11
-                           a1-5
-                           a2-2
-                           (if v1-16 (-> v1-16 entity) (the-as entity-actor #f))
-                           *fish-net-sg*
-                           #f))
-                        (-> s5-0 ppointer)))))
-      (when (-> self manipy)
-        (send-event (ppointer->process (-> self manipy)) 'anim-mode 'copy-parent)
-        (send-event (ppointer->process (-> self manipy))
-                    'eval
-                    (lambda :behavior manipy ()
-                      (set! (-> self joint 0) (new 'process 'joint-mod (joint-mod-handler-mode joint-set*) self 6))
-                      (set! (-> self joint 1) (new 'process 'joint-mod (joint-mod-handler-mode joint-set*) self 5))
-                      (none)))
-        (let ((v1-35 (-> self manipy 0 node-list data)))
-          (set! (-> v1-35 0 param0) cspace<-cspace+quaternion!)
-          (set! (-> v1-35 0 param1) (the-as basic (joint-node eichar-lod0-jg sk_rhand)))
-          (set! (-> v1-35 0 param2) (the-as basic (-> self control quat)))))
-      (ja :group! eichar-fishing-ja :num! (identity (ja-aframe 15.0 0)))
-      (let ((s5-2 (new 'stack-no-clear 'vector)))
-        (until (-> self control temp-spool)
-          (let ((v1-42 (handle->process arg0)))
-            (when v1-42
-              (ja :num!
-                  (seek! (* (fmax 0.0 (- 1.0 (-> (the-as fisher v1-42) paddle))) (the float (+ (-> (ja-group) data 0 length) -1)))))
-              (when (-> self manipy)
-                (let ((s2-0 (new-stack-vector0))
-                      (s4-0 (new-stack-vector0))
-                      (s3-0 (quaternion-identity! (new-stack-quaternion0)))
-                      (f30-0 (update! (-> self control unknown-smush00))))
-                  (quaternion-rotate-y! s3-0 s3-0 (* 5461.3335 f30-0))
-                  (set-vector! s2-0 1.0 1.0 1.0 1.0)
-                  (set-vector! s4-0 0.0 (* 2048.0 (-> s5-2 y)) (* 819.2 (-> s5-2 y)) 1.0)
-                  (set-trs! (-> self manipy 0 joint 0) s4-0 s3-0 s2-0)
-                  (set-vector! s4-0 0.0 (* -614.4 f30-0) 0.0 1.0)
-                  (set-trs! (-> self manipy 0 joint 1) s4-0 (the-as quaternion #f) (the-as vector #f))
-                  (set! (-> s5-2 y) (-> s5-2 x))
-                  (set! (-> s5-2 x) f30-0)))))
-          (suspend)))
-      (case (-> self control temp-spool)
-        (('lose)
-         (ja-channel-push! 1 (seconds 0.1))
-         (ja-no-eval :group! eichar-fishing-lose-ja :num! (seek!) :frame-num 0.0)
-         (until (ja-done? 0)
-           (suspend)
-           (ja :num! (seek!)))
-         (anim-loop))))
-  :post target-post)
-
-(defstate target-hl-fishing (target)
-  :event
-    (behavior ((proc process) (argc int) (message symbol) (block event-message-block))
-      (cond
-        ((= message 'bounce)
-         (set-zero! (-> self control unknown-smush00))
-         (activate! (-> self control unknown-smush00) 1.0 120 210 0.3 1.0))
-        ((= message 'lose) (set! (-> self control temp-flop-end-checks) (the-as uint message)) message)
-        (else ((-> target-hl-grab event) proc argc message block))))
-  :enter
-    (behavior ((arg0 handle))
-      (set! (-> self control cur-surf) *empty-mods*)
-      (logior! (-> self state-flags) (state-flags invulnerable))
-      (set-zero! (-> self control unknown-smush00))
-      (set! (-> self control temp-flop-end-checks) (the-as uint #f)))
-  :exit
-    (behavior ()
-      (logclear! (-> self state-flags) (state-flags invulnerable))
-      (let ((v1-2 (-> self manipy)))
-        (when v1-2
-          (deactivate (-> v1-2 0))
-          (set! (-> self manipy) (the-as (pointer manipy) #f))))
-      (-> target-hl-periscope exit))
   :code
     (behavior ((arg0 handle))
       (let ((v1-1 (handle->process arg0)))

@@ -115,6 +115,19 @@
   (pc-set-viewmodel-active-model (the-as int weapon))
   (hl-set-crosshair weapon))
 
+(defbehavior hl-weapons-standard-event-handler hl-weapons ((arg0 process) (arg1 int) (arg2 symbol) (arg3 event-message-block))
+  (case arg2
+    (('change-mode)
+     (case (-> arg3 param 0)
+       (('fishing) 
+        (when (!= (-> self current-weapon) (weapons-enum pistol))
+          (set! (-> *hl-weapons* current-pistol-mag-ammo) pistol-max-mag-ammo)
+          (go pistol-draw)))))))
+
+(defbehavior change-weapon-fishgame hl-weapons ()
+  (when (and (= (-> *target* state name) 'target-hl-fishing) (!= (-> self current-weapon) (weapons-enum pistol)))
+    (go pistol-draw)))
+
 (defbehavior hl-choose-idle-wait! hl-weapons ((min-secs float) (max-secs float))
   (let ((rand-secs (rand-vu-float-range min-secs max-secs)))
     (set! (-> self weapon-next-idle-wait) (the-as time-frame (seconds rand-secs)))

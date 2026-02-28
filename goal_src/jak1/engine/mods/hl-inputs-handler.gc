@@ -6,7 +6,7 @@
 (defconstant duck-cooldown (fsec 0.12))
 
 (defun in-hl-state? ()
-  (and (= (-> *target* game mode) 'play) (or (-> *target* state name) 'target-hl-movement-ground 'target-hl-movement-ground-duck 'target-hl-movement-air 'target-hl-movement-air-duck) (!= (-> *target* state name) 'target-hl-periscope) (!= (-> *target* state name) 'target-hl-death) (!= (-> *target* state name) 'target-hl-fishing)))
+  (and (= (-> *target* game mode) 'play) (or (-> *target* state name) 'target-hl-movement-ground 'target-hl-movement-ground-duck 'target-hl-movement-air 'target-hl-movement-air-duck) (!= (-> *target* state name) 'target-hl-periscope) (!= (-> *target* state name) 'target-hl-death)))
 
 (defun clear-keyboard-edge-pressed! ()
   (set! (-> *keyboard-edge* enter-pressed) 0)
@@ -201,15 +201,15 @@
 )
 
 (defun should-switch-slot1? ()
-  (and (or (!= (-> *keyboard-data* key_1) 0) (cpad-pressed? 0 left)) (not (paused?)) (not (= (-> *target* state name) 'target-hl-grab)))
+  (and (or (!= (-> *keyboard-data* key_1) 0) (cpad-pressed? 0 left)) (not (paused?)) (!= (-> *target* state name) 'target-hl-grab) (!= (-> *target* state name) 'target-hl-fishing))
 )
 
 (defun should-switch-slot2? ()
-  (and (or (!= (-> *keyboard-data* key_2) 0) (cpad-pressed? 0 up)) (not (paused?)) (not (= (-> *target* state name) 'target-hl-grab)))
+  (and (or (!= (-> *keyboard-data* key_2) 0) (cpad-pressed? 0 up)) (not (paused?)) (!= (-> *target* state name) 'target-hl-grab) (!= (-> *target* state name) 'target-hl-fishing))
 )
 
 (defun should-switch-slot3? ()
-  (and (or (!= (-> *keyboard-data* key_3) 0) (cpad-pressed? 0 right)) (not (paused?)) (not (= (-> *target* state name) 'target-hl-grab)))
+  (and (or (!= (-> *keyboard-data* key_3) 0) (cpad-pressed? 0 right)) (not (paused?)) (!= (-> *target* state name) 'target-hl-grab) (!= (-> *target* state name) 'target-hl-fishing))
 )
 
 (defun should-use? () #f)
@@ -219,7 +219,7 @@
   (or (key-status? backspace-pressed) (cpad-pressed? 0 triangle)))
 
 (defun should-switch-last-weapon? ()
-  (and (cpad-pressed? 0 down) (not (paused?))))
+  (and (cpad-pressed? 0 down) (not (paused?)) (!= (-> *target* state name) 'target-hl-fishing)))
 
 (defun should-show-hud? ()
   (cpad-pressed? 0 r3))

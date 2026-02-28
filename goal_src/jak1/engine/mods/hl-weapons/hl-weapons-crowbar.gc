@@ -6,7 +6,6 @@
 (defconstant crowbar-hit-attack-cooldown (seconds 0.25))
 (defconstant crowbar-draw-duration (seconds 0.5))
 
-
 (defbehavior crowbar-switch-handle hl-weapons ()
   (when (and (should-switch-slot2?)
              (time-elapsed? (-> self weapon-last-switch-time) weapon-switch-cooldown)
@@ -33,6 +32,7 @@
         (go smg-draw)))))
 
 (defstate crowbar-draw (hl-weapons)
+  :event hl-weapons-standard-event-handler
   :enter
   (behavior ()
     (hl-set-weapon (weapons-enum crowbar))
@@ -51,6 +51,7 @@
     (update-aim-punch 0.1)))
 
 (defstate crowbar-idle (hl-weapons)
+  :event hl-weapons-standard-event-handler
   :trans
   (behavior ()
     (crowbar-switch-handle)
@@ -69,6 +70,7 @@
 )
 
 (defstate crowbar-attack-miss (hl-weapons)
+  :event hl-weapons-standard-event-handler
   :enter
   (behavior ()
     (set! (-> self crowbar-swing-index) (mod (+ (-> self crowbar-swing-index) 1) 3))
@@ -93,6 +95,7 @@
 )
 
 (defstate crowbar-attack-hit (hl-weapons)
+  :event hl-weapons-standard-event-handler
   :enter
   (behavior ()
     (fire-crowbar-attack *target*)

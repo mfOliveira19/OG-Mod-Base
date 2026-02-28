@@ -50,7 +50,7 @@
                (= st 'target-title-play)
                (= st 'target-final-door)
                (= st 'target-title-wait)
-               (= st 'target-hl-fishing)
+               ;;(= st 'target-hl-fishing)
                (= st 'target-hl-clone-anim)
                (on-zoomer?))))))
 
