@@ -217,6 +217,15 @@
 ;; This stuff is basically the same as default but for allowing to go to default target states and return to hl states
 ;;
 ;;
+
+(defbehavior hl-slide-down-test target ()
+  (if (and (not (logtest? (-> self control status) (cshape-moving-flags onsurf csmf07)))
+           (time-elapsed? (-> self control last-ground-time) (-> *TARGET-bank* ground-timeout))
+           (logtest? (-> self control status) (cshape-moving-flags tsurf))
+           (< 0.5 (-> self control surface-angle)))
+    (go target-hl-movement-air))
+  (none))
+
 (defbehavior target-hl-falling-trans target ((arg0 basic) (arg1 time-frame))
   ;;(if (and (cpad-pressed? (-> self control cpad number) circle) (can-feet?)) (go target-attack-air #f))
   (when (= arg0 'target-eco-powerup)
@@ -234,7 +243,7 @@
           #t)
     (logior! (-> self control status) (cshape-moving-flags onsurf))
     (go target-hl-movement-ground))
-  (if (!= (-> self state-time) (current-time)) (slide-down-test))
+  (if (!= (-> self state-time) (current-time)) (hl-slide-down-test))
   0
   (none))
 
@@ -487,7 +496,7 @@
                   (* 0.003921569 (the float (-> *cpad-list* cpads (-> self control cpad number) abutton (abutton-idx x)))))) ;; og:preserve-this abutton indexing
       (target-hl-falling-trans #f (the-as time-frame (if (ja-group? eichar-jump-loop-ja) 15 -1)))
       (mod-var-jump #t #t (cpad-hold? (-> self control cpad number) x) (-> self control transv))
-      (slide-down-test)
+      (hl-slide-down-test)
       (seek! (-> self control turn-vec-len2)
              (fmax 0.0 (fmin 1.0 (* 0.000048828126 (+ -10240.0 (-> self control speed-mod)))))
              (seconds-per-frame)))

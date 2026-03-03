@@ -158,7 +158,8 @@
             ;; to avoid the invulnerability glitch but to still be able to go the air state after we gain height from grenade
             (when (logtest? (-> self state-flags) (state-flags being-attacked))
               (logclear! (-> self state-flags) (state-flags being-attacked)))
-            (if (should-duck?) (go target-hl-movement-air-duck) (go target-hl-movement-air)))
+            (when (> (-> self fact health) 0.0)
+              (if (should-duck?) (go target-hl-movement-air-duck) (go target-hl-movement-air))))
 
           (let* ((base-force 100000.0)
                 (len (max 0.25 (vector-length dir)))
