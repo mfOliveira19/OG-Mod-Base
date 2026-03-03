@@ -50,6 +50,7 @@
                (= st 'target-title-play)
                (= st 'target-final-door)
                (= st 'target-title-wait)
+               (= st 'target-continue)
                (= st 'target-hl-fishing)
                (= st 'target-hl-clone-anim)
                (on-zoomer?))))))
@@ -253,10 +254,6 @@
   ;; Code here runs every time jak spawns (loading a file new game or death)
   ;;uncomment this to use custom music for custom levels - the function is in mod-common-functions.gc
   ;;(process-spawn-function process music-manager-proc)
-    (pc-set-fog-intensity 1.0)
-    (set! *should-show-swim-screen?* #f)
-    (when (not (process-by-name 'hl-weapon-proc *active-pool*))
-      (start-hl-weapons))
   (none))
 
 (defun runs-on-jak-death ((death-event symbol))
@@ -272,6 +269,8 @@
 (defun runs-on-jak-init ()
     ;; Code here runs on target init
     ;; Init the timers, for some reason, when we load the game sometimes the timers are fucked up
+    (pc-set-fog-intensity 1.0)
+    (set! *should-show-swim-screen?* #f)
     (set! *hl-target-jump-buffer* 0)
     (set! *last-duck-time* 0)
     (set! *last-step-time* 0)
