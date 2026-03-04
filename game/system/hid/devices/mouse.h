@@ -58,7 +58,7 @@ class MouseDevice : public InputDevice {
 
   bool m_control_camera = false;
   bool m_control_movement = false;
-  float m_xsens = -15.0;
+  float m_xsens = 4.0;
   float m_ysens = 10.0;
 
   // Tracking motion
