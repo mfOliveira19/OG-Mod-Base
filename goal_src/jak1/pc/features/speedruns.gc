@@ -307,6 +307,8 @@
       (((speedrun-category il-firecanyon))
        ;; skip keira intro cutscene
        (close-specific-task! (game-task firecanyon-assistant) (task-status need-reward-speech))
+       ;; unlock upgraded suit
+       (set! (-> *game-info* total-deaths) 1)
        ;; unlock blue eco vent
        (close-specific-task! (game-task jungle-eggtop) (task-status need-resolution))
        (send-event *target* 'get-pickup (pickup-type fuel-cell) (the float (game-task jungle-eggtop)))
@@ -358,6 +360,8 @@
       (((speedrun-category il-lavatube))
        ;; skip keira intro cutscene
        (close-specific-task! (game-task lavatube-start) (task-status need-reward-speech))
+       ;; unlock upgraded suit
+       (set! (-> *game-info* total-deaths) 2)
        (mark-text-as-seen *game-info* (text-id lavatube-level-name)))
       (((speedrun-category il-citadel))
        ;; remove invisible wall
