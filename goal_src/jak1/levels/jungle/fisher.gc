@@ -784,7 +784,8 @@
   (none))
 
 (defbehavior fisher-fish-move fisher-fish ()
-  (+! (-> self pos) (* (-> self vel) 1.5 (seconds-per-frame)))
+  ;; Normal speed when using controller aiming
+  (+! (-> self pos) (* (-> self vel) (if (-> *pc-settings* controller-aim?) 1.0 1.5) (seconds-per-frame)))
   (eval-path-curve-div! (-> (the-as fisher (-> self parent 0)) path) (-> self root trans) (-> self pos) 'interp)
   (path-control-method-12 (-> (the-as fisher (-> self parent 0)) path) (-> self dir) (-> self pos))
   (seek-toward-heading-vec! (-> self root) (-> self dir) 291271.12 (seconds 0.2))
@@ -904,7 +905,6 @@
 (defbehavior fisher-fish-init-by-other fisher-fish ((arg0 symbol) (arg1 float) (arg2 float))
   (set! (-> self mode) arg0)
   (logclear! (-> self mask) (process-mask actor-pause))
-  ;;(set! (-> self root) (new 'process 'trsqv))
   (set! (-> self size) 3276.8)
   (let ((s4-0 (new 'process 'collide-shape-moving self (collide-list-enum usually-hit-by-player))))
     (let ((s3-0 (new 'process 'collide-shape-prim-sphere s4-0 (the-as uint 3))))
@@ -913,7 +913,9 @@
       (set! (-> s3-0 prim-core action) (collide-action solid))
       (set! (-> s3-0 prim-core offense) (collide-offense touch))
       (set! (-> s3-0 transform-index) 3)
-      (set-vector! (-> s3-0 local-sphere) 0.0 0.0 0.0 3276.8)
+      ;; Hitbox size is bigger when using controller aiming
+      (let ((fish-sphere-size 3276.8))
+        (set-vector! (-> s3-0 local-sphere) 0.0 0.0 0.0 (if (and (-> *pc-settings* controller-aim?) (not (or (= arg0 'deadly) (= arg0 'bad)))) (* 2.0 fish-sphere-size) fish-sphere-size)))
       (set-root-prim! s4-0 s3-0))
     (set! (-> s4-0 nav-radius) (* 0.75 (-> s4-0 root-prim local-sphere w)))
     (backup-collide-with-as s4-0)

@@ -134,7 +134,7 @@
   ;; Handle input and new hints when not paused
   (when (and (not (paused?)) (not (target-sleeping?)))
     (hud-hl-display-on)
-    (unless (= (-> *target* state name) 'target-warp-in) (update-mouse-input-stuff))
+    (unless (or (= (-> *target* state name) 'target-warp-in) (-> *pc-settings* controller-aim?)) (update-mouse-input-stuff))
     (update-cell-suit-upgrade-status)
     (update-suit-upgrade-message))
 
