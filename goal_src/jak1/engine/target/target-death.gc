@@ -139,7 +139,8 @@
       (let ((s5-2 (level-get *level* (-> arg0 level))))
         ;; vis info check added for PC, don't bother waiting for vis if the level doesn't have it.
         (when (and s5-2 (-> s5-2 vis-info 0))
-          (while (and (= (-> s5-2 all-visible?) 'loading) (-> *level* vis?))
+          (while (and (= (-> s5-2 all-visible?) 'loading) (-> *level* vis?)
+                      (not (logtest? (-> arg0 flags) (continue-flags speedrun)))) ;; custom checkpoints might have bad vis data, don't let them get stuck here
             (suspend))))
       (set! *spawn-actors* #t)
       (set! *teleport* #t)
