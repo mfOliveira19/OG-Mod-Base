@@ -498,10 +498,6 @@
 
 (defun speedrun-practice-load-tmp-checkpoint ()
   (when (-> *tmp-continue-point* level)
-    ;; store last real checkpoint to restore later
-    (when (not (string= (-> *game-info* current-continue name) "tmp"))
-      (set! *last-real-continue-point* (-> *game-info* current-continue))
-      )
     (set! (-> *game-info* current-continue) *tmp-continue-point*)
     (set! *practice-spawn-post-init* generic-post-init)
     (initialize! *game-info* 'dead (the-as game-save #f) (the-as string #f))
@@ -511,6 +507,10 @@
 
 (defun speedrun-practice-store-temp-checkpoint ()
   (when *target*
+    ;; store last real checkpoint to restore later
+    (when (not (string= (-> *game-info* current-continue name) "tmp"))
+      (set! *last-real-continue-point* (-> *game-info* current-continue))
+      )
     ;; copy levels from current continue
     (continue-point-copy! *tmp-continue-point* (-> *game-info* current-continue))
     ;; copy position of target + camera
@@ -534,7 +534,7 @@
     ;; if we're stuck continue-ing at a speedrun checkpoint, it might have bad vis so force it
     (when (and *target* (= (-> *target* state name) 'target-continue)
               (logtest? (-> *game-info* current-continue flags) (continue-flags speedrun)))
-      (load-state-want-vis (-> *load-state* want 0 name))
+      (load-state-want-force-vis (-> *game-info* current-continue level) #t)
       )
     
     ;; call post-init function
