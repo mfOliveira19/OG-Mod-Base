@@ -145,13 +145,13 @@
           (set! (-> dir x) (* (-> dir x) horizontal-strength))
           (set! (-> dir z) (* (-> dir z) horizontal-strength))
 
-          (if (> dy -3000.0)
+          (if (> dy -7000.0)
               (begin
               (set! (-> dir y)
                     (* vertical-strength 0.5))
               )
               (begin
-              (set! (-> dir y) 0.0)
+              (set! (-> dir y) (- (* vertical-strength 0.5)))
               ))
 
           (when (> (-> dir y) 0)

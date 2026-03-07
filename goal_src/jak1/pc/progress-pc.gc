@@ -721,6 +721,12 @@
        (new 'static
             'game-option
             :option-type (game-option-type menu)
+            :name (text-id game-options)
+            :scale #t
+            :param3 (game-option-menu mod-game))
+       (new 'static
+            'game-option
+            :option-type (game-option-type menu)
             :name (text-id input-options)
             :scale #t
             :param3 (game-option-menu mod-input))
@@ -736,6 +742,14 @@
             :name (text-id sound-options)
             :scale #t
             :param3 (game-option-menu mod-sound))
+       (new 'static 'game-option :option-type (game-option-type button) :name (text-id back) :scale #t)))
+
+(define *mod-game*
+  (new 'static
+       'boxed-array
+       :type
+       game-option
+       (new 'static 'game-option :option-type (game-option-type on-off) :name (text-id skip-power-cell-cutscenes) :scale #t)
        (new 'static 'game-option :option-type (game-option-type button) :name (text-id back) :scale #t)))
 
 (define *mod-input*
@@ -774,6 +788,15 @@
             :param1 0.0
             :param2 10.0
             :slider-step-size 0.005
+            :slider-show-decimal? #t)
+       (new 'static
+            'game-option
+            :option-type (game-option-type slider)
+            :name (text-id input-opts-analog-deadzone)
+            :scale #t
+            :param1 0.0
+            :param2 1.0
+            :slider-step-size 0.01
             :slider-show-decimal? #t)
        (new 'static 'game-option :option-type (game-option-type button) :name (text-id back) :scale #t)))
 
@@ -2422,6 +2445,7 @@
         (if (or *cheat-mode* (nonzero? (-> *pc-settings* cheats-known))) *main-options-secrets* *main-options-pc*))
   ;; Added for hl mod
   (set! (-> *options-remap* (progress-screen mod-options)) *mod-options*)
+  (set! (-> *options-remap* (progress-screen mod-game)) *mod-game*)
   (set! (-> *options-remap* (progress-screen mod-input)) *mod-input*)
   (set! (-> *options-remap* (progress-screen mod-graphic)) *mod-graphic*)
   (set! (-> *options-remap* (progress-screen mod-sound)) *mod-sound*)
@@ -2537,12 +2561,15 @@
   (set! (-> *mouse-options* 3 value-to-modify) (&-> *pc-settings* mouse-movement?))
 
   ;; MOD OPTIONS
+  (set! (-> *mod-game* 0 value-to-modify) (&-> *pc-settings* skip-power-cell-cutscenes?))
+
   (set! (-> *mod-input* 0 value-to-modify) (&-> *pc-settings* mouse-xsens)) ;; xsens will be used for both x and y
   (set! (-> *mod-input* 2 value-to-modify) (&-> *pc-settings* auto-jump?))
   (set! (-> *mod-input* 3 value-to-modify) (&-> *pc-settings* longjump-enabled?))
   (set! (-> *mod-input* 4 value-to-modify) (&-> *progress-carousell* int-backup)) ;; This is the mouse wheel setting
   (set! (-> *mod-input* 5 value-to-modify) (&-> *pc-settings* controller-aim?))
   (set! (-> *mod-input* 6 value-to-modify) (&-> *pc-settings* controller-sens))
+  (set! (-> *mod-input* 7 value-to-modify) (&-> *pc-settings* stick-deadzone))
 
   (set! (-> *mod-graphic* 0 value-to-modify) (&-> *pc-settings* fov))
   (set! (-> *mod-graphic* 1 value-to-modify) (&-> *pc-settings* teleport-effect?))
@@ -3929,7 +3956,7 @@
              (hide-progress-icons)
              (draw-options self 115 25 0.65))
             (((progress-screen gfx-ps2-options)) (hide-progress-icons) (draw-options self 115 25 0.67))
-            (((progress-screen game-settings) (progress-screen mod-options) (progress-screen mod-input) (progress-screen mod-keyboard-binds) (progress-screen mod-graphic) (progress-screen mod-sound)) (hide-progress-icons) (draw-options self 115 25 0.70))
+            (((progress-screen game-settings) (progress-screen mod-options) (progress-screen mod-input) (progress-screen mod-game) (progress-screen mod-keyboard-binds) (progress-screen mod-graphic) (progress-screen mod-sound)) (hide-progress-icons) (draw-options self 115 25 0.70))
             (((progress-screen memcard-removed) (progress-screen memcard-auto-save-error))
              (draw-notice-screen self)
              (draw-options self 192 0 0.82))

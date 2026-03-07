@@ -520,6 +520,7 @@
     (("mouse-xsens") (set! (-> obj mouse-xsens) (file-stream-read-float file)))
     (("mouse-ysens") (set! (-> obj mouse-ysens) (file-stream-read-float file)))
     (("auto-jump?") (set! (-> obj auto-jump?) (file-stream-read-symbol file))) ;; added for hl mod
+    (("skip-power-cell-cutscenes?") (set! (-> obj skip-power-cell-cutscenes?) (file-stream-read-symbol file))) ;; added for hl mod
     (("longjump-enabled?") (set! (-> obj longjump-enabled?) (file-stream-read-symbol file))) ;; added for hl mod
     (("mouse-wheel-behavior") (set! (-> obj mouse-wheel-behavior) (file-stream-read-int file))) ;; added for hl mod
     (("fov") (set! (-> obj fov) (file-stream-read-float file))) ;; added for hl mod
@@ -607,6 +608,7 @@
   (format file "  (mouse-camera? ~A)~%" (-> obj mouse-camera?))
   (format file "  (mouse-xsens ~f)~%" (-> obj mouse-xsens))
   (format file "  (auto-jump? ~A)~%" (-> obj auto-jump?)) ;; added for hl mod
+  (format file "  (skip-power-cell-cutscenes? ~A)~%" (-> obj skip-power-cell-cutscenes?)) ;; added for hl mod
   (format file "  (longjump-enabled? ~A)~%" (-> obj longjump-enabled?)) ;; added for hl mod
   (format file "  (mouse-wheel-behavior ~D)~%" (-> obj mouse-wheel-behavior)) ;; added for hl mod
   (format file "  (fov ~f)~%" (-> obj fov)) ;; added for hl mod

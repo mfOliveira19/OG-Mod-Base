@@ -3,7 +3,7 @@
 ;; Lots of global stuff, it could be improved by putting it in the target structure but i did not want to mess too much with it
 
 ;; movement constants
-(defconstant jump-speed 35000.0)
+(defconstant jump-speed 38000.0)
 (defconstant swim-jump-speed 15000.0)
 (defconstant gravity-factor 0.55)
 (defconstant hl-max-speed   50650.0)
@@ -701,12 +701,7 @@
                   (when (> accelspeed addspeed)
                     (set! accelspeed addspeed))
                   (vector+! curvel curvel
-                            (vector-float*! (new-stack-vector0) wishvel accelspeed)))))))
-
-      ;; clamp final horizontal velocity
-      (let ((speed (vector-xz-length curvel)))
-        (when (> speed maxspeed)
-          (vector-xz-normalize! curvel maxspeed))))
+                            (vector-float*! (new-stack-vector0) wishvel accelspeed))))))))
 
       ;; restore vertical
       (set! (-> curvel y) saved-y))))
@@ -874,10 +869,11 @@
         (let ((f30-0 (-> self control pad-stick-speed)))
           (turn-to-vector-hl s4-0 f30-0)))
 
-      (if (on-ground?)
-          (unless (should-jump?)
-            (hl-add-thrust))
-          (if (= (-> *target* state name) 'target-hl-duck-high-jump-jump) (hl-add-air-thrust-launcher) (hl-add-air-thrust)))
+      (let ((yv (-> self control transv y)))
+        (if (and (on-ground?) (<= yv (meters 8.0))) ;; This is so we can bhop up slopes without getting stuck in ground state
+            (unless (should-jump?)
+              (hl-add-thrust))
+            (if (= (-> *target* state name) 'target-hl-duck-high-jump-jump) (hl-add-air-thrust-launcher) (hl-add-air-thrust))))
 
       (if (= (-> *target* state name) 'target-hl-duck-high-jump-jump) (add-gravity) (hl-add-gravity))
       ;;(hl-add-gravity)

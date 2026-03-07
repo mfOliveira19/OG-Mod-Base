@@ -621,6 +621,7 @@
       (vector-! tmp vel (vector-float*! tmp grav yv))
 
       (draw-string-xy-scaled
+        ;;(string-format "xzv: ~M (~M)" (vector-length tmp) (* (vector-length tmp) 25.8780))
         (string-format "xzv: ~M" (vector-length tmp))
         buf
         225

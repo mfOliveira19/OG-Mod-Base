@@ -293,10 +293,10 @@
 ))))|#
 
 (defun walk-speed-multiplier ()
-  (if (should-walk?) 0.48 1.5))
+  (if (should-walk?) 0.465 1.5))
 
 (defun duck-speed-multiplier ()
-  (if (target-hl-is-in-duck?) 0.3 1.0))
+  (if (target-hl-is-in-duck?) 0.275 1.0))
 
 (defbehavior read-input target ((arg0 vector))
   ;; frame sync

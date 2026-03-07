@@ -134,6 +134,7 @@
      (memcard-saving-and-loading)
      (memcard-data-exists-save-and-load)
      (mod-options) ;; Added for hl mod - a dedicated screen for the mod options
+     (mod-game) ;; Added for hl mod
      (mod-input) ;; Added for hl mod
      (mod-graphic) ;; Added for hl mod
      (mod-sound) ;; Added for hl mod
