@@ -795,7 +795,7 @@
   :enter
     (behavior ()
       (when (#if PC_PORT
-              ;; og:preserve-this skip intro cutscene (and column breaking) for Mountain Pass IL speedruns
+              ;; og:preserve-this skip intro cutscene (and breakable column spawning) for Mountain Pass IL speedruns
               (and (zero? (-> self try-count)) (not (and PC_PORT (is-speedrun-category? 'il-ogre))))
               (zero? (-> self try-count)))
         (let ((gp-0 (manipy-spawn (-> self root trans) (-> self entity) *ogreboss-column-sg* #f :to self)))
