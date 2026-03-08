@@ -371,7 +371,10 @@
 
     (if (<= mag deadzone)
         0.0
-        (* sign (min (/ (* mag out-range) max-displacement) out-range)))))
+        (let* ((scaled (/ (- mag deadzone) (- max-displacement deadzone)))
+               (curved (* scaled scaled))
+               (out (* curved out-range)))
+          (* sign (min out out-range))))))
 
 ;; main first-person camera for hl mod
 ;; og:preserve-this modified for high fps
@@ -415,7 +418,7 @@
                     (stick-max 255.0)
                     (stick-center 128.0)
                     (stick-range (* 5.0 (-> *pc-settings* controller-sens)))
-                    (deadzone 9.5))
+                    (deadzone (* 128.0 (-> *pc-settings* stick-deadzone))))
                 (when (-> *pc-settings* controller-aim?)
                 (set! delta-x (+ delta-x (analog-input-cam-fps (the-as int rx) stick-center stick-max stick-range deadzone)))
                 (set! delta-y (+ delta-y (analog-input-cam-fps (the-as int ry) stick-center stick-max stick-range deadzone))))
