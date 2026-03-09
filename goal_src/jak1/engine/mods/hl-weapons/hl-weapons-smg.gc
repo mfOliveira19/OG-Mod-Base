@@ -42,6 +42,7 @@
         (go pistol-draw)))))
 
 (defstate smg-draw (hl-weapons)
+  :event hl-weapons-standard-event-handler
   :enter
   (behavior ()
     (hl-set-weapon (weapons-enum smg))
@@ -63,6 +64,7 @@
     (update-aim-punch smg-aim-punch-decay)))
 
 (defstate smg-idle (hl-weapons)
+  :event hl-weapons-standard-event-handler
   :enter
   (behavior ()
     (when (= (-> self weapon-next-idle-wait) 0)
@@ -93,6 +95,7 @@
     (update-aim-punch smg-aim-punch-decay)))
 
 (defstate smg-idle-anim (hl-weapons)
+  :event hl-weapons-standard-event-handler
   :enter
   (behavior ()
     (let ((idx (rand-vu-int-range 0 1)))
@@ -121,6 +124,7 @@
     (update-aim-punch smg-aim-punch-decay)))
 
 (defstate smg-attack (hl-weapons)
+  :event hl-weapons-standard-event-handler
   :enter
   (behavior ()
     (when (> (-> self current-smg-mag-ammo) 0)
@@ -161,6 +165,7 @@
     (update-aim-punch smg-aim-punch-decay)))
 
 (defstate smg-secondary (hl-weapons)
+  :event hl-weapons-standard-event-handler
   :enter
   (behavior ()
     (fire-hl-grenade *target*)
@@ -185,6 +190,7 @@
     (update-aim-punch smg-aim-punch-decay)))
 
 (defstate smg-reload-part1 (hl-weapons)
+  :event hl-weapons-standard-event-handler
   :enter
   (behavior ()
     (viewmodel-play-animation (viewmodel-animations-enum smg-reload) 1.3)
@@ -205,6 +211,7 @@
     (update-aim-punch smg-aim-punch-decay)))
 
 (defstate smg-reload-part2 (hl-weapons)
+  :event hl-weapons-standard-event-handler
   :enter
   (behavior ()
     (set! (-> self current-smg-mag-ammo) smg-max-mag-ammo)

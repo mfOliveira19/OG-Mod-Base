@@ -811,6 +811,7 @@
   (controller-aim #x1632)
   (controller-sens #x1633)
   (wheel-up-down-jump #x1634)
+  (skip-power-cell-cutscenes #x1635)
   ;; mod text mod-base-change
   (pad-triangle #x2000)
   (pad-circle #x2001)

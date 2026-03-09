@@ -38,10 +38,6 @@ At a high level, movement works like this:
       <li>Desired speed is capped to a maximum value</li>
       <li>Acceleration is applied only if we are not already moving fast enough in that direction</li>
     </ul>
-  <li>Clamp maximum speed</li>
-    <ul>
-      <li>After acceleration, horizontal speed is clamped to prevent exceeding the allowed maximum speed.</li>
-    </ul>
 </ol> 
 
 #### Duck Behavior

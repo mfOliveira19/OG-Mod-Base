@@ -163,6 +163,7 @@
    (show-speed?                      symbol) ;; Added for hl mod
    (controller-aim?                  symbol) ;; Added for hl mod
    (controller-sens                  float)  ;; Added for hl mod
+   (skip-power-cell-cutscenes?            symbol) ;; Added for hl mod
    ;; audio settings
    (audio-latency-ms                 int16) ;; audio latency in milliseconds
    (audio-pan-override               float) ;; audio pan modifier
@@ -392,6 +393,7 @@
   "Set the default mod settings"
     (set! (-> obj mouse-xsens) 2.0)
     (set! (-> obj auto-jump?) #t)
+    (set! (-> obj skip-power-cell-cutscenes?) #f)
     (set! (-> obj longjump-enabled?) #t)
     (set! (-> obj mouse-wheel-behavior) 1)
     (set! (-> obj fov) 90.0)

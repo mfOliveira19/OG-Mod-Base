@@ -12,6 +12,7 @@
 (defconstant pistol-idle3-duration (seconds 3.06))
 (defconstant pistol-aim-punch-decay 0.1)
 (defconstant pistol-aim-punch-amount 0.05)
+(defconstant debug-hit-detection #f)
 
 (defbehavior pistol-switch-handle hl-weapons ()
   (when (and (should-switch-slot1?)
@@ -60,6 +61,8 @@
     (loop (suspend)))
   :post
   (behavior ()
+    (when debug-hit-detection
+      (fire-hl-shot *target* #t 0.0 0.0))
     (update-aim-punch pistol-aim-punch-decay)))
 
 (defstate pistol-idle (hl-weapons)
@@ -89,7 +92,8 @@
 
   :post
   (behavior ()
-    ;;(fire-hl-shot *target* #t 0.0 0.0)
+    (when debug-hit-detection
+      (fire-hl-shot *target* #t 0.0 0.0))
     (update-aim-punch pistol-aim-punch-decay)
     ))
 
@@ -127,7 +131,8 @@
     (loop (suspend)))
   :post
   (behavior ()
-    ;;(fire-hl-shot *target* #t)
+    (when debug-hit-detection
+      (fire-hl-shot *target* #t 0.0 0.0))
     (update-aim-punch pistol-aim-punch-decay)
     ))
 
@@ -135,7 +140,9 @@
   :enter
   (behavior ()
     (when (> (-> self current-pistol-mag-ammo) 0)
-      (-! (-> self current-pistol-mag-ammo) 1)
+      ;; In fish we have unlimited pistol ammo
+      (unless (= (-> *target* state name) 'target-hl-fishing)
+        (-! (-> self current-pistol-mag-ammo) 1))
       (let ((spread-x (rand-vu-float-range 0.0 0.001))
             (spread-y (rand-vu-float-range 0.0 0.001)))
         (fire-hl-shot *target* #f spread-x spread-y))
@@ -158,6 +165,8 @@
 
   :post
   (behavior ()
+    (when debug-hit-detection
+      (fire-hl-shot *target* #t 0.0 0.0))
     (update-aim-punch pistol-aim-punch-decay)
     ))
 
@@ -165,7 +174,8 @@
   :enter
   (behavior ()
     (when (> (-> self current-pistol-mag-ammo) 0)
-      (-! (-> self current-pistol-mag-ammo) 1)
+      (unless (= (-> *target* state name) 'target-hl-fishing)
+        (-! (-> self current-pistol-mag-ammo) 1))
       (let ((spread-x (rand-vu-float-range -0.1 0.1))
             (spread-y (rand-vu-float-range -0.1 0.1)))
         (fire-hl-shot *target* #f spread-x spread-y))
@@ -188,6 +198,8 @@
 
   :post
   (behavior ()
+    (when debug-hit-detection
+      (fire-hl-shot *target* #t 0.0 0.0))
     (update-aim-punch pistol-aim-punch-decay)
     ))
 
@@ -209,6 +221,8 @@
     (loop (suspend)))
   :post
   (behavior ()
+    (when debug-hit-detection
+      (fire-hl-shot *target* #t 0.0 0.0))
     (update-aim-punch pistol-aim-punch-decay)
     ))
 
@@ -231,5 +245,7 @@
     (loop (suspend)))
   :post
   (behavior ()
+    (when debug-hit-detection
+      (fire-hl-shot *target* #t 0.0 0.0))
     (update-aim-punch pistol-aim-punch-decay)
     ))

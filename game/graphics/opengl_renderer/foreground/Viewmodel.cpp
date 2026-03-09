@@ -67,19 +67,12 @@ void Viewmodel::render(DmaFollower& dma,
                        SharedRenderState* render_state,
                        ScopedProfilerNode& prof,
                        ViewmodelDebugStats* debug_stats) {
-  if (m_models.empty())
-    return;
-
-  static int once = 0;
-
-  if (once == 0) {
-    ViewmodelResource res;
-    load_from_file("vm_crowbar.glb", res);
-    once++;
-  }
 
   while (dma.current_tag_offset() != render_state->next_bucket)
     dma.read_and_advance();
+
+  if (m_models.empty())
+    return;
 
   if (!viewmodelShow()) {
     if (m_playing_animation) {
@@ -90,6 +83,15 @@ void Viewmodel::render(DmaFollower& dma,
     }
     return;
   }
+
+  static int once = 0;
+
+  if (once == 0) {
+    ViewmodelResource res;
+    load_from_file("vm_crowbar.glb", res);
+    once++;
+  }
+
   // Handle Fog
   render_state->fog_intensity = fogIntensity();
 

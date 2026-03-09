@@ -592,6 +592,18 @@
   (start-speedrun (speedrun-category full-game))
   (none))
 
+;; This was added to avoid "Function call cannot use more than 8 parameters" in speedrun-draw-settings
+(defun cutscene-skip-text ()
+  (cond
+    ((and (-> *pc-settings* skip-movies?) (-> *pc-settings* skip-power-cell-cutscenes?))
+     "(CS Skips) (PCCS Skips)")
+    ((-> *pc-settings* skip-movies?)
+     "(CS Skips) (No PCCS Skips)")
+    ((-> *pc-settings* skip-power-cell-cutscenes?)
+     "(No CS Skips) (PCCS Skips)")
+    (else
+     "(No CS Skips) (No PCCS Skips)")))
+
 (defun speedrun-draw-settings ()
   "Draw speedrun related settings in the bottom left corner"
   (when (and (-> *pc-settings* speedrunner-mode?) (not (paused?)) (-> *speedrun-info* should-display?))
@@ -599,7 +611,7 @@
       (draw-string-xy (string-format "Speedrunner Mode ~%Mod Version: ~S ~%Category: ~S ~S~%~DFPS / ~S / ~S"
                                      *mod-version-text*
                                      (enum->string speedrun-category (-> *speedrun-info* category))
-                                     (if (-> *pc-settings* skip-movies?) "(CS Skips)" "(No CS Skips)")
+                                     (cutscene-skip-text)
                                      (-> *pc-settings* target-fps)
                                      (if (-> *pc-settings* auto-jump?) "Auto Jump" "No Auto Jump")
                                      (if (-> *pc-settings* longjump-enabled?) "Long Jump" "No Long Jump")

@@ -645,6 +645,7 @@
                         (= v1-2 (progress-screen mouse-options))
                         (= v1-2 (progress-screen reassign-binds-options))
                         (= v1-2 (progress-screen mod-options)) ;; Added for hl mod
+                        (= v1-2 (progress-screen mod-game)) ;; Added for hl mod
                         (= v1-2 (progress-screen mod-input)) ;; Added for hl mod
                         (= v1-2 (progress-screen mod-keyboard-binds)) ;; Added for hl mod
                         (= v1-2 (progress-screen mod-graphic)) ;; Added for hl mod

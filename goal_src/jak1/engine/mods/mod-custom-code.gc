@@ -36,8 +36,8 @@
   (= (-> *target* state name) 'target-hl-racing-get-off)
   (= (-> *target* state name) 'target-hl-racing-get-off-jump)
   (= (-> *target* state name) 'target-hl-racing-get-off-hit-ground)
-  (= (-> *target* state name) 'target-hl-racing-death)
-  ))
+  (= (-> *target* state name) 'target-hl-racing-death)))
+
 (defun in-hl-state? ()
   (let ((st (-> *target* state name)))
     (and
@@ -51,7 +51,6 @@
                (= st 'target-final-door)
                (= st 'target-title-wait)
                (= st 'target-continue)
-               (= st 'target-hl-fishing)
                (= st 'target-hl-clone-anim)
                (on-zoomer?))))))
 
@@ -135,7 +134,7 @@
   ;; Handle input and new hints when not paused
   (when (and (not (paused?)) (not (target-sleeping?)))
     (hud-hl-display-on)
-    (unless (= (-> *target* state name) 'target-warp-in) (update-mouse-input-stuff))
+    (unless (or (= (-> *target* state name) 'target-warp-in) (-> *pc-settings* controller-aim?)) (update-mouse-input-stuff))
     (update-cell-suit-upgrade-status)
     (update-suit-upgrade-message))
 
@@ -278,7 +277,6 @@
     ;; This is what allows us to do the % warp when doing LTS to get the suit upgrade
     (when (and (string= (-> *game-info* current-continue name) "lavatube-middle") (< (-> *game-info* total-deaths) 3))
       (set! (-> *game-info* total-deaths) 2))
-
     (if (not (process-by-name 'hl-weapon-proc *active-pool*))
       (start-hl-weapons)
       (reset-hl-weapon-stuff))
