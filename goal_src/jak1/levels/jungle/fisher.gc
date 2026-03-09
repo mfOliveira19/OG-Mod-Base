@@ -793,6 +793,7 @@
         (gp-0 (new-stack-vector0)))
     (set! (-> gp-0 x) (sin f30-1))
     (set! (-> gp-0 y) 0.0)
+    (set! (-> gp-0 z) (cos f30-1))
     (set! (-> gp-0 w) 1.0)
     (vector-normalize! gp-0 (* 2.0 (+ -0.5 (-> self offset)) (-> *FISHER-bank* width)))
     (vector+! (-> self root trans) (-> self root trans) gp-0)
