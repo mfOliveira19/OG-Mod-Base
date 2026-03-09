@@ -785,7 +785,7 @@
 
 (defbehavior fisher-fish-move fisher-fish ()
   ;; Normal speed when using controller aiming
-  (+! (-> self pos) (* (-> self vel) (if (-> *pc-settings* controller-aim?) 1.0 1.5) (seconds-per-frame)))
+  (+! (-> self pos) (* (-> self vel) (if (-> *pc-settings* controller-aim?) 1.0 1.8) (seconds-per-frame)))
   (eval-path-curve-div! (-> (the-as fisher (-> self parent 0)) path) (-> self root trans) (-> self pos) 'interp)
   (path-control-method-12 (-> (the-as fisher (-> self parent 0)) path) (-> self dir) (-> self pos))
   (seek-toward-heading-vec! (-> self root) (-> self dir) 291271.12 (seconds 0.2))
@@ -793,7 +793,6 @@
         (gp-0 (new-stack-vector0)))
     (set! (-> gp-0 x) (sin f30-1))
     (set! (-> gp-0 y) 0.0)
-    (set! (-> gp-0 z) (cos f30-1))
     (set! (-> gp-0 w) 1.0)
     (vector-normalize! gp-0 (* 2.0 (+ -0.5 (-> self offset)) (-> *FISHER-bank* width)))
     (vector+! (-> self root trans) (-> self root trans) gp-0)
@@ -1581,17 +1580,8 @@
       (logior! (-> self state-flags) (state-flags invulnerable))
       (set-zero! (-> self control unknown-smush00))
       (set! (-> self control temp-flop-end-checks) (the-as uint #f))
-      (let ((pos (new 'stack-no-clear 'vector))
-            (rot (new 'stack-no-clear 'matrix)))
-
-        (set-vector! pos 1067827.2 9420.8 -955596.8 1.0)
-        (matrix-identity! rot)
-
-        (matrix-rotate-y! rot (degrees 260.0))
-
-        (debug-set-camera-pos-rot! pos rot))
-        (set-camera-pitch -0.2)
-      )
+      (send-event *camera* 'set-rotation (degrees -260.0))
+      (set-camera-pitch -0.2))
   :exit
     (behavior ()
       (logclear! (-> self state-flags) (state-flags invulnerable))

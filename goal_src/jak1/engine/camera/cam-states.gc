@@ -383,6 +383,22 @@
     (behavior ((proc process) (argc int) (message symbol) (block event-message-block))
       (case message
         (('teleport) #f)
+        (('set-rotation)
+        (let* ((rot (new-stack-matrix0))
+                (yaw-angle (if (> argc 0)
+                              (the-as float (-> block param 0))
+                              0.0))
+                (up-axis (vector-negate! (new-stack-vector0) (-> *camera* local-down))))
+
+          (matrix-identity! rot)
+          (matrix-axis-angle! rot up-axis yaw-angle)
+          (matrix-copy! (the-as matrix (-> self tracking)) rot)
+
+          (forward-down->inv-matrix
+            (the-as matrix (-> self tracking))
+            (-> self tracking inv-mat vector 2)
+            (-> *camera* local-down))
+          0))
         (else (cam-standard-event-handler proc argc message block))))
   :enter
     (behavior ()
