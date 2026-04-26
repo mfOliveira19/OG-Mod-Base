@@ -19,6 +19,12 @@
     (set-time! (-> self weapon-last-switch-time))
     (set! (-> self last-weapon) (weapons-enum crowbar))
     (go smg-draw))
+  (when (and (should-switch-slot4?)
+             (time-elapsed? (-> self weapon-last-switch-time) weapon-switch-cooldown)
+             (not (= (-> self current-weapon) (weapons-enum gauss))))
+    (set-time! (-> self weapon-last-switch-time))
+    (set! (-> self last-weapon) (weapons-enum crowbar))
+    (go gauss-draw))
   (when (and (should-switch-last-weapon?)
              (time-elapsed? (-> self weapon-last-switch-time) weapon-switch-cooldown)
              (not (= (-> self current-weapon) (-> self last-weapon))))
@@ -27,9 +33,35 @@
       (((weapons-enum pistol))
         (set! (-> self last-weapon) (weapons-enum crowbar))
         (go pistol-draw))
+      (((weapons-enum revolver))
+        (set! (-> self last-weapon) (weapons-enum crowbar))
+        (go revolver-draw))
       (((weapons-enum smg))
         (set! (-> self last-weapon) (weapons-enum crowbar))
-        (go smg-draw)))))
+        (go smg-draw))
+      (((weapons-enum shotgun))
+        (set! (-> self last-weapon) (weapons-enum crowbar))
+        (go shotgun-draw))
+      (((weapons-enum gauss))
+        (set! (-> self last-weapon) (weapons-enum crowbar))
+        (go gauss-draw)))))
+
+(defstate crowbar-holster (hl-weapons)
+  :event hl-weapons-standard-event-handler
+  :enter
+  (behavior ()
+    (viewmodel-play-animation (viewmodel-animations-enum holster) 5.0))
+  :trans
+   (behavior ()
+   (when (should-use?) (go crowbar-draw))
+   )
+  :code
+  (behavior ()
+    (loop (suspend)))
+  :post
+  (behavior ()
+    (hl-weapons-common-post)
+    (update-aim-punch 0.1)))
 
 (defstate crowbar-draw (hl-weapons)
   :event hl-weapons-standard-event-handler
@@ -48,6 +80,7 @@
     (loop (suspend)))
   :post
   (behavior ()
+    (hl-weapons-common-post)
     (update-aim-punch 0.1)))
 
 (defstate crowbar-idle (hl-weapons)
@@ -66,6 +99,7 @@
     (loop (suspend)))
   :post
   (behavior ()
+    (hl-weapons-common-post)
   )
 )
 
@@ -92,6 +126,9 @@
   :code
   (behavior ()
     (loop (suspend)))
+  :post
+  (behavior ()
+    (hl-weapons-common-post))
 )
 
 (defstate crowbar-attack-hit (hl-weapons)
@@ -131,4 +168,7 @@
   :code
   (behavior ()
     (loop (suspend)))
+  :post
+  (behavior ()
+    (hl-weapons-common-post))
 )

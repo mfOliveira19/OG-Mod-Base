@@ -394,7 +394,7 @@ nav-enemy-default-event-handler
     (backup-collide-with-as s5-0)
     (set! (-> s5-0 max-iteration-count) (the-as uint 1))
     (set! (-> this collide-info) s5-0))
-    (set! (-> this health) 80)
+    (set! (-> this health) 60)
   0
   (none))
 

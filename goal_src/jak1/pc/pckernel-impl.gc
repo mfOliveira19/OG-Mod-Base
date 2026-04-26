@@ -175,7 +175,8 @@
    (key_down      uint8)
    (key_up        uint8)
    (key_period    uint8)
-   (key_tab       uint8)))
+   (key_tab       uint8)
+   (key_comma     uint8)))
 
 (deftype keyboard-edge (structure)
   (
@@ -235,7 +236,10 @@
    (a-pressed          uint8)
    ;; D
    (d-held             uint8)
-   (d-pressed          uint8)))
+   (d-pressed          uint8)
+   ;; COMMA
+   (comma-held             uint8)
+   (comma-pressed          uint8)))
 
 (deftype mouse-edge (structure)
   ((mouse1-held         uint8)

@@ -3,6 +3,7 @@
 (defstate target-hl-death (target)
   :enter
   (behavior ()
+  (send-event *hl-weapons* 'go-idle 0 self)
   ;; lower the camera when we die
   (let ((cam-pos (new 'stack-no-clear 'vector)))
     (vector-copy! cam-pos (-> self control trans))

@@ -22,7 +22,7 @@ static float muzzle_flash_smg_offset_x = -0.205f;
 static float muzzle_flash_smg_offset_y = 0.55f;
 
 static const std::array<std::string, (size_t)ViewmodelModels::MAX_MODEL> kViewmodelPaths = {
-"vm_crowbar.glb", "vm_9mmhandgun.glb", "vm_9mmar.glb"};
+    "vm_crowbar.glb", "vm_9mmhandgun.glb", "vm_9mmar.glb", "vm_gauss.glb", "vm_revolver.glb", "vm_shotgun.glb"};
 
 Viewmodel::Viewmodel() {
   namespace fs = std::filesystem;
@@ -95,13 +95,7 @@ void Viewmodel::render(DmaFollower& dma,
   // Handle Fog
   render_state->fog_intensity = fogIntensity();
 
-  // Handle model switch
-  if (viewmodelActiveModel() != m_active_model) {
-    m_active_model = viewmodelActiveModel();
-    play_animation_name("draw");
-  }
-
-    // --- MODEL / VIEW / PROJECTION ---
+      // --- MODEL / VIEW / PROJECTION ---
   math::Matrix4f model = math::rotateZ(rot_z) * math::rotateY(rot_y) *
                          math::rotateX(rot_x + viewmodelRotationX()) *
                          math::translate(offset_x, offset_y, offset_z + viewmodelOffsetZ()) *
@@ -110,43 +104,53 @@ void Viewmodel::render(DmaFollower& dma,
   math::Matrix4f view = math::translate(-cam_x, -cam_y, -cam_z);
 
   float aspect = static_cast<float>(render_state->render_fb_w) / render_state->render_fb_h;
-  math::Matrix4f projection = math::perspective(72.0f, aspect, 0.1f, 50.0f);
-  math::Vector3f muzzle_local;
-  math::Matrix4f muzzle_model = math::rotateZ(rot_z) * math::rotateY(rot_y) *
-                         math::rotateX(rot_x + viewmodelRotationX()) *
-                         math::translate(offset_x, offset_y, offset_z) *
-                         math::scale(scale, scale, scale);
+  math::Matrix4f projection = math::perspective(72.0f, aspect, 3.5f, 50.0f);
+  math::Matrix4f muzzle_model =
+      math::rotateZ(rot_z) * math::rotateY(rot_y) * math::rotateX(rot_x + viewmodelRotationX()) *
+      math::translate(offset_x, offset_y, offset_z) * math::scale(scale, scale, scale);
+
+  // Handle model switch
+  if (viewmodelActiveModel() != m_active_model) {
+    m_active_model = viewmodelActiveModel();
+    play_animation_name("draw");
+  }
+
   static float muzzle_flash_size = 0.25f;
   // Handle animation play
   ViewmodelAnimations anim = viewmodelActiveAnimation();
-  if (anim != ViewmodelAnimations::draw) {
+
+  if (anim != ViewmodelAnimations::none) {
     play_animation_name(viewmodelAnimationName(anim));
-
-    switch (anim) {
-      case ViewmodelAnimations::pistol_shoot:
-        muzzle_flash_size = 0.25f;
-        m_muzzle_flash_local = {muzzle_flash_pistol_offset_x, muzzle_flash_pistol_offset_y, 0.8f};
-        m_muzzle_flash_texture_current = m_muzzle_flash_texture_pistol;
-        m_muzzle_flash_timer = m_muzzle_flash_duration;
-        break;
-
-      case ViewmodelAnimations::smg_shoot2:
-        muzzle_flash_size = 0.40f;
-        m_muzzle_flash_local = {muzzle_flash_smg_offset_x, muzzle_flash_smg_offset_y, 0.8f};
-        m_muzzle_flash_texture_current = m_muzzle_flash_texture_smg_2;
-        m_muzzle_flash_timer = m_muzzle_flash_duration;
-        break;
-      case ViewmodelAnimations::smg_shoot:
-      case ViewmodelAnimations::smg_shoot3:
-        muzzle_flash_size = 0.40f;
-        m_muzzle_flash_local = {muzzle_flash_smg_offset_x, muzzle_flash_smg_offset_y, 0.8f};
-        m_muzzle_flash_texture_current = m_muzzle_flash_texture_smg;
-        m_muzzle_flash_timer = m_muzzle_flash_duration;
-        break;
-    }
-
-    Gfx::g_global_settings.viewmodel_active_animation = 0;
   }
+
+  switch (anim) {
+    case ViewmodelAnimations::shotgun_shoot:
+    case ViewmodelAnimations::shotgun_shoot_big:
+    case ViewmodelAnimations::pistol_shoot:
+    case ViewmodelAnimations::revolver_fire:
+      muzzle_flash_size = 0.25f;
+      m_muzzle_flash_local = {muzzle_flash_pistol_offset_x, muzzle_flash_pistol_offset_y, 0.8f};
+      m_muzzle_flash_texture_current = m_muzzle_flash_texture_pistol;
+      m_muzzle_flash_timer = m_muzzle_flash_duration;
+      break;
+
+    case ViewmodelAnimations::smg_shoot2:
+      muzzle_flash_size = 0.40f;
+      m_muzzle_flash_local = {muzzle_flash_smg_offset_x, muzzle_flash_smg_offset_y, 0.8f};
+      m_muzzle_flash_texture_current = m_muzzle_flash_texture_smg_2;
+      m_muzzle_flash_timer = m_muzzle_flash_duration;
+      break;
+    case ViewmodelAnimations::smg_shoot:
+    case ViewmodelAnimations::smg_shoot3:
+      muzzle_flash_size = 0.40f;
+      m_muzzle_flash_local = {muzzle_flash_smg_offset_x, muzzle_flash_smg_offset_y, 0.8f};
+      m_muzzle_flash_texture_current = m_muzzle_flash_texture_smg;
+      m_muzzle_flash_timer = m_muzzle_flash_duration;
+      break;
+  }
+
+  Gfx::g_global_settings.viewmodel_active_animation = ViewmodelAnimations::none;
+
 
   // Each frame:
   if (m_muzzle_flash_timer > 0.0f) {
@@ -855,7 +859,7 @@ void Viewmodel::draw_debug_window(ViewmodelDebugStats* debug_stats) {
         bool is_selected = (i == selected_model);
         if (ImGui::Selectable(m_models[i].name.c_str(), is_selected)) {
           selected_model = i;
-          set_active_model(i);  // switch meshes, skeleton, animations
+          //set_active_model(i);  // switch meshes, skeleton, animations
         }
         if (is_selected)
           ImGui::SetItemDefaultFocus();
@@ -953,7 +957,6 @@ void Viewmodel::play_animation_name(const std::string& name) {
     }
   }
 
-  // optional: log if not found
   fmt::print("Animation '{}' not found in model '{}'\n", name, model.name);
 }
 
@@ -1014,7 +1017,16 @@ void Viewmodel::update_animation() {
       math::Vector3f interp = v0.xyz() * (1 - factor) + v1.xyz() * factor;
       T[joint_index] = math::translate(interp.x(), interp.y(), interp.z());
     } else if (ch.path == "rotation") {
-      math::Vector4f q = math::slerp(v0, v1, factor);
+      math::Vector4f q0 = v0;
+      math::Vector4f q1 = v1;
+
+      // Ensure shortest path for slerp
+      if (q0.dot(q1) < 0.0f) {
+        q1 = math::Vector4f(-q1.x(), -q1.y(), -q1.z(), -q1.w());
+      }
+
+      math::Vector4f q = math::slerp(q0, q1, factor);
+
       float x = q.x(), y = q.y(), z = q.z(), w = q.w();
       math::Matrix4f rot = math::Matrix4f::identity();
       rot(0, 0) = 1 - 2 * y * y - 2 * z * z;

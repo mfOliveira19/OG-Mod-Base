@@ -341,7 +341,7 @@ nav-enemy-default-event-handler
                       (state-flags being-attacked invulnerable timed-invulnerable invuln-powerup do-not-notice dying)))
        (and (or (not (logtest? (-> this nav-enemy-flags) (nav-enemy-flags navenmf12)))
                 (< (vector-vector-distance (target-pos 0) (-> this collide-info trans)) arg0))
-            (nav-enemy-test-point-near-nav-mesh? (-> *target* control shadow-pos)))))
+            (nav-enemy-test-point-near-nav-mesh? (target-pos 0))))) ;; Changed in hl mod, previously it used (-> *target* control shadow-pos) but it was causing weird enemy behavior when chasing us
 
 (defbehavior nav-enemy-notice-player? nav-enemy ()
   (let ((gp-0 #f))

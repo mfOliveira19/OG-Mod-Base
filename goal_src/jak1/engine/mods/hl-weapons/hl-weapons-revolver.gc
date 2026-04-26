@@ -1,0 +1,238 @@
+(in-package goal)
+(require "engine/mods/hl-weapons.gc")
+(require "engine/mods/hl-inputs-handler.gc")
+
+(defconstant revolver-attack-cooldown (seconds 0.8))
+(defconstant revolver-draw-duration (seconds 0.8))
+(defconstant revolver-aim-punch-decay 0.04)
+(defconstant revolver-aim-punch-amount 0.2)
+(defconstant revolver-damage 60)
+(defconstant revolver-idle1-duration (seconds 4.3))
+(defconstant revolver-idle2-duration (seconds 4.0))
+(defconstant revolver-idle3-duration (seconds 4.9))
+(defconstant revolver-fidget-duration (seconds 7.6))
+(defconstant revolver-reload-part1-duration (seconds 1.8))
+(defconstant revolver-reload-part2-duration (seconds 1.1))
+
+(defbehavior revolver-switch-handle hl-weapons ()
+  (when (and (should-switch-slot1?)
+             (time-elapsed? (-> self weapon-last-switch-time) weapon-switch-cooldown)
+             (not (= (-> self current-weapon) (weapons-enum crowbar))))
+    (set-time! (-> self weapon-last-switch-time))
+    (set! (-> self last-weapon) (weapons-enum revolver))
+    (go crowbar-draw))
+  (when (and (should-switch-slot2?)
+             (time-elapsed? (-> self weapon-last-switch-time) weapon-switch-cooldown)
+             (not (= (-> self current-weapon) (weapons-enum pistol))))
+    (set-time! (-> self weapon-last-switch-time))
+    (set! (-> self last-weapon) (weapons-enum revolver))
+    (go pistol-draw))
+  (when (and (should-switch-slot3?)
+             (time-elapsed? (-> self weapon-last-switch-time) weapon-switch-cooldown)
+             (not (= (-> self current-weapon) (weapons-enum smg))))
+    (set-time! (-> self weapon-last-switch-time))
+    (set! (-> self last-weapon) (weapons-enum revolver))
+    (go smg-draw))
+  (when (and (should-switch-slot4?)
+             (time-elapsed? (-> self weapon-last-switch-time) weapon-switch-cooldown)
+             (not (= (-> self current-weapon) (weapons-enum gauss))))
+    (set-time! (-> self weapon-last-switch-time))
+    (set! (-> self last-weapon) (weapons-enum revolver))
+    (go gauss-draw))
+
+  (when (and (should-switch-last-weapon?)
+             (time-elapsed? (-> self weapon-last-switch-time) weapon-switch-cooldown)
+             (not (= (-> self current-weapon) (-> self last-weapon))))
+    (set-time! (-> self weapon-last-switch-time))
+    (case (-> self last-weapon)
+      (((weapons-enum crowbar))
+        (set! (-> self last-weapon) (weapons-enum revolver))
+        (go crowbar-draw))
+      (((weapons-enum pistol))
+        (set! (-> self last-weapon) (weapons-enum revolver))
+        (go pistol-draw))
+      (((weapons-enum shotgun))
+        (set! (-> self last-weapon) (weapons-enum revolver))
+        (go shotgun-draw))
+      (((weapons-enum smg))
+        (set! (-> self last-weapon) (weapons-enum revolver))
+        (go smg-draw))
+      (((weapons-enum gauss))
+        (set! (-> self last-weapon) (weapons-enum revolver))
+        (go gauss-draw)))))
+
+(defstate revolver-holster (hl-weapons)
+  :event hl-weapons-standard-event-handler
+  :enter
+  (behavior ()
+    (viewmodel-play-animation (viewmodel-animations-enum holster) 2.0))
+  :code
+  (behavior ()
+    (loop (suspend)))
+  :post
+  (behavior ()
+    (hl-weapons-common-post)
+    (update-aim-punch 0.1)))
+
+(defstate revolver-draw (hl-weapons)
+  :event hl-weapons-standard-event-handler
+  :enter
+  (behavior ()
+    (hl-set-weapon (weapons-enum revolver))
+    (viewmodel-play-animation (viewmodel-animations-enum draw) 1.0)
+    (hl-choose-idle-wait! 0.0 0.0)
+    (set-time! (-> self weapon-last-switch-time))
+    (set-time! (-> self weapon-last-reload-time))
+    (set-time! (-> self weapon-last-attack-time)))
+  
+  :trans
+  (behavior ()
+    (when (time-elapsed? (-> self weapon-last-attack-time) revolver-draw-duration)
+        (go revolver-idle))
+    (revolver-switch-handle))
+  
+  :code
+  (behavior ()
+    (loop (suspend)))
+  :post
+  (behavior ()
+    (hl-weapons-common-post)
+    (update-aim-punch revolver-aim-punch-decay)))
+
+(defstate revolver-idle (hl-weapons)
+  :event hl-weapons-standard-event-handler
+  :enter
+  (behavior ()
+    (when (= (-> self weapon-next-idle-wait) 0)
+      (hl-choose-idle-wait! 1.5 1.5)))
+  :trans
+  (behavior ()
+    (revolver-switch-handle)
+
+    (when (and (should-attack?)
+               (time-elapsed? (-> self weapon-last-attack-time) revolver-attack-cooldown))
+      (go revolver-attack))
+    (when (and (should-reload?) (!= (-> self current-revolver-mag-ammo) revolver-max-mag-ammo))
+      (go revolver-reload-part1))
+    (when (and (= (-> self current-revolver-mag-ammo) 0) (not (should-attack?)))
+      (go revolver-reload-part1))
+    (when (time-elapsed? (-> self weapon-last-idle-time) (-> self weapon-next-idle-wait))
+      (go revolver-idle-anim)))
+  :code
+  (behavior ()
+    (loop (suspend)))
+
+  :post
+  (behavior ()
+    (hl-weapons-common-post)
+    (update-aim-punch revolver-aim-punch-decay)))
+
+(defstate revolver-idle-anim (hl-weapons)
+  :event hl-weapons-standard-event-handler
+  :enter
+  (behavior ()
+    (let ((idx (rand-vu-int-range 0 3)))
+      (case idx
+        ((0)
+         (viewmodel-play-animation (viewmodel-animations-enum revolver-idle3) 1.0)
+         (set! (-> self weapon-next-idle-wait) revolver-idle3-duration))
+        ((1)
+         (viewmodel-play-animation (viewmodel-animations-enum revolver-idle1) 1.0)
+         (set! (-> self weapon-next-idle-wait) revolver-idle1-duration))
+        ((2)
+         (viewmodel-play-animation (viewmodel-animations-enum revolver-idle2) 1.0)
+         (set! (-> self weapon-next-idle-wait) revolver-idle2-duration))
+        ((3)
+         (viewmodel-play-animation (viewmodel-animations-enum revolver-fidget) 1.0)
+         (set! (-> self weapon-next-idle-wait) revolver-fidget-duration)))
+      (set-time! (-> self weapon-last-idle-time))))
+  :trans
+  (behavior ()
+    (revolver-switch-handle)
+    (when (time-elapsed? (-> self weapon-last-idle-time) (-> self weapon-next-idle-wait))
+      (go revolver-idle))
+    (when (and (should-attack?)
+               (time-elapsed? (-> self weapon-last-attack-time) revolver-attack-cooldown))
+      (go revolver-attack))
+    (when (and (should-reload?) (!= (-> self current-revolver-mag-ammo) revolver-max-mag-ammo))
+      (go revolver-reload-part1)))
+  :code
+  (behavior ()
+    (loop (suspend)))
+  :post
+  (behavior ()
+    (hl-weapons-common-post)
+    (update-aim-punch revolver-aim-punch-decay)))
+
+(defstate revolver-attack (hl-weapons)
+  :event hl-weapons-standard-event-handler
+  :enter
+  (behavior ()
+    (when (> (-> self current-revolver-mag-ammo) 0)
+      (-! (-> self current-revolver-mag-ammo) 1)
+      (fire-hl-shot *target* #f 0.0 0.0 revolver-damage)
+      (viewmodel-play-animation (viewmodel-animations-enum revolver-fire) 1.3)
+      (add-aim-punch revolver-aim-punch-amount)
+        (let ((idx (rand-vu-int-range 0 1)))
+          (case idx
+            ((0) (play-mod-sound "357_shot1"))
+            ((1) (play-mod-sound "357_shot2"))))
+      (hl-choose-idle-wait! 5.0 15.0))
+    (set-time! (-> self weapon-last-attack-time)))
+  :trans
+  (behavior ()
+    (revolver-switch-handle)
+    (when (time-elapsed? (-> self weapon-last-attack-time) revolver-attack-cooldown)
+      (go revolver-idle)))
+  
+  :code
+  (behavior ()
+    (loop (suspend)))
+
+  :post
+  (behavior ()
+    (hl-weapons-common-post)
+    (update-aim-punch revolver-aim-punch-decay)))
+
+(defstate revolver-reload-part1 (hl-weapons)
+  :event hl-weapons-standard-event-handler
+  :enter
+  (behavior ()
+    (viewmodel-play-animation (viewmodel-animations-enum revolver-reload) 1.5)
+    (set-time! (-> self weapon-last-reload-time)))
+  
+  :trans
+  (behavior ()
+    (revolver-switch-handle)
+    ;; transition to part2 after mag out finished
+    (when (time-elapsed? (-> self weapon-last-reload-time) revolver-reload-part1-duration)
+      (go revolver-reload-part2)))
+  :code
+  (behavior ()
+    (loop (suspend)))
+  :post
+  (behavior ()
+    (hl-weapons-common-post)
+    (update-aim-punch revolver-aim-punch-decay)))
+
+(defstate revolver-reload-part2 (hl-weapons)
+  :event hl-weapons-standard-event-handler
+  :enter
+  (behavior ()
+    (set! (-> self current-revolver-mag-ammo) revolver-max-mag-ammo)
+    (play-mod-sound "357_reload1")
+    (set-time! (-> self weapon-last-reload-time)))
+  :trans
+  (behavior ()
+    (revolver-switch-handle)
+    (when (time-elapsed? (-> self weapon-last-reload-time) revolver-reload-part2-duration)
+      (go revolver-idle))
+    (when (should-attack?)
+      (go revolver-attack)))
+  :code
+  (behavior ()
+    (loop (suspend)))
+  :post
+  (behavior ()
+    (hl-weapons-common-post)
+    (update-aim-punch revolver-aim-punch-decay)))

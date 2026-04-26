@@ -13,6 +13,7 @@
 (defconstant pistol-aim-punch-decay 0.1)
 (defconstant pistol-aim-punch-amount 0.05)
 (defconstant debug-hit-detection #f)
+(defconstant pistol-damage 20)
 
 (defbehavior pistol-switch-handle hl-weapons ()
   (when (and (should-switch-slot1?)
@@ -21,12 +22,24 @@
     (set-time! (-> self weapon-last-switch-time))
     (set! (-> self last-weapon) (weapons-enum pistol))
     (go crowbar-draw))
+  (when (and (should-switch-slot2?)
+             (time-elapsed? (-> self weapon-last-switch-time) weapon-switch-cooldown)
+             (not (= (-> self current-weapon) (weapons-enum revolver))))
+    (set-time! (-> self weapon-last-switch-time))
+    (set! (-> self last-weapon) (weapons-enum pistol))
+    (go revolver-draw))
   (when (and (should-switch-slot3?)
              (time-elapsed? (-> self weapon-last-switch-time) weapon-switch-cooldown)
              (not (= (-> self current-weapon) (weapons-enum smg))))
     (set-time! (-> self weapon-last-switch-time))
     (set! (-> self last-weapon) (weapons-enum pistol))
     (go smg-draw))
+  (when (and (should-switch-slot4?)
+             (time-elapsed? (-> self weapon-last-switch-time) weapon-switch-cooldown)
+             (not (= (-> self current-weapon) (weapons-enum gauss))))
+    (set-time! (-> self weapon-last-switch-time))
+    (set! (-> self last-weapon) (weapons-enum pistol))
+    (go gauss-draw))
 
   (when (and (should-switch-last-weapon?)
              (time-elapsed? (-> self weapon-last-switch-time) weapon-switch-cooldown)
@@ -36,11 +49,34 @@
       (((weapons-enum crowbar))
         (set! (-> self last-weapon) (weapons-enum pistol))
         (go crowbar-draw))
+      (((weapons-enum revolver))
+        (set! (-> self last-weapon) (weapons-enum pistol))
+        (go revolver-draw))
+      (((weapons-enum shotgun))
+        (set! (-> self last-weapon) (weapons-enum pistol))
+        (go shotgun-draw))
       (((weapons-enum smg))
         (set! (-> self last-weapon) (weapons-enum pistol))
-        (go smg-draw)))))
+        (go smg-draw))
+      (((weapons-enum gauss))
+        (set! (-> self last-weapon) (weapons-enum pistol))
+        (go gauss-draw)))))
+
+(defstate pistol-holster (hl-weapons)
+  :event hl-weapons-standard-event-handler
+  :enter
+  (behavior ()
+    (viewmodel-play-animation (viewmodel-animations-enum holster) 2.0))
+  :code
+  (behavior ()
+    (loop (suspend)))
+  :post
+  (behavior ()
+    (hl-weapons-common-post)
+    (update-aim-punch 0.1)))
 
 (defstate pistol-draw (hl-weapons)
+  :event hl-weapons-standard-event-handler
   :enter
   (behavior ()
     (hl-set-weapon (weapons-enum pistol))
@@ -61,11 +97,13 @@
     (loop (suspend)))
   :post
   (behavior ()
+    (hl-weapons-common-post)
     (when debug-hit-detection
-      (fire-hl-shot *target* #t 0.0 0.0))
+      (fire-hl-shot *target* #t 0.0 0.0 pistol-damage))
     (update-aim-punch pistol-aim-punch-decay)))
 
 (defstate pistol-idle (hl-weapons)
+  :event hl-weapons-standard-event-handler
   :enter
   (behavior ()
     (when (= (-> self weapon-next-idle-wait) 0)
@@ -92,13 +130,15 @@
 
   :post
   (behavior ()
+    (hl-weapons-common-post)
     (when debug-hit-detection
-      (fire-hl-shot *target* #t 0.0 0.0))
+      (fire-hl-shot *target* #t 0.0 0.0 pistol-damage))
     (update-aim-punch pistol-aim-punch-decay)
     ))
 
 
 (defstate pistol-idle-anim (hl-weapons)
+  :event hl-weapons-standard-event-handler
   :enter
   (behavior ()
     (let ((idx (rand-vu-int-range 0 2)))
@@ -131,12 +171,14 @@
     (loop (suspend)))
   :post
   (behavior ()
+    (hl-weapons-common-post)
     (when debug-hit-detection
-      (fire-hl-shot *target* #t 0.0 0.0))
+      (fire-hl-shot *target* #t 0.0 0.0 pistol-damage))
     (update-aim-punch pistol-aim-punch-decay)
     ))
 
 (defstate pistol-attack (hl-weapons)
+  :event hl-weapons-standard-event-handler
   :enter
   (behavior ()
     (when (> (-> self current-pistol-mag-ammo) 0)
@@ -145,7 +187,7 @@
         (-! (-> self current-pistol-mag-ammo) 1))
       (let ((spread-x (rand-vu-float-range 0.0 0.001))
             (spread-y (rand-vu-float-range 0.0 0.001)))
-        (fire-hl-shot *target* #f spread-x spread-y))
+        (fire-hl-shot *target* #f spread-x spread-y pistol-damage))
       (viewmodel-play-animation (viewmodel-animations-enum pistol-shoot) 1.0)
       (add-aim-punch pistol-aim-punch-amount)
       (play-mod-sound "pl_gun3")
@@ -165,12 +207,14 @@
 
   :post
   (behavior ()
+    (hl-weapons-common-post)
     (when debug-hit-detection
-      (fire-hl-shot *target* #t 0.0 0.0))
+      (fire-hl-shot *target* #t 0.0 0.0 pistol-damage))
     (update-aim-punch pistol-aim-punch-decay)
     ))
 
 (defstate pistol-attack-secondary (hl-weapons)
+  :event hl-weapons-standard-event-handler
   :enter
   (behavior ()
     (when (> (-> self current-pistol-mag-ammo) 0)
@@ -178,7 +222,7 @@
         (-! (-> self current-pistol-mag-ammo) 1))
       (let ((spread-x (rand-vu-float-range -0.1 0.1))
             (spread-y (rand-vu-float-range -0.1 0.1)))
-        (fire-hl-shot *target* #f spread-x spread-y))
+        (fire-hl-shot *target* #f spread-x spread-y pistol-damage))
       (viewmodel-play-animation (viewmodel-animations-enum pistol-shoot) 1.0)
       (add-aim-punch pistol-aim-punch-amount)
       (play-mod-sound "pl_gun3")
@@ -198,12 +242,14 @@
 
   :post
   (behavior ()
+    (hl-weapons-common-post)
     (when debug-hit-detection
-      (fire-hl-shot *target* #t 0.0 0.0))
+      (fire-hl-shot *target* #t 0.0 0.0 pistol-damage))
     (update-aim-punch pistol-aim-punch-decay)
     ))
 
 (defstate pistol-reload-part1 (hl-weapons)
+  :event hl-weapons-standard-event-handler
   :enter
   (behavior ()
     (viewmodel-play-animation (viewmodel-animations-enum pistol-reload) 1.0)
@@ -221,12 +267,14 @@
     (loop (suspend)))
   :post
   (behavior ()
+    (hl-weapons-common-post)
     (when debug-hit-detection
-      (fire-hl-shot *target* #t 0.0 0.0))
+      (fire-hl-shot *target* #t 0.0 0.0 pistol-damage))
     (update-aim-punch pistol-aim-punch-decay)
     ))
 
 (defstate pistol-reload-part2 (hl-weapons)
+  :event hl-weapons-standard-event-handler
   :enter
   (behavior ()
     (set! (-> self current-pistol-mag-ammo) pistol-max-mag-ammo)
@@ -245,7 +293,8 @@
     (loop (suspend)))
   :post
   (behavior ()
+    (hl-weapons-common-post)
     (when debug-hit-detection
-      (fire-hl-shot *target* #t 0.0 0.0))
+      (fire-hl-shot *target* #t 0.0 0.0 pistol-damage))
     (update-aim-punch pistol-aim-punch-decay)
     ))

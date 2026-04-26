@@ -147,11 +147,11 @@
 
           (if (> dy -7000.0)
               (begin
-              (set! (-> dir y)
-                    (* vertical-strength 0.5))
+                (set! (-> dir y)
+                      (* vertical-strength 0.5))
               )
               (begin
-              (set! (-> dir y) (- (* vertical-strength 0.5)))
+                (set! (-> dir y) (- (* vertical-strength 0.5)))
               ))
 
           (when (> (-> dir y) 0)
@@ -638,8 +638,33 @@
       (go target-hl-movement-ground))
   :post target-hl-no-stick-post)
 
+(defbehavior target-apply-gauss-knockback target ((damage float))
+  (let* ((curvel (-> self control transv))
+         (cam-fwd-src (-> *math-camera* inv-camera-rot vector 2))
+         (cam-fwd (new 'stack 'vector))
+         (force (* damage 5.0 150.0))
+         (impulse (new 'stack 'vector)))
+
+    (vector-copy! cam-fwd cam-fwd-src)
+
+    (set! (-> cam-fwd y) 0.0)
+
+    (vector-normalize! cam-fwd 1.0)
+
+    (vector-float*! impulse cam-fwd force)
+
+    (-! (-> curvel x) (-> impulse x))
+    (-! (-> curvel z) (-> impulse z))))
+
 (defbehavior target-hl-standard-event-handler target ((arg0 process) (arg1 int) (arg2 symbol) (arg3 event-message-block))
   (case arg2
+    (('gauss-knockback)
+      (target-apply-gauss-knockback (the-as float (-> arg3 param 0)))
+
+    )
+    (('gauss-overcharge)
+      (send-event self 'attack #f (static-attack-info ((mode 'damage))))
+    )
     (('attack 'attack-or-shove 'attack-invinc)
      (target-hl-attacked arg2
                       (the-as attack-info (-> arg3 param 1))
@@ -661,6 +686,7 @@
          (logior! (-> self attack-info-rec mask) (attack-mask attacker)))
        (go target-hl-hit 'shove (-> self attack-info-rec))))
     (('launch) (mem-copy! (&-> (-> self control) unknown-pointer00) (the-as pointer arg3) 72) #t)
+    (('edge-grab) (go target-hl-movement-edge-grab))
     #|
     (('loading)
      (if (not (or (and (logtest? (-> self control cur-surf flags) (surface-flags jump))
@@ -671,6 +697,9 @@
                                 (collide-action edgegrab-cam swingpole-active racer snowball tube flut))
                       (>= (-> self no-load-wait) (current-time)))))
        (go target-load-wait)))|#
+    (('pole-grab)
+     (if (not (logtest? (-> self control root-prim prim-core action) (collide-action swingpole-active)))
+       (go target-hl-movement-pole-cycle (process->handle (the-as process (-> arg3 param 0))))))
     (('change-mode)
      (case (-> arg3 param 0)
        (('grab) (go target-hl-grab))

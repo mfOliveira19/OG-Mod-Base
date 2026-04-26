@@ -387,6 +387,28 @@
    (sp-item 2062 :fade-after (meters 120) :falloff-to (meters 120) :period (seconds 2) :length (seconds 0.067))
    ))
 
+(defpartgroup group-part-hl-gauss-primary-hit
+  :id 713
+  :duration (seconds 2)
+  :flags (use-local-clock)
+  :bounds (static-bspherem 0 0 0 6)
+  :parts
+  ((sp-item 3009 :fade-after (meters 80) :falloff-to (meters 80) :period (seconds 2) :length (seconds 0.535))
+   (sp-item 3010 :fade-after (meters 80) :falloff-to (meters 80) :period (seconds 2) :length (seconds 0.535))
+   (sp-item 2060 :fade-after (meters 80) :falloff-to (meters 80) :period (seconds 2) :length (seconds 0.335))
+   ))
+
+(defpartgroup group-part-hl-gauss-secondary-hit
+  :id 714
+  :duration (seconds 2)
+  :flags (use-local-clock)
+  :bounds (static-bspherem 0 0 0 6)
+  :parts
+  ((sp-item 3011 :fade-after (meters 80) :falloff-to (meters 80) :period (seconds 2) :length (seconds 0.535))
+   (sp-item 3012 :fade-after (meters 80) :falloff-to (meters 80) :period (seconds 2) :length (seconds 0.535))
+   (sp-item 2060 :fade-after (meters 80) :falloff-to (meters 80) :period (seconds 2) :length (seconds 0.335))
+   ))
+
 (defpartgroup group-part-hl-crowbar-hit
   :id 709
   :duration (seconds 2)
@@ -452,6 +474,61 @@
 (defpart 2064
   :init-specs ((:fade-r -0.53333336) (:fade-g -0.53333336) (:fade-b -1.0666667) (:fade-a -0.53333336)))
 
+(defpart 3009
+  :init-specs
+  ((:texture (hotdot effects))
+   (:num 2.0)
+   (:scale-x (meters 1.0))
+   (:scale-y :copy scale-x)
+   (:r 255.0)
+   (:g 255.0)
+   (:b 0.0)
+   (:a 3.0)
+   (:timer (seconds 0.3))
+   (:flags (bit2 bit14))))
+
+(defpart 3010
+  :init-specs
+  ((:texture (hotdot effects))
+   (:num 2.0)
+   (:scale-x (meters 0.5))
+   (:scale-y :copy scale-x)
+   (:r 255.0)
+   (:g 255.0)
+   (:b 0.0)
+   (:a 3.0)
+   (:timer (seconds 0.3))
+   (:flags (bit2 bit14))))
+
+(defpart 3011
+  :init-specs
+  ((:texture (hotdot effects))
+   (:num 2.0)
+   (:scale-x (meters 6.0))
+   (:scale-y :copy scale-x)
+   (:r 255.0)
+   (:g 255.0)
+   (:b 0.0)
+   (:a 3.0)
+   (:timer (seconds 5.0))
+   (:flags (bit2 bit14))))
+
+(defpart 3012
+  :init-specs
+  ((:texture (hotdot effects))
+   (:num 1.0)
+   (:scale-x (meters 0.5))
+   (:rot-z (degrees 0) (degrees 180))
+   (:scale-y (meters 0.01))
+   (:r 255.0)
+   (:g 196.0)
+   (:b 0.0)
+   (:a 32.0 64.0)
+   (:scalevel-y (meters 0.05))
+   (:fade-a -1.6)
+   (:timer (seconds 5.0))
+   (:flags (bit2 bit3 bit14))))
+
 (defmethod projectile-hl-method-24 ((this projectile-hl))
   (set! (-> this has-damaged?) #f)
   (spawn (-> this part) (the-as vector (-> this root root-prim prim-core)))
@@ -481,10 +558,12 @@
                       (set! (-> a1-2 num-params) 4)
                       (set! (-> a1-2 message) 'attack-hl)
                       (set! (-> a1-2 param 0) (-> block param 0))
+                      (when (>= (-> self damage) 200) (set! (-> self attack-mode) 'explode))
                       (set! (-> a1-2 param 1) (the-as uint (-> self attack-mode)))
                       (let ((v1-13 (+ *global-attack-id* 1))) (set! *global-attack-id* v1-13) (set! (-> a1-2 param 2) (the-as uint v1-13)))
                       (set! (-> a1-2 param 3) (the-as int8 0))
-                      (set! (-> a1-2 param 4) (the-as int8 (if (target-has-eco-type? (pickup-type eco-red)) (* shot-damage 2) shot-damage))) ;; This will be the damage, red eco doubles the damage
+                      ;;(format 0 "SHOT DAMAGE: ~d ~%"(-> self damage))
+                      (set! (-> a1-2 param 4) (the-as int8 (if (target-has-eco-type? (pickup-type eco-red)) (* (-> self damage) 2) (-> self damage)))) ;; This will be the damage, red eco doubles the damage
                       (send-event-function proc a1-2))))
              (let ((v1-14 (-> self notify-handle)))
                (if (handle->process v1-14) (send-event (-> v1-14 process 0) 'notify 'attack-hl proc)))
@@ -626,17 +705,46 @@
       (if (!= (-> *hl-weapons* last-hit-pat-mode) (pat-mode obstacle))
         ;; When we hit terrain
         (begin
-        (process-spawn part-tracker
-                      :init
-                      part-tracker-init
-                      (-> *part-group-id-table* 711)
-                      -1
-                      #f
-                      #f
-                      #f
-                      (-> self root root-prim prim-core)
-                      :to
-                      *entity-pool*))
+          (case (-> self hit-part-type)
+            (((part-type-enum common-shot))
+              (process-spawn part-tracker
+                            :init
+                            part-tracker-init
+                            (-> *part-group-id-table* 711)
+                            -1
+                            #f
+                            #f
+                            #f
+                            (-> self root root-prim prim-core)
+                            :to
+                            *entity-pool*)
+              )
+            (((part-type-enum gauss-shot-primary))
+              (process-spawn part-tracker
+                            :init
+                            part-tracker-init
+                            (-> *part-group-id-table* 713)
+                            -1
+                            #f
+                            #f
+                            #f
+                            (-> self root root-prim prim-core)
+                            :to
+                            *entity-pool*)
+              )
+            (((part-type-enum gauss-shot-secondary))
+              (process-spawn part-tracker
+                            :init
+                            part-tracker-init
+                            (-> *part-group-id-table* 714)
+                            -1
+                            #f
+                            #f
+                            #f
+                            (-> self root root-prim prim-core)
+                            :to
+                            *entity-pool*))              
+              ))
         ;; When we hit enemies
         ;; Not used because it also appears on stone obstacles because for some reason the enemies material is stone also
         (begin
@@ -732,7 +840,7 @@
   ((method-of-type process-drawable deactivate) this)
   (none))
 
-(defbehavior projectile-hl-init-by-other projectile-hl ((arg0 entity-actor) (arg1 vector) (arg2 vector) (arg3 uint) (arg4 handle))
+(defbehavior projectile-hl-init-by-other projectile-hl ((arg0 entity-actor) (arg1 vector) (arg2 vector) (arg3 part-type-enum) (arg4 handle) (arg5 uint))
   (stack-size-set! (-> self main-thread) 512)
   (set! (-> self has-damaged?) #f)
   (set! (-> self entity) arg0)
@@ -743,8 +851,10 @@
   (set! (-> self tween) 1.0)
   (set! (-> self last-target) arg4)
   (set! (-> self timeout) (seconds 1))
-  (set! (-> self options) arg3)
+  (set! (-> self options) 40)
   (set! (-> self notify-handle) (the-as handle #f))
+  (set! (-> self damage) arg5)
+  (set! (-> self hit-part-type) arg3)
   (countdown (v1-4 16)
     (set! (-> self old-dist v1-4) 4095996000.0))
   (projectile-hl-method-26 self)

@@ -1,0 +1,553 @@
+(in-package goal)
+(require "engine/mods/hl-weapons.gc")
+(require "engine/mods/hl-inputs-handler.gc")
+
+(defconstant gauss-attack-cooldown (seconds 0.2))
+(defconstant gauss-draw-duration (seconds 0.5))
+(defconstant gauss-aim-punch-decay 0.1)
+(defconstant gauss-aim-punch-amount 0.06)
+(defconstant gauss-primary-attack-damage 20)
+(define *after-attack-enter-time* 0)
+(define *aftershock-delay* 0.0)
+(define *enter-secondary-time* 0)
+(define *secondary-anim-loop-time* 0)
+(define *play-secondary-sound-time* 0)
+(define *ammo-secondary-drain-time* 0)
+(define *charge-damage* 0.0)
+(define *is-primary-attack?* #t)
+
+(define *gauss-hit-pos* (new 'global 'vector))
+
+(defun overcharge-screen ()
+  (with-dma-buffer-add-bucket ((dma-buf (-> (current-frame) global-buf)) (bucket-id debug-no-zbuf))
+    (draw-sprite2d-xy dma-buf 0 0 512 224 (new 'static 'rgba :r #xFF :g #xFF :b #x00 :a #x20))) (none))
+
+(defun draw-line ((bucket bucket-id) (p0 vector) (p1 vector) (first-color rgba) (mode symbol) (second-color rgba))
+  (let ((a0-4 (-> (current-frame) global-buf)))
+    (if (< (the-as uint (shr (+ (&- (-> a0-4 end) (the-as uint (-> a0-4 base))) 15) 4)) (the-as uint #x8000))
+      (return (the-as pointer #f))))
+  (if (or (zero? (+ second-color (the-as uint 1))) (= second-color (static-rgba #xff #xff #xff #xff)))
+    (set! second-color first-color))
+  (case mode
+    (('fade)
+     (set! second-color
+           (new 'static
+                'rgba
+                :r
+                (shr (-> second-color r) 1)
+                :g
+                (shr (-> second-color g) 1)
+                :b
+                (shr (-> second-color b) 1)
+                :a (-> second-color a)))))
+  (let ((s4-0 (new 'stack 'vector4w-2))
+        (s1-0 (new 'stack 'vector4w-2)))
+    (set! (-> p0 w) 1.0)
+    (set! (-> p1 w) 1.0)
+    (when (and (transform-point-qword! (-> s4-0 vector 0) p0) (transform-point-qword! (-> s4-0 vector 1) p1))
+      (with-dma-buffer-add-bucket ((v1-28 (-> (current-frame) global-buf)) bucket)
+        (with-cnt-vif-block (v1-28)
+          (dma-buffer-add-gif-tag v1-28
+                                  (new 'static 'gif-tag64 :nloop 1 :eop 1 :pre 1 :nreg 4 :prim (gif-prim line))
+                                  (gs-reg-list rgbaq xyzf2 rgbaq xyzf2))
+          (case mode
+            (('fade-depth)
+             (let ((f0-3 (fminmax (* (1/ #xffffff) (the float (-> s4-0 vector 0 z))) 0.2 1.0)))
+               (set! (-> s1-0 vector 0 x) (the int (* (the float (-> first-color r)) f0-3)))
+               (set! (-> s1-0 vector 0 y) (the int (* (the float (-> first-color g)) f0-3)))
+               (set! (-> s1-0 vector 0 z) (the int (* (the float (-> first-color b)) f0-3))))
+             (set! (-> s1-0 vector 0 w) (the-as int (-> first-color a))))
+            (else
+             (set! (-> s1-0 vector 0 x) (the-as int (-> first-color r)))
+             (set! (-> s1-0 vector 0 y) (the-as int (-> first-color g)))
+             (set! (-> s1-0 vector 0 z) (the-as int (-> first-color b)))
+             (set! (-> s1-0 vector 0 w) (the-as int (-> first-color a)))))
+          (cond
+            ((= mode 'fade-depth)
+             (let ((f0-7 (fminmax (* (1/ #xffffff) (the float (-> s4-0 vector 1 z))) 0.2 1.0)))
+               (set! (-> s1-0 vector 1 x) (the int (* (the float (-> second-color r)) f0-7)))
+               (set! (-> s1-0 vector 1 y) (the int (* (the float (-> second-color g)) f0-7)))
+               (set! (-> s1-0 vector 1 z) (the int (* (the float (-> second-color b)) f0-7))))
+             (set! (-> s1-0 vector 1 w) (the-as int (-> second-color a))))
+            (else
+             (set! (-> s1-0 vector 1 x) (the-as int (-> second-color r)))
+             (set! (-> s1-0 vector 1 y) (the-as int (-> second-color g)))
+             (set! (-> s1-0 vector 1 z) (the-as int (-> second-color b)))
+             (set! (-> s1-0 vector 1 w) (the-as int (-> second-color a)))))
+          (+! (-> s4-0 vector 0 z) -8192)
+          (+! (-> s4-0 vector 1 z) -8192)
+          (dma-buffer-add-uint128 v1-28 (-> s1-0 quad 0) (-> s4-0 quad 0) (-> s1-0 quad 1) (-> s4-0 quad 1)))))))
+
+(defun draw-gauss-beam ((offset-x float) (offset-y float) (hit-pos vector) (is-primary? symbol))
+  (let* ((cam-pos (camera-pos))
+          (cam-forward (vector-float*! (new 'stack-no-clear 'vector)
+                                      (-> *math-camera* inv-camera-rot vector 2)
+                                      1.0))
+          (cam-right   (-> *math-camera* inv-camera-rot vector 0))
+          (cam-up      (-> *math-camera* inv-camera-rot vector 1))
+          (beam-start-pos (new 'stack-no-clear 'vector)))
+
+    (vector+float*! beam-start-pos cam-pos cam-right (meters offset-x))
+    (vector+float*! beam-start-pos beam-start-pos cam-up (meters offset-y))
+    (vector+float*! beam-start-pos beam-start-pos cam-forward (meters 3.1))
+    #|(when (line-in-view-frustum? beam-start-pos hit-pos)
+      (let ((s2-1 (vector-! (new 'stack-no-clear 'vector) hit-pos beam-start-pos))
+            (gp-1 (new 'stack-no-clear 'vector))
+            (s4-0 (new 'stack-no-clear 'vector))
+            (s5-0 (new 'stack-no-clear 'quaternion)))
+        (vector+*! gp-1 beam-start-pos s2-1 0.5)
+        (vector-normalize-copy! s4-0 s2-1 1.0)
+        (set! (-> *part-id-table* 2528 init-specs 4 initial-valuef) (vector-length s2-1))
+        (forward-up->quaternion s5-0 s4-0 *y-vector*)
+        ;;(quaternion-rotate-local-z! s5-0 s5-0 10922.667)
+        (quaternion-copy! *particle-quat* s5-0)
+        (launch-particles :system *sp-particle-system-3d* (-> *part-id-table* 2528) gp-1)
+        (dotimes (s4-1 3)
+          (quaternion-rotate-local-z! s5-0 s5-0 10922.667)
+          (quaternion-copy! *particle-quat* s5-0)
+          (launch-particles :system *sp-particle-system-3d* (-> *part-id-table* 2528) gp-1)
+          )
+          ))|#
+
+
+    ;;(draw-eco-beam beam-start-pos hit-pos)
+    (if is-primary?
+      (draw-line (bucket-id debug-no-zbuf) beam-start-pos hit-pos *color-yellow* #f (the-as rgba -1))
+      (draw-line (bucket-id debug-no-zbuf) beam-start-pos hit-pos *color-white* #f (the-as rgba -1)))
+    ))
+
+(defun set-gauss-hit-pos ((damage int) (part-type part-type-enum))
+  (let ((max-dist (meters 1000))
+        (backoff-epsilon (the-as float 10.0))
+        (probe-radius 1.0))
+    (let* ((cam-pos (camera-pos))
+            (cam-forward (vector-float*! (new 'stack-no-clear 'vector)
+                                        (-> *math-camera* inv-camera-rot vector 2)
+                                        1.0))
+            (cam-right   (-> *math-camera* inv-camera-rot vector 0))
+            (cam-up      (-> *math-camera* inv-camera-rot vector 1))
+            (spread-dir (new 'stack-no-clear 'vector))
+            (probe-move (new 'stack-no-clear 'vector))
+            (probe-res (new 'stack-no-clear 'collide-tri-result))
+            (probe-pat (new 'static 'pat-surface :noentity #x1))
+            (spawn-pos (new 'stack-no-clear 'vector))
+            (temp1 (new 'stack-no-clear 'vector))
+            (temp2 (new 'stack-no-clear 'vector))
+            (offset (new 'stack-no-clear 'vector))
+            (beam-start-pos (new 'stack-no-clear 'vector)))
+
+      (vector-! spread-dir cam-forward
+                (vector-float*! (new 'stack-no-clear 'vector) cam-right 0.0))
+      (vector+! spread-dir spread-dir
+                (vector-float*! (new 'stack-no-clear 'vector) cam-up 0.0))
+
+      (vector-float*! probe-move spread-dir max-dist)
+
+      (if (>= (fill-and-probe-using-line-sphere
+                  *collide-cache*
+                  cam-pos
+                  probe-move
+                  probe-radius
+                  (collide-kind
+                    water
+                    background
+                    crate
+                    cak-1
+                    cak-2 
+                    cak-3 
+                    enemy 
+                    wall-object
+                    ground-object
+                    target-attack
+                    mother-spider
+                    cak-14
+                    blue-eco-suck
+                    unknown-16
+                    unknown-17
+                    unknown-18
+                    unknown-19
+                    unknown-20
+                    unknown-21
+                    unknown-22
+                    unknown-23
+                    unknown-24
+                    unknown-25
+                    unknown-26
+                    unknown-27
+                    unknown-28
+                    unknown-29
+                    unknown-30
+                    unknown-31
+                    unknown-32
+                    unknown-33
+                    unknown-34
+                    unknown-35
+                    unknown-36
+                    unknown-37
+                    unknown-38
+                    unknown-39
+                    unknown-40
+                    unknown-41
+                    unknown-42
+                    unknown-43
+                    unknown-44
+                    unknown-45
+                    unknown-46
+                    unknown-47
+                    unknown-48
+                    unknown-49
+                    unknown-50
+                    unknown-51
+                    unknown-52
+                    unknown-53
+                    unknown-54
+                    unknown-55
+                    unknown-56
+                    unknown-57
+                    unknown-58
+                    unknown-59
+                    unknown-60
+                    unknown-61
+                    unknown-62
+                    unknown-63
+                  )
+                  (the-as process #f)
+                  probe-res
+                  probe-pat)
+                0.0)
+              (begin
+                (let ((hit-pos (the-as vector (-> probe-res intersect))) (hit-pat (-> probe-res pat)) (hit-mat (-> probe-res pat material)))
+                  (vector-! spawn-pos hit-pos
+                            (vector-float*! (new 'stack-no-clear 'vector) cam-forward backoff-epsilon))
+                  (set! (-> *hl-weapons* last-hit-pat-mode) (-> hit-pat mode))
+                  (set! (-> *hl-weapons* last-hit-pat-material) hit-mat)
+
+                  (let ((s4-0 (get-process *default-dead-pool* hl-weapon-shot #x4000)))
+                    (when s4-0
+                      (let ((t9-2 (method-of-type hl-weapon-shot activate)))
+                        (t9-2 (the-as hl-weapon-shot s4-0) *target* 'hl-weapon-shot (the-as pointer #x70004000)))
+                      (let ((s3-0 run-function-in-process)
+                            (s2-0 s4-0)
+                            (s1-0 projectile-hl-init-by-other)
+                            (s0-0 (-> *target* entity))
+                            (sv-48 spawn-pos)
+                            (gp-1 (vector-float*! (new-stack-vector0)
+                                                  (-> *math-camera* inv-camera-rot vector 2)
+                                                  (the-as float (meters 0.5))))
+                            (t2-0 #f))
+                        ((the-as (function object object object object object object object object none) s3-0)
+                        s2-0 s1-0 s0-0 sv-48 gp-1 part-type t2-0 damage))
+                        (-> s4-0 ppointer)))
+                        (vector-copy! *gauss-hit-pos* hit-pos)))
+                      (begin
+                        (let ((hit-pos (new 'stack-no-clear 'vector)))
+                        (vector+float*! hit-pos cam-pos cam-forward (meters 100.0))
+                        (vector-copy! *gauss-hit-pos* hit-pos))
+                      ))
+                      
+                      )))
+
+(defbehavior gauss-beam-handle hl-weapons ()
+  (unless (time-elapsed? (-> self weapon-last-attack-time) (seconds 0.1))
+    (draw-gauss-beam -1.0 -1.0 *gauss-hit-pos* *is-primary-attack?*)
+  )
+)
+
+(defbehavior gauss-switch-handle hl-weapons ()
+  (when (and (should-switch-slot1?)
+             (time-elapsed? (-> self weapon-last-switch-time) weapon-switch-cooldown)
+             (not (= (-> self current-weapon) (weapons-enum crowbar))))
+    (set-time! (-> self weapon-last-switch-time))
+    (set! (-> self last-weapon) (weapons-enum gauss))
+    (go crowbar-draw))
+  (when (and (should-switch-slot2?)
+             (time-elapsed? (-> self weapon-last-switch-time) weapon-switch-cooldown)
+             (not (= (-> self current-weapon) (weapons-enum pistol))))
+    (set-time! (-> self weapon-last-switch-time))
+    (set! (-> self last-weapon) (weapons-enum gauss))
+    (go pistol-draw))
+  (when (and (should-switch-slot3?)
+             (time-elapsed? (-> self weapon-last-switch-time) weapon-switch-cooldown)
+             (not (= (-> self current-weapon) (weapons-enum smg))))
+    (set-time! (-> self weapon-last-switch-time))
+    (set! (-> self last-weapon) (weapons-enum gauss))
+    (go smg-draw))
+  (when (and (should-switch-last-weapon?)
+             (time-elapsed? (-> self weapon-last-switch-time) weapon-switch-cooldown)
+             (not (= (-> self current-weapon) (-> self last-weapon))))
+    (set-time! (-> self weapon-last-switch-time))
+    (case (-> self last-weapon)
+      (((weapons-enum crowbar))
+        (set! (-> self last-weapon) (weapons-enum gauss))
+        (go crowbar-draw))
+      (((weapons-enum pistol))
+        (set! (-> self last-weapon) (weapons-enum gauss))
+        (go pistol-draw))
+      (((weapons-enum revolver))
+        (set! (-> self last-weapon) (weapons-enum gauss))
+        (go revolver-draw))
+      (((weapons-enum shotgun))
+        (set! (-> self last-weapon) (weapons-enum gauss))
+        (go shotgun-draw))
+      (((weapons-enum smg))
+        (set! (-> self last-weapon) (weapons-enum gauss))
+        (go smg-draw)))))
+
+(defbehavior gauss-primary-attack-sound hl-weapons ()
+  (let ((rand-sound (rand-vu-int-range 0 1)))
+    (play-mod-sound-pitch "gauss_fire" (if (= rand-sound 0) 1.0 1.1) 0)))
+
+(defbehavior stop-gauss-primary-sound hl-weapons () 
+  (when (is-mod-sound-playing "gauss_fire")
+      (stop-mod-sound "gauss_fire")))
+
+(defbehavior play-gauss-aftershock-sound hl-weapons ()
+  (let ((idx (rand-vu-int-range 0 3)))
+    (case idx
+      ((0) (stop-gauss-primary-sound) (play-mod-sound-pitch "electro4" 1.0 0))
+      ((1) (stop-gauss-primary-sound) (play-mod-sound-pitch "electro5" 1.0 0))
+      ((2) (stop-gauss-primary-sound) (play-mod-sound-pitch "electro6" 1.0 0))
+      ((3) 0))))
+
+(defbehavior play-gauss-overload-sound hl-weapons ()
+  (let ((idx (rand-vu-int-range 0 2)))
+    (case idx
+      ((0) (stop-gauss-primary-sound) (play-mod-sound-pitch "electro4" 1.0 0))
+      ((1) (stop-gauss-primary-sound) (play-mod-sound-pitch "electro5" 1.0 0))
+      ((2) (stop-gauss-primary-sound) (play-mod-sound-pitch "electro6" 1.0 0)))))
+
+(defstate gauss-holster (hl-weapons)
+  :event hl-weapons-standard-event-handler
+  :enter
+  (behavior ()
+    (viewmodel-play-animation (viewmodel-animations-enum holster) 2.0))
+  :code
+  (behavior ()
+    (loop (suspend)))
+  :post
+  (behavior ()
+    (hl-weapons-common-post)
+    (update-aim-punch 0.1)))
+
+(defstate gauss-draw (hl-weapons)
+  :event hl-weapons-standard-event-handler
+  :enter
+  (behavior ()
+    (hl-set-weapon (weapons-enum gauss))
+    (viewmodel-play-animation (viewmodel-animations-enum draw) 2.2)
+    (set! (-> self weapon-last-attack-time) (current-time)))
+  :trans
+  (behavior ()
+    (when (time-elapsed? (-> self weapon-last-attack-time) gauss-draw-duration)
+      (go gauss-idle))
+    (gauss-switch-handle))
+  :code
+  (behavior ()
+    (loop (suspend)))
+  :post
+  (behavior ()
+    (hl-weapons-common-post)
+    (update-aim-punch 0.1)))
+
+(defstate gauss-idle (hl-weapons)
+  :event hl-weapons-standard-event-handler
+  :enter
+  (behavior ())
+  :trans
+  (behavior ()
+    (gauss-switch-handle)
+    (when (and (should-attack?)
+               (time-elapsed? (-> self weapon-last-attack-time) gauss-attack-cooldown) (>= (-> self current-gauss-mag-ammo) 2))
+      (go gauss-attack))
+    (when (and (should-second-attack?)
+               (time-elapsed? (-> self weapon-last-attack-time) gauss-attack-cooldown)
+               (> (-> self current-gauss-mag-ammo) 0))
+      (go gauss-attack-secondary-charge)))
+  :code
+  (behavior ()
+    (loop (suspend)))
+  :post
+  (behavior ()
+    ;;(print-vector4m *gauss-hit-pos*)
+    (hl-weapons-common-post)
+    (gauss-beam-handle)
+    (update-aim-punch gauss-aim-punch-decay)))
+
+(defstate gauss-attack (hl-weapons)
+  :event hl-weapons-standard-event-handler
+  :enter
+  (behavior ()
+    (when (> (-> self current-gauss-mag-ammo) 0)
+      (set-gauss-hit-pos gauss-primary-attack-damage (part-type-enum gauss-shot-primary))
+      (set! *is-primary-attack?* #t)
+      (-! (-> self current-gauss-mag-ammo) 2)
+      (viewmodel-play-animation (viewmodel-animations-enum gauss-fire2) 1.0)
+      (add-aim-punch gauss-aim-punch-amount)
+      (gauss-primary-attack-sound)
+      (set-time! (-> self last-gauss-attack-time)))
+      (set-time! (-> self weapon-last-attack-time)))
+  :trans
+  (behavior ()
+    (gauss-switch-handle)
+    (when (time-elapsed? (-> self weapon-last-attack-time) gauss-attack-cooldown)
+      (if (> (-> self current-gauss-mag-ammo) 0) (go gauss-after-attack) (go gauss-idle))))
+  :code
+  (behavior ()
+    (loop (suspend)))
+  :post
+  (behavior ()
+    (gauss-beam-handle)
+    (update-aim-punch gauss-aim-punch-decay)))
+
+(defstate gauss-attack-secondary (hl-weapons)
+  :event hl-weapons-standard-event-handler
+  :enter
+  (behavior ()
+    (send-event *target* 'gauss-knockback *charge-damage*)
+    (set-gauss-hit-pos (float->int *charge-damage*) (part-type-enum gauss-shot-secondary))
+    (set! *is-primary-attack?* #f)
+    (viewmodel-play-animation (viewmodel-animations-enum gauss-fire2) 1.0)
+    (add-aim-punch gauss-aim-punch-amount)
+    (gauss-primary-attack-sound)
+    (set-time! (-> self last-gauss-attack-time))
+    (set-time! (-> self weapon-last-attack-time)))
+  :trans
+  (behavior ()
+    (gauss-switch-handle)
+    (when (time-elapsed? (-> self weapon-last-attack-time) gauss-attack-cooldown)
+      (if (> (-> self current-gauss-mag-ammo) 0) (go gauss-after-attack) (go gauss-idle))))
+  :code
+  (behavior ()
+    (loop (suspend)))
+  :post
+  (behavior ()
+    (gauss-beam-handle)
+    (hl-weapons-common-post)
+    (update-aim-punch gauss-aim-punch-decay)))
+
+(defstate gauss-attack-secondary-charge (hl-weapons)
+  :event hl-weapons-standard-event-handler
+  :enter
+  (behavior ()
+    (when (> (-> self current-gauss-mag-ammo) 0)
+      (viewmodel-play-animation (viewmodel-animations-enum gauss-spinup) 1.1)
+      (play-mod-sound-pitch "pulsemachine" 1.1 0)
+      (set-time! (-> self weapon-last-attack-time))
+      (set-time! *enter-secondary-time*)
+      (set-time! *ammo-secondary-drain-time*))
+      (set! *charge-damage* 0.0))
+  :trans
+  (behavior ()
+    (gauss-switch-handle)
+    ;; Releasing earlier it only attacks after 0.5 seconds
+    (when (and (time-elapsed? *enter-secondary-time* (seconds 0.5)) (not (should-second-attack?)))
+      (go gauss-attack-secondary))
+    ;; When we no longer have ammo to drain, we attack
+    (when (<= (-> self current-gauss-mag-ammo) 0)
+      (go gauss-attack-secondary))
+    ;; After 10 seconds, it overcharges
+    (when (time-elapsed? *enter-secondary-time* (seconds 10.0))
+      (go gauss-after-attack-overcharge)))
+  :exit
+  (behavior ()
+    (when (is-mod-sound-playing "pulsemachine")
+      (stop-mod-sound "pulsemachine"))
+  )
+  :code
+  (behavior ()
+    (loop
+    (when (= (-> *target* state name) 'target-hl-death)
+      (format 0 "SHOULD GO IDLE ~%")
+      (go gauss-idle))
+      ;; Spin animation loop
+      (when (time-elapsed? *secondary-anim-loop-time* (seconds 0.5))
+        (viewmodel-play-animation (viewmodel-animations-enum gauss-spin) 1.1)
+        (set-time! *secondary-anim-loop-time*))
+
+      (let* ((elapsed (- (current-time) *enter-secondary-time*))
+            (full-charge (fsec 4.0))
+            (base-pitch 1.0)
+            (max-pitch 2.5)
+            (progress (min 1.0 (/ (fsec elapsed) (fsec full-charge))))
+            (current-pitch (+ base-pitch (* (- max-pitch base-pitch) progress)))
+            (loop-duration (/ (fsec 1.884) current-pitch)))
+        (set! *charge-damage* (* 200.0 progress))
+        (set-time! (-> self last-gauss-attack-time))
+        ;; Ammo is drained until we reach 4 seconds
+        (when (and (time-elapsed? *ammo-secondary-drain-time* (seconds 0.3)) (not (time-elapsed? *enter-secondary-time* (seconds 4.0))))
+          (-! (-> self current-gauss-mag-ammo) 1)
+          (set-time! *ammo-secondary-drain-time*))
+        (when (time-elapsed? *play-secondary-sound-time* loop-duration)
+          (play-mod-sound-pitch "pulsemachine" current-pitch 0)
+          (set-time! *play-secondary-sound-time*))
+        (when (is-mod-sound-playing "pulsemachine")
+          (play-mod-sound-pitch "pulsemachine" current-pitch 1)))
+      (suspend)))
+  :post
+  (behavior ()
+    (hl-weapons-common-post)
+    (update-aim-punch gauss-aim-punch-decay)))
+
+(defstate gauss-after-attack (hl-weapons)
+  :event hl-weapons-standard-event-handler
+  :enter
+  (behavior ()
+    (set! *aftershock-delay* (rand-vu-float-range 0.3 0.8))
+    (set-time! *after-attack-enter-time*))
+  :trans
+  (behavior ()
+    (gauss-switch-handle)
+    (when (time-elapsed? *after-attack-enter-time* (fsec *aftershock-delay*))
+      (play-gauss-aftershock-sound)
+      (go gauss-idle))
+    (when (and (should-attack?)
+               (time-elapsed? (-> self weapon-last-attack-time) gauss-attack-cooldown) (>= (-> self current-gauss-mag-ammo) 2))
+      (go gauss-attack))
+    (when (and (should-second-attack?)
+               (time-elapsed? (-> self weapon-last-attack-time) gauss-attack-cooldown)
+               (> (-> self current-gauss-mag-ammo) 0))
+      (go gauss-attack-secondary-charge)))
+  :code
+  (behavior ()
+    (loop (suspend)))
+  :post
+  (behavior ()
+    (gauss-beam-handle)
+    (hl-weapons-common-post)
+    (update-aim-punch gauss-aim-punch-decay)))
+
+(defstate gauss-after-attack-overcharge (hl-weapons)
+  :event hl-weapons-standard-event-handler
+  :enter
+  (behavior ()
+    ;; We take damage when we overcharge
+    (when (>= (-> *target* fact health) 2.0)
+        (play-mod-sound "hev_beep"))
+    (when (= (-> *target* fact health) 2.0)
+      (play-mod-sound "health_critical"))
+    (send-event *target* 'gauss-overcharge)
+    (viewmodel-play-animation (viewmodel-animations-enum gauss-idle1) 0.5)
+    (play-gauss-overload-sound)
+    (set-time! *after-attack-enter-time*))
+  :trans
+  (behavior ()
+    (gauss-switch-handle)
+    (when (time-elapsed? *after-attack-enter-time* (seconds 0.8))
+      (go gauss-idle))
+    (when (and (should-attack?)
+               (time-elapsed? (-> self weapon-last-attack-time) gauss-attack-cooldown) (>= (-> self current-gauss-mag-ammo) 2))
+      (go gauss-attack))
+    (when (and (should-second-attack?)
+               (time-elapsed? *after-attack-enter-time* (seconds 1.0))
+               (> (-> self current-gauss-mag-ammo) 0))
+      (go gauss-attack-secondary-charge)))
+  :code
+  (behavior ()
+    (loop
+      (when (in-hl-state?)
+        (overcharge-screen))
+    (suspend)))
+  :post
+  (behavior ()
+    (hl-weapons-common-post)
+    (update-aim-punch gauss-aim-punch-decay)))

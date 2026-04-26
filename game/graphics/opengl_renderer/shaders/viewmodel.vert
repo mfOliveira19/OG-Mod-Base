@@ -6,7 +6,7 @@ layout(location=3) in vec4 aWeights;
 layout(location=4) in vec3 aNormal;
 
 uniform mat4 uModel, uView, uProjection;
-uniform mat4 uBones[64];
+uniform mat4 uBones[128];
 
 out vec2 vUV;
 out vec3 vNormalView;

@@ -45,6 +45,7 @@ class KeyboardDevice : public InputDevice {
     uint8_t arrow_up = false;
     uint8_t period = false;
     uint8_t tab = false;
+    uint8_t comma = false;
   };
 
   KeyboardDevice() {};

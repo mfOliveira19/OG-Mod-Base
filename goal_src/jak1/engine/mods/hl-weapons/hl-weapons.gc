@@ -5,7 +5,10 @@
   :type uint16
   (crowbar 0)
   (pistol 1)
-  (smg 2))
+  (smg 2)
+  (gauss 3)
+  (revolver 4)
+  (shotgun 5))
 
 (defenum viewmodel-animations-enum
   :type uint16
@@ -32,7 +35,33 @@
   (smg-shoot2 17)
   (smg-shoot3 18)
   (smg-reload 19)
-  (smg-grenade 20))
+  (smg-grenade 20)
+  ;; gauss
+  (gauss-fidget 21)
+  (gauss-fire 22)
+  (gauss-fire2 23)
+  (gauss-idle1 24)
+  (gauss-idle2 25)
+  (gauss-spin 26)
+  (gauss-spinup 27)
+  ;; Holster
+  (holster 28)
+  ;; Revolver
+  (revolver-fidget 29)
+  (revolver-fire 30)
+  (revolver-idle1 31)
+  (revolver-idle2 32)
+  (revolver-idle3 33)
+  (revolver-reload 34)
+  ;; Shotgun
+  (shotgun-start-reload 35)
+  (shotgun-shoot-big 36)
+  (shotgun-shoot 37)
+  (shotgun-reload 38)
+  (shotgun-reholster 39)
+  (shotgun-pump 40)
+  (shotgun-idle4 41)
+  (shotgun-deepidle 42))
 
 (deftype hl-weapons (process-drawable)
   ((current-weapon                 weapons-enum)
@@ -48,15 +77,22 @@
    (current-aim-punch-last-update  time-frame)
    (crowbar-swing-index            uint16)
    (current-pistol-mag-ammo        uint16)
-   (current-smg-mag-ammo           uint16))
+   (current-smg-mag-ammo           uint16)
+   (current-gauss-mag-ammo         uint16)
+   (gauss-recharge-time            time-frame)
+   (last-gauss-attack-time         time-frame)
+   (current-revolver-mag-ammo      uint16)
+   (current-shotgun-mag-ammo       uint16))
   (:methods)
   (:states
     ;; crowbar
+    crowbar-holster
     crowbar-draw
     crowbar-idle
     crowbar-attack-miss
     crowbar-attack-hit
     ;; pistol
+    pistol-holster
     pistol-draw
     pistol-idle
     pistol-idle-anim
@@ -65,25 +101,59 @@
     pistol-reload-part1
     pistol-reload-part2
     ;; smg
+    smg-holster
     smg-draw
     smg-idle
     smg-idle-anim
     smg-attack
     smg-reload-part1
     smg-reload-part2
-    smg-secondary))
+    smg-secondary
+    ;; gauss
+    gauss-holster
+    gauss-draw
+    gauss-idle
+    gauss-attack
+    gauss-attack-secondary
+    gauss-attack-secondary-charge
+    gauss-after-attack
+    gauss-after-attack-overcharge
+    ;; revolver
+    revolver-holster
+    revolver-draw
+    revolver-idle
+    revolver-idle-anim
+    revolver-attack
+    revolver-reload-part1
+    revolver-reload-part2
+    ;; shotgun
+    shotgun-holster
+    shotgun-draw
+    shotgun-idle
+    shotgun-idle-anim
+    shotgun-attack
+    shotgun-attack-secondary
+    shotgun-start-reload
+    shotgun-reload
+    shotgun-reload-pump))
 
 (define-perm *hl-weapons* hl-weapons #f)
 
 (defconstant weapon-switch-cooldown (seconds 0.05))
 (defconstant pistol-max-mag-ammo 17)
 (defconstant smg-max-mag-ammo 50)
+(defconstant gauss-max-mag-ammo 100)
+(defconstant revolver-max-mag-ammo 6)
+(defconstant shotgun-max-mag-ammo 8)
 
 (defbehavior init-hl-weapons hl-weapons ()
   (stack-size-set! (-> self main-thread) 1024)
   (set-time! (-> self weapon-last-attack-time))
   (set! (-> self current-pistol-mag-ammo) pistol-max-mag-ammo)
   (set! (-> self current-smg-mag-ammo) smg-max-mag-ammo)
+  (set! (-> self current-gauss-mag-ammo) gauss-max-mag-ammo)
+  (set! (-> self current-revolver-mag-ammo) revolver-max-mag-ammo)
+  (set! (-> self current-shotgun-mag-ammo) shotgun-max-mag-ammo)
   (set! (-> self last-weapon) (weapons-enum crowbar))
   (format 0 "HL Weapons process initialized.~%")
   (go crowbar-draw))
@@ -100,8 +170,13 @@
   (set! (-> *hl-weapons* weapon-last-second-attack-time) 0)
   (set! (-> *hl-weapons* weapon-last-reload-time) 0)
   (set! (-> *hl-weapons* weapon-last-idle-time) 0)
+  (set! (-> *hl-weapons* gauss-recharge-time) 0)
+  (set! (-> *hl-weapons* last-gauss-attack-time) 0)
   (set! (-> *hl-weapons* current-pistol-mag-ammo) pistol-max-mag-ammo)
-  (set! (-> *hl-weapons* current-smg-mag-ammo) smg-max-mag-ammo))
+  (set! (-> *hl-weapons* current-smg-mag-ammo) smg-max-mag-ammo)
+  (set! (-> *hl-weapons* current-gauss-mag-ammo) gauss-max-mag-ammo)
+  (set! (-> *hl-weapons* current-revolver-mag-ammo) revolver-max-mag-ammo)
+  (set! (-> *hl-weapons* current-shotgun-mag-ammo) shotgun-max-mag-ammo))
 
 (defun viewmodel-play-animation ((animation viewmodel-animations-enum) (anim-speed float))
   (pc-set-viewmodel-animation-speed anim-speed)
@@ -122,7 +197,43 @@
        (('fishing) 
         (when (!= (-> self current-weapon) (weapons-enum pistol))
           (set! (-> *hl-weapons* current-pistol-mag-ammo) pistol-max-mag-ammo)
-          (go pistol-draw)))))))
+          (go pistol-draw)))))
+    (('go-idle)
+     (case (-> self current-weapon)
+       (((weapons-enum gauss))
+          (go gauss-idle))
+       (((weapons-enum shotgun))
+          (go shotgun-idle))
+          ))
+    (('go-draw)
+     (case (-> self current-weapon)
+       (((weapons-enum crowbar))
+          (go crowbar-draw))
+       (((weapons-enum pistol))
+          (go pistol-draw))
+       (((weapons-enum revolver))
+          (go revolver-draw))
+       (((weapons-enum shotgun))
+          (go shotgun-draw))
+       (((weapons-enum smg))
+          (go smg-draw))
+       (((weapons-enum gauss))
+          (go gauss-draw))
+        ))
+    (('edge-grab)
+     (case (-> self current-weapon)
+       (((weapons-enum crowbar))
+          (go crowbar-holster))
+       (((weapons-enum pistol))
+          (go pistol-holster))
+       (((weapons-enum revolver))
+          (go revolver-holster))
+       (((weapons-enum shotgun))
+          (go shotgun-holster))
+       (((weapons-enum smg))
+          (go smg-holster))
+       (((weapons-enum gauss))
+          (go gauss-holster))))))
 
 (defbehavior change-weapon-fishgame hl-weapons ()
   (when (and (= (-> *target* state name) 'target-hl-fishing) (!= (-> self current-weapon) (weapons-enum pistol)))
@@ -146,10 +257,20 @@
     (let ((decay (* *current-aim-punch-offset* decay-rate)))
       (when (> (abs decay) (abs *current-aim-punch-offset*))
         (set! decay *current-aim-punch-offset*))
-      (set! *current-aim-punch* (- *current-aim-punch* decay))
+      (set! *current-aim-punch* (- *current-aim-punch* decay 0.000045))
       (set! *current-aim-punch-offset* (- *current-aim-punch-offset* decay)))))
 
-(defun fire-hl-shot ((shooter process-drawable) (is-debug? symbol) (offset-x float) (offset-y float))
+;; Gauss ammo starts recharging each 0.3 seconds, 2.0 seconds after the last attack
+(defbehavior recharge-gauss-ammo hl-weapons ()
+  (when (and (time-elapsed? (-> self last-gauss-attack-time) (seconds 2.0)) (time-elapsed? (-> self gauss-recharge-time) (seconds 0.3)) (< (-> self current-gauss-mag-ammo) 100))
+    (+! (-> self current-gauss-mag-ammo) 1)
+    (set-time! (-> self gauss-recharge-time))))
+
+(defbehavior hl-weapons-common-post hl-weapons ()
+  (recharge-gauss-ammo)
+)
+
+(defun fire-hl-shot ((shooter process-drawable) (is-debug? symbol) (offset-x float) (offset-y float) (damage int))
   (rlet ((vf0 :class vf)
          (vf4 :class vf)
          (vf5 :class vf)
@@ -270,10 +391,9 @@
                         (gp-1 (vector-float*! (new-stack-vector0)
                                               (-> *math-camera* inv-camera-rot vector 2)
                                               (the-as float (meters 0.5))))
-                        (t1-0 40)
                         (t2-0 #f))
-                    ((the-as (function object object object object object object object none) s3-0)
-                    s2-0 s1-0 s0-0 sv-48 gp-1 t1-0 t2-0))
+                    ((the-as (function object object object object object object object object none) s3-0)
+                    s2-0 s1-0 s0-0 sv-48 gp-1 (part-type-enum common-shot) t2-0 damage))
                   (-> s4-0 ppointer))))
                   (if is-debug? (add-debug-sphere #t (bucket-id debug) hit-pos (meters 0.5) *color-white*))))))))
 
@@ -471,10 +591,10 @@
          (vf6 :class vf))
     (init-vf0-vector)
 
-    (let ((max-dist (meters 3))
+    (let ((max-dist (meters 6))
           (spawn-forward-offset (the-as float 0.0))
           (backoff-epsilon (the-as float 10.0))
-          (probe-radius 2000.0))
+          (probe-radius 4000.0))
       (let* ((cam-pos (camera-pos))
              (cam-forward (vector-float*! (new 'stack-no-clear 'vector)
                                           (-> *math-camera* inv-camera-rot vector 2)
@@ -590,7 +710,7 @@
       (draw-string-xy-scaled
         (string-format "~d" (-> *hl-weapons* current-pistol-mag-ammo))
         arg0
-        490
+        485
         212
         (the font-color 4)
         (font-flags shadow kerning)
@@ -600,12 +720,40 @@
       (draw-string-xy-scaled
         (string-format "~d" (-> *hl-weapons* current-smg-mag-ammo))
         arg0
-        490
+        485
         212
         (the font-color 4)
         (font-flags shadow kerning)
         1.2)
-    ))
+    )
+    (((weapons-enum gauss))
+      (draw-string-xy-scaled
+        (string-format "~d" (-> *hl-weapons* current-gauss-mag-ammo))
+        arg0
+        485
+        212
+        (the font-color 4)
+        (font-flags shadow kerning)
+        1.2))
+    (((weapons-enum revolver))
+      (draw-string-xy-scaled
+        (string-format "~d" (-> *hl-weapons* current-revolver-mag-ammo))
+        arg0
+        485
+        212
+        (the font-color 4)
+        (font-flags shadow kerning)
+        1.2))
+    (((weapons-enum shotgun))
+      (draw-string-xy-scaled
+        (string-format "~d" (-> *hl-weapons* current-shotgun-mag-ammo))
+        arg0
+        485
+        212
+        (the font-color 4)
+        (font-flags shadow kerning)
+        1.2))
+        )
 )
 
 (defun draw-speed ((buf dma-buffer))

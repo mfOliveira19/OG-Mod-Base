@@ -2135,6 +2135,9 @@
 (goal-src "engine/mods/hl-weapons/hl-weapons-crowbar.gc")
 (goal-src "engine/mods/hl-weapons/hl-weapons-pistol.gc")
 (goal-src "engine/mods/hl-weapons/hl-weapons-smg.gc")
+(goal-src "engine/mods/hl-weapons/hl-weapons-gauss.gc")
+(goal-src "engine/mods/hl-weapons/hl-weapons-revolver.gc")
+(goal-src "engine/mods/hl-weapons/hl-weapons-shotgun.gc")
 
 (group-list "all-code"
   `(,@(reverse *all-gc*))

@@ -158,7 +158,7 @@
      (let ((s5-10 (new 'stack-no-clear 'vector)))
        (vector<-cspace! s5-10 (joint-node robotboss-basic-lod0-jg interesting))
        (send-event *camera* 'point-of-interest s5-10))))
-  (when (and arg0 *debug-segment* (cpad-pressed? 0 l3)) ;; og:preserve-this changed from (cpad-pressed? 1 x)
+  (when (and arg0 *debug-segment* (cpad-pressed? 1 x)) ;; Changed in hl mod back to (cpad-pressed? 1 x) so we dont skip when walking on debug mode
     (cpad-clear! 0 l3)
     (go arg0))
   (none))
@@ -171,7 +171,7 @@
 
 (defbehavior robotboss-setup-for-hits robotboss ((arg0 int) (arg1 int))
   (set! (-> self took-hit) #f)
-  (set! (-> self hits-to-go) arg1)
+  (set! (-> self hits-to-go) (* arg1 20)) ;; Changed for hl mod so it represents damage
   (set! (-> self vulnerable) arg0)
   (let ((gp-0 (new 'stack 'sphere)))
     (set! (-> gp-0 w) 4096.0)
@@ -276,19 +276,30 @@
 (defbehavior robotboss-handler robotboss ((arg0 process) (arg1 int) (arg2 symbol) (arg3 event-message-block))
   (case arg2
     (('flash) (set! (-> self palette-val) (* 0.0078125 (the-as float (-> arg3 param 0)))))
-    (( 'attack-hl)
-     (when (>= arg1 2)
+    (('attack-hl)
+     (when (and (>= arg1 2) (target-has-eco-type? (pickup-type eco-yellow)))
        (case (-> arg3 param 1)
-         (('eco-yellow)
-          (let ((a0-5 (-> arg3 param 0)))
+         (('eco-yellow 'explode)
+          (let ((a0-5 (-> arg3 param 0)) (damage (the-as int8 (-> arg3 param 4))))
             (when (and a0-5
                        ((method-of-type touching-shapes-entry prims-touching?)
                         (the-as touching-shapes-entry a0-5)
                         (-> self root)
                         (the-as uint (-> self vulnerable))))
+                  (when (> (-> self hits-to-go) 0)
+                    (set! (-> self took-hit) #t)
+                    (-! (-> self hits-to-go) damage)
+                    (when (<= (-> self hits-to-go) 0)
+                      (set! (-> self hits-to-go) 0)))
+
+#|
               (when (> (-> self hits-to-go) 0)
                 (set! (-> self took-hit) #t)
-                (let ((v0-0 (the-as number (+ (-> self hits-to-go) -1)))) (set! (-> self hits-to-go) (the-as int v0-0)) v0-0))))))))))
+                (let ((v0-0 (the-as number (+ (-> self hits-to-go) -1)))) (set! (-> self hits-to-go) (the-as int v0-0)) v0-0))|#
+                
+                ))))))
+                
+                ))
 
 (defstate robotboss-yellow-dark-bomb-wait (robotboss)
   :event

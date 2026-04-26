@@ -79,6 +79,16 @@ MiniAudioLib::ma_engine maEngine;
 std::map<std::string, std::list<MiniAudioLib::ma_sound>> maSoundMap;
 MiniAudioLib::ma_sound* mainMusicSound;
 
+struct ModSoundInstance {
+  MiniAudioLib::ma_sound sound;
+  std::string filePath;
+  bool isStopping;
+};
+
+
+std::vector<std::unique_ptr<ModSoundInstance>> activeSounds;
+std::mutex modAudioMutex;
+
 void kmachine_init_globals_common() {
   memset(pad_dma_buf, 0, sizeof(pad_dma_buf));
   isodrv = fakeiso;  // changed. fakeiso is the only one that works in opengoal.
@@ -157,12 +167,15 @@ void stopMP3(u32 filePathu32) {
   std::lock_guard<std::mutex> lock(activeMusicsMutex);
   auto it = maSoundMap.find(filePath);
   if (it == maSoundMap.end()) {
-    std::cerr << "Couldn't find sound to stop: " << filePath << std::endl;
+    std::cerr << "  Couldn't find sound to stop: " << filePath << std::endl;
   } else {
     // stop all instances of this sound
     for (auto sound : it->second) {
       if (MiniAudioLib::ma_sound_stop(&sound) != MiniAudioLib::MA_SUCCESS) {
-        std::cerr << "Failed to stop sound: " << filePath << std::endl;
+        std::cerr << "  Failed to stop an instance of: " << filePath << std::endl;
+      } else {
+        MiniAudioLib::ma_sound_uninit(&sound);
+        std::cout << "  Stopped an instance of " << filePath << std::endl;
       }
       // let the thread finish and handle ma_sound_uninit
     }
@@ -175,8 +188,14 @@ void stopMP3(u32 filePathu32) {
 void stopAllSounds() {
   for (auto& pair : maSoundMap) {
     // stop all instances of this sound
+    std::cout << "Stopping instances of " << pair.first << std::endl;
     for (auto sound : pair.second) {
-      MiniAudioLib::ma_sound_stop(&sound);
+      if (MiniAudioLib::ma_sound_stop(&sound) != MiniAudioLib::MA_SUCCESS) {
+        std::cerr << "  Failed to stop an instance of: " << pair.first << std::endl;
+      } else {
+        MiniAudioLib::ma_sound_uninit(&sound);
+        std::cout << "  Stopped an instance of " << pair.first << std::endl;
+      }
     }
     pair.second.clear();
   }
@@ -190,6 +209,129 @@ std::vector<std::string> getPlayingFileNames() {
     playingFileNames.push_back(pair.first);
   }
   return playingFileNames;
+}
+
+u64 is_sound_playing(u32 filePathu32) {
+  std::string filePath = Ptr<String>(filePathu32).c()->data();
+
+  std::lock_guard<std::mutex> lock(activeMusicsMutex);
+  if (filePath.empty()) {
+    // empty str - check if ANY sound playing
+    for (auto& pair : maSoundMap) {
+      if (!(pair.second.empty())) {
+        return bool_to_symbol(true);
+      }
+    }
+  } else {
+    auto it = maSoundMap.find(filePath);
+    if (it != maSoundMap.end()) {
+      if (!(it->second.empty())) {
+        return bool_to_symbol(true);
+      }
+    }
+  }
+
+  return bool_to_symbol(false);
+}
+
+u64 is_sound_playing_hl(u32 filePathu32) {
+    std::string filePath = Ptr<String>(filePathu32).c()->data();
+
+    std::lock_guard<std::mutex> lock(modAudioMutex);
+
+    if (filePath.empty()) {
+        for (const auto& inst : activeSounds) {
+            if (inst && !inst->isStopping && MiniAudioLib::ma_sound_is_playing(&inst->sound)) {
+                return bool_to_symbol(true);
+            }
+        }
+    } else {
+        for (const auto& inst : activeSounds) {
+            if (inst && !inst->isStopping && inst->filePath == filePath &&
+                MiniAudioLib::ma_sound_is_playing(&inst->sound)) {
+                return bool_to_symbol(true);
+            }
+        }
+    }
+
+    return bool_to_symbol(false);
+}
+
+u64 playMP3_pitch(u32 filePathu32, u32 volume, u64 pitch, u32 updateIfPlaying) {
+    std::string filePath = Ptr<String>(filePathu32).c()->data();
+    std::string fullFilePath = std::filesystem::path(
+        file_util::get_jak_project_dir() / "custom_assets" /
+        game_version_names[g_game_version] / "audio" / filePath
+    ).string();
+
+    if (!file_util::file_exists(fullFilePath)) {
+        return bool_to_symbol(false);
+    }
+
+    float floatPitch = *reinterpret_cast<float*>(&pitch);
+
+    std::lock_guard<std::mutex> lock(modAudioMutex);
+
+    for (auto& oldInst : activeSounds) {
+        if (oldInst && oldInst->filePath == filePath && !oldInst->isStopping) {
+            if (updateIfPlaying != 0) {
+                // Update the pitch of the existing instance
+                MiniAudioLib::ma_sound_set_pitch(&oldInst->sound, floatPitch);
+                return reinterpret_cast<u64>(oldInst.get());
+            } else {
+                // Mark for stopping with short delay to mimic the gauss primary attack sounds
+                oldInst->isStopping = true;
+                MiniAudioLib::ma_uint64 now = MiniAudioLib::ma_engine_get_time_in_milliseconds(&maEngine);
+
+                // Stopping with a fade avoids a "click" noise that can happen occasionally
+                MiniAudioLib::ma_sound_set_stop_time_with_fade_in_milliseconds(
+                    &oldInst->sound,
+                    now + 70,
+                    20 
+                );
+            }
+        }
+    }
+
+    // Create a new instance if no update was done
+    auto instance = std::make_unique<ModSoundInstance>();
+    instance->filePath = filePath;
+    instance->isStopping = false;
+
+    MiniAudioLib::ma_result result = MiniAudioLib::ma_sound_init_from_file(
+        &maEngine, fullFilePath.c_str(), 0, NULL, NULL, &instance->sound
+    );
+
+    if (result != MiniAudioLib::MA_SUCCESS) {
+        std::cerr << "Failed to load sound: " << filePath << std::endl;
+        return bool_to_symbol(false);
+    }
+
+    MiniAudioLib::ma_sound_set_volume(&instance->sound, ((float)volume) / 100.0f);
+    MiniAudioLib::ma_sound_set_pitch(&instance->sound, floatPitch);
+    MiniAudioLib::ma_sound_start(&instance->sound);
+
+    ModSoundInstance* instancePtr = instance.get();
+    activeSounds.push_back(std::move(instance));
+
+    return reinterpret_cast<u64>(instancePtr);
+}
+
+void stopMP3_hl(u32 filePathu32) {
+    std::string filePath = Ptr<String>(filePathu32).c()->data();
+
+    std::lock_guard<std::mutex> lock(modAudioMutex);
+
+    for (auto& inst : activeSounds) {
+        if (!inst) continue;
+
+        if (inst->filePath == filePath && !inst->isStopping) {
+            inst->isStopping = true;
+            //MiniAudioLib::ma_sound_stop(&inst->sound);
+            MiniAudioLib::ma_sound_set_fade_in_milliseconds(&inst->sound, -1, 0, 10); // Stop with a fade to avoid "click" noise
+            std::cout << "  Stopped one instance of " << filePath << std::endl;
+        }
+    }
 }
 
 u64 playMP3_internal(u32 filePathu32, u32 volume, bool isMainMusic) {
@@ -212,7 +354,7 @@ u64 playMP3_internal(u32 filePathu32, u32 volume, bool isMainMusic) {
     result = MiniAudioLib::ma_sound_init_from_file(&maEngine, fullFilePath.c_str(), 0, NULL, NULL,
                                                     &sound);
     if (result != MiniAudioLib::MA_SUCCESS) {
-      std::cout << "Failed to load: " << filePath << std::endl;
+      std::cout << "  Failed to load: " << filePath << std::endl;
       return;
     }
 
@@ -233,6 +375,7 @@ u64 playMP3_internal(u32 filePathu32, u32 volume, bool isMainMusic) {
         maSoundMap.insert(std::make_pair(filePath, std::list<MiniAudioLib::ma_sound>()));
       }
       maSoundMap[filePath].push_back(sound);
+      std::cout << "  Added to maSoundMap instance of " << filePath << std::endl;
     }
 
     // sleep/loop until we're no longer main music, or non-looping sound is stopped/ends
@@ -248,7 +391,7 @@ u64 playMP3_internal(u32 filePathu32, u32 volume, bool isMainMusic) {
       std::lock_guard<std::mutex> lock(activeMusicsMutex);
       if (maSoundMap.find(filePath) != maSoundMap.end()) {
         maSoundMap[filePath].remove_if(
-            [&](MiniAudioLib::ma_sound l_sound) { return &sound == &l_sound; });
+            [&](MiniAudioLib::ma_sound l_sound) { return sound.pResourceManagerDataSource == l_sound.pResourceManagerDataSource; });
       }
     }
   });
@@ -914,7 +1057,7 @@ u64 pc_get_keyboard_data(u64 keyboard_info) {
   if (Display::GetMainDisplay()) {
     const auto& keyboard_key_status =
         Display::GetMainDisplay()->get_input_manager()->get_keyboard_key_status();
-    static_assert(sizeof(keyboard_key_status) == 24);
+    static_assert(sizeof(keyboard_key_status) == 25);
    *keyboard_status = keyboard_key_status;
   }
 
@@ -1422,8 +1565,21 @@ void init_common_pc_port_functions(
   // Play sound file
   make_func_symbol_func("play-sound-file", (void*)playMP3);
 
+  // Play mod sound file with adjustable pitch
+  make_func_symbol_func("play-mod-sound-file-pitch", (void*)playMP3_pitch);
+
+
+  // Check if sound file is playing but for the hl mod sounds
+  make_func_symbol_func("is-sound-playing-hl", (void*)is_sound_playing_hl);
+
+  // Check if sound file is playing
+  make_func_symbol_func("is-sound-playing", (void*)is_sound_playing);
+
   // Stop sound file (all instances)
   make_func_symbol_func("stop-sound-file", (void*)stopMP3);
+
+  // New Stop sound file for hl mod
+  make_func_symbol_func("stop-sound-file-hl", (void*)stopMP3_hl);
 
   // Stop all sounds
   make_func_symbol_func("stop-all-sounds", (void*)stopAllSounds);

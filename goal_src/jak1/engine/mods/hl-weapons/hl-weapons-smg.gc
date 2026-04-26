@@ -15,6 +15,7 @@
 (defconstant smg-aim-punch-decay 0.1)
 (defconstant smg-aim-punch-amount 0.03)
 (defconstant smg-grenade-aim-punch 0.2)
+(defconstant smg-damage 20)
 
 (defbehavior smg-switch-handle hl-weapons ()
   (when (and (should-switch-slot1?)
@@ -29,6 +30,18 @@
     (set-time! (-> self weapon-last-switch-time))
     (set! (-> self last-weapon) (weapons-enum smg))
     (go pistol-draw))
+  (when (and (should-switch-slot3?)
+             (time-elapsed? (-> self weapon-last-switch-time) weapon-switch-cooldown)
+             (not (= (-> self current-weapon) (weapons-enum shotgun))))
+    (set-time! (-> self weapon-last-switch-time))
+    (set! (-> self last-weapon) (weapons-enum smg))
+    (go shotgun-draw))
+  (when (and (should-switch-slot4?)
+             (time-elapsed? (-> self weapon-last-switch-time) weapon-switch-cooldown)
+             (not (= (-> self current-weapon) (weapons-enum gauss))))
+    (set-time! (-> self weapon-last-switch-time))
+    (set! (-> self last-weapon) (weapons-enum smg))
+    (go gauss-draw))
   (when (and (should-switch-last-weapon?)
              (time-elapsed? (-> self weapon-last-switch-time) weapon-switch-cooldown)
              (not (= (-> self current-weapon) (-> self last-weapon))))
@@ -39,7 +52,29 @@
         (go crowbar-draw))
       (((weapons-enum pistol))
         (set! (-> self last-weapon) (weapons-enum smg))
-        (go pistol-draw)))))
+        (go pistol-draw))
+      (((weapons-enum shotgun))
+        (set! (-> self last-weapon) (weapons-enum smg))
+        (go shotgun-draw))
+      (((weapons-enum revolver))
+        (set! (-> self last-weapon) (weapons-enum smg))
+        (go revolver-draw))
+      (((weapons-enum gauss))
+        (set! (-> self last-weapon) (weapons-enum smg))
+        (go gauss-draw)))))
+
+(defstate smg-holster (hl-weapons)
+  :event hl-weapons-standard-event-handler
+  :enter
+  (behavior ()
+    (viewmodel-play-animation (viewmodel-animations-enum holster) 2.0))
+  :code
+  (behavior ()
+    (loop (suspend)))
+  :post
+  (behavior ()
+    (hl-weapons-common-post)
+    (update-aim-punch 0.1)))
 
 (defstate smg-draw (hl-weapons)
   :event hl-weapons-standard-event-handler
@@ -61,6 +96,7 @@
     (loop (suspend)))
   :post
   (behavior ()
+    (hl-weapons-common-post)
     (update-aim-punch smg-aim-punch-decay)))
 
 (defstate smg-idle (hl-weapons)
@@ -91,6 +127,7 @@
     (loop (suspend)))
   :post
   (behavior ()
+    (hl-weapons-common-post)
     (when (and (or (!= (-> *mouse-edge* mouse1-pressed) 0) (cpad-pressed? 0 r1)) *should-show-swim-screen?*) (play-mod-sound "no_shot"))
     (update-aim-punch smg-aim-punch-decay)))
 
@@ -120,6 +157,7 @@
     (loop (suspend)))
   :post
   (behavior ()
+    (hl-weapons-common-post)
     (when (and (or (!= (-> *mouse-edge* mouse1-pressed) 0) (cpad-pressed? 0 r1)) *should-show-swim-screen?*) (play-mod-sound "no_shot"))
     (update-aim-punch smg-aim-punch-decay)))
 
@@ -131,7 +169,7 @@
       (-! (-> self current-smg-mag-ammo) 1)
       (let ((spread-x (rand-vu-float-range -0.03 0.03))
             (spread-y (rand-vu-float-range -0.03 0.03)))
-        (fire-hl-shot *target* #f spread-x spread-y)
+        (fire-hl-shot *target* #f spread-x spread-y smg-damage)
 
         (let ((idx (rand-vu-int-range 0 2)))
           (case idx
@@ -162,6 +200,7 @@
     (loop (suspend)))
   :post
   (behavior ()
+    (hl-weapons-common-post)
     (update-aim-punch smg-aim-punch-decay)))
 
 (defstate smg-secondary (hl-weapons)
@@ -187,6 +226,7 @@
     (loop (suspend)))
   :post
   (behavior ()
+    (hl-weapons-common-post)
     (update-aim-punch smg-aim-punch-decay)))
 
 (defstate smg-reload-part1 (hl-weapons)
@@ -230,4 +270,5 @@
     (loop (suspend)))
   :post
   (behavior ()
+    (hl-weapons-common-post)
     (update-aim-punch smg-aim-punch-decay)))
