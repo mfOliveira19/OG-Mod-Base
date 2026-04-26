@@ -915,7 +915,22 @@
       (set! (-> s3-0 transform-index) 3)
       ;; Hitbox size is bigger when using controller aiming
       (let ((fish-sphere-size 3276.8))
-        (set-vector! (-> s3-0 local-sphere) 0.0 0.0 0.0 (if (and (-> *pc-settings* controller-aim?) (not (or (= arg0 'deadly) (= arg0 'bad)))) (* 2.0 fish-sphere-size) (* 1.2 fish-sphere-size))))
+        (set-vector! (-> s3-0 local-sphere) 0.0 0.0 0.0 
+          (if (-> *pc-settings* controller-aim?)
+            (begin
+              (if (not (or (= arg0 'deadly) (= arg0 'bad)))
+                (* 2.0 fish-sphere-size)
+                fish-sphere-size
+              )
+            )
+            (begin
+              (if (not (or (= arg0 'deadly) (= arg0 'bad)))
+                (* 1.2 fish-sphere-size)
+                fish-sphere-size
+              )
+            )
+          )
+        ))
       (set-root-prim! s4-0 s3-0))
     (set! (-> s4-0 nav-radius) (* 0.75 (-> s4-0 root-prim local-sphere w)))
     (backup-collide-with-as s4-0)
