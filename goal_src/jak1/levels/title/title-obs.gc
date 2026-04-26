@@ -169,7 +169,7 @@
   :code
     (behavior ()
       (while (!= (file-status *art-control* (-> self next-anim name) 0) 'active)
-        (set-blackout-frames (seconds 0.05))
+        (set-blackout-frames (seconds 5.4))
         (suspend))
       (set! (-> *setting-control* current bg-a) 1.0)
       (set-setting! 'bg-a 'abs 0.0 0)
