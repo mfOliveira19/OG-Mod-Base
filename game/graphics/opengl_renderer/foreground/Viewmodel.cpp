@@ -103,7 +103,7 @@ void Viewmodel::render(DmaFollower& dma,
 
   math::Matrix4f view = math::translate(-cam_x, -cam_y, -cam_z);
 
-  float aspect = static_cast<float>(render_state->render_fb_w) / render_state->render_fb_h;
+  float aspect = static_cast<float>(render_state->draw_region_w) / render_state->draw_region_h;
   math::Matrix4f projection = math::perspective(72.0f, aspect, 3.5f, 50.0f);
   math::Matrix4f muzzle_model =
       math::rotateZ(rot_z) * math::rotateY(rot_y) * math::rotateX(rot_x + viewmodelRotationX()) *

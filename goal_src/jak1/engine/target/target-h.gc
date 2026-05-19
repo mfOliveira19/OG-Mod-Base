@@ -159,6 +159,7 @@
    target-hl-movement-ground-duck
    target-hl-movement-air-high-jump
    target-hl-movement-air-duck
+   target-hl-movement-air-jump-duck
    target-hl-movement-swim
    target-hl-movement-swim-ducked
    target-hl-movement-edge-grab

@@ -18,27 +18,39 @@
 (defconstant smg-damage 20)
 
 (defbehavior smg-switch-handle hl-weapons ()
+  ;; Crowbar
   (when (and (should-switch-slot1?)
              (time-elapsed? (-> self weapon-last-switch-time) weapon-switch-cooldown)
              (not (= (-> self current-weapon) (weapons-enum crowbar))))
     (set-time! (-> self weapon-last-switch-time))
     (set! (-> self last-weapon) (weapons-enum smg))
     (go crowbar-draw))
+  ;; Pistol or Revolver
   (when (and (should-switch-slot2?)
-             (time-elapsed? (-> self weapon-last-switch-time) weapon-switch-cooldown)
-             (not (= (-> self current-weapon) (weapons-enum pistol))))
+             (time-elapsed? (-> self weapon-last-switch-time) weapon-switch-cooldown))
     (set-time! (-> self weapon-last-switch-time))
-    (set! (-> self last-weapon) (weapons-enum smg))
-    (go pistol-draw))
+
+    (if (and (check-weapon-owned (owned-weapons pistol)) (not (= (-> self current-weapon) (weapons-enum pistol))))
+      (begin (set! (-> self last-weapon) (weapons-enum smg)) (go pistol-draw))
+      (begin (when (and (check-weapon-owned (owned-weapons revolver)) (not (= (-> self current-weapon) (weapons-enum revolver))))
+          (set! (-> self last-weapon) (weapons-enum smg))
+          (go revolver-draw))
+      )
+    )
+  )
+  ;; Shotgun
   (when (and (should-switch-slot3?)
              (time-elapsed? (-> self weapon-last-switch-time) weapon-switch-cooldown)
-             (not (= (-> self current-weapon) (weapons-enum shotgun))))
+             (not (= (-> self current-weapon) (weapons-enum shotgun)))
+             (check-weapon-owned (owned-weapons shotgun)))
     (set-time! (-> self weapon-last-switch-time))
     (set! (-> self last-weapon) (weapons-enum smg))
     (go shotgun-draw))
+  ;; Gauss
   (when (and (should-switch-slot4?)
              (time-elapsed? (-> self weapon-last-switch-time) weapon-switch-cooldown)
-             (not (= (-> self current-weapon) (weapons-enum gauss))))
+             (not (= (-> self current-weapon) (weapons-enum gauss)))
+             (check-weapon-owned (owned-weapons gauss)))
     (set-time! (-> self weapon-last-switch-time))
     (set! (-> self last-weapon) (weapons-enum smg))
     (go gauss-draw))
@@ -51,17 +63,29 @@
         (set! (-> self last-weapon) (weapons-enum smg))
         (go crowbar-draw))
       (((weapons-enum pistol))
-        (set! (-> self last-weapon) (weapons-enum smg))
-        (go pistol-draw))
+        (when (check-weapon-owned (owned-weapons pistol))
+          (set! (-> self last-weapon) (weapons-enum smg))
+          (go pistol-draw))
+      )
       (((weapons-enum shotgun))
-        (set! (-> self last-weapon) (weapons-enum smg))
-        (go shotgun-draw))
+        (when (check-weapon-owned (owned-weapons shotgun))
+          (set! (-> self last-weapon) (weapons-enum smg))
+          (go shotgun-draw))
+      )
       (((weapons-enum revolver))
-        (set! (-> self last-weapon) (weapons-enum smg))
-        (go revolver-draw))
+        (when (check-weapon-owned (owned-weapons revolver))
+          (set! (-> self last-weapon) (weapons-enum smg))
+          (go revolver-draw))
+      )
       (((weapons-enum gauss))
-        (set! (-> self last-weapon) (weapons-enum smg))
-        (go gauss-draw)))))
+        (when (check-weapon-owned (owned-weapons gauss))
+          (set! (-> self last-weapon) (weapons-enum smg))
+          (go gauss-draw))
+      ))))
+
+(defbehavior do-smg-reload hl-weapons ()
+ (when (and (should-reload?) (!= (-> self current-smg-mag-ammo) smg-max-mag-ammo) (or (> (-> self current-9mm-ammo) 0) (-> *pc-settings* unlimited-ammo?)))
+  (go smg-reload-part1)))
 
 (defstate smg-holster (hl-weapons)
   :event hl-weapons-standard-event-handler
@@ -116,9 +140,8 @@
     (when (and (should-second-attack?)
                (time-elapsed? (-> self weapon-last-second-attack-time) smg-grenade-cooldown))
       (go smg-secondary))
-    (when (and (should-reload?) (!= (-> self current-smg-mag-ammo) smg-max-mag-ammo))
-      (go smg-reload-part1))
-    (when (and (= (-> self current-smg-mag-ammo) 0) (not (should-attack?)))
+    (do-smg-reload)
+    (when (and (= (-> self current-smg-mag-ammo) 0) (or (> (-> self current-9mm-ammo) 0) (-> *pc-settings* unlimited-ammo?)) (not (paused?)) (not (should-attack?)))
       (go smg-reload-part1))
     (when (time-elapsed? (-> self weapon-last-idle-time) (-> self weapon-next-idle-wait))
       (go smg-idle-anim)))
@@ -147,7 +170,7 @@
   :trans
   (behavior ()
     (smg-switch-handle)
-    (when (and (should-reload?) (!= (-> self current-smg-mag-ammo) smg-max-mag-ammo)) (go smg-reload-part1))
+    (do-smg-reload)
     (when (and (should-attack?) (not *should-show-swim-screen?*)) (go smg-attack))
     (when (should-second-attack?) (go smg-secondary))
     (when (time-elapsed? (-> self weapon-last-idle-time) (-> self weapon-next-idle-wait))
@@ -165,8 +188,9 @@
   :event hl-weapons-standard-event-handler
   :enter
   (behavior ()
-    (when (> (-> self current-smg-mag-ammo) 0)
-      (-! (-> self current-smg-mag-ammo) 1)
+    (when (or (> (-> self current-smg-mag-ammo) 0) (target-has-eco-type? (pickup-type eco-yellow)))
+      (unless (target-has-eco-type? (pickup-type eco-yellow))
+        (-! (-> self current-smg-mag-ammo) 1))
       (let ((spread-x (rand-vu-float-range -0.03 0.03))
             (spread-y (rand-vu-float-range -0.03 0.03)))
         (fire-hl-shot *target* #f spread-x spread-y smg-damage)
@@ -185,12 +209,14 @@
           (add-aim-punch smg-aim-punch-amount))
 
         ;; Set idle time and cooldown
-        (hl-choose-idle-wait! 5.0 10.0)))
+        (hl-choose-idle-wait! 5.0 10.0))
+        (when (and (<= (-> self current-smg-mag-ammo) 0) (not (target-has-eco-type? (pickup-type eco-yellow))) (<= (-> self current-9mm-ammo) 0) (-> *pc-settings* hev-sounds?) (not (-> *pc-settings* unlimited-ammo?)))
+          (play-mod-sound "ammo_depleted")))
         (set-time! (-> self weapon-last-attack-time)))
   :trans
   (behavior ()
     (smg-switch-handle)
-    (when (should-reload?) (go smg-reload-part1))
+    (do-smg-reload)
     (when (time-elapsed? (-> self weapon-last-attack-time) smg-attack-cooldown)
       (if (and (should-attack?) (not *should-show-swim-screen?*))
           (go smg-attack)
@@ -207,19 +233,25 @@
   :event hl-weapons-standard-event-handler
   :enter
   (behavior ()
-    (fire-hl-grenade *target*)
-    (viewmodel-play-animation (viewmodel-animations-enum smg-grenade) 1.0)
-    (let ((idx (rand-vu-int-range 0 1)))
-      (case idx
-        ((0) (play-mod-sound "glauncher"))
-        ((1) (play-mod-sound "glauncher2"))))
-    (hl-choose-idle-wait! 5.0 10.0)
-    (add-aim-punch smg-grenade-aim-punch)
+    (when (or (> (-> self current-smg-grenade-ammo) 0) (-> *pc-settings* unlimited-ammo?) (target-has-eco-type? (pickup-type eco-yellow)))
+      (unless (or (target-has-eco-type? (pickup-type eco-yellow)) (-> *pc-settings* unlimited-ammo?))
+        (-! (-> self current-smg-grenade-ammo) 1))
+      (fire-hl-grenade *target*)
+      (viewmodel-play-animation (viewmodel-animations-enum smg-grenade) 1.0)
+      (let ((idx (rand-vu-int-range 0 1)))
+        (case idx
+          ((0) (play-mod-sound "glauncher"))
+          ((1) (play-mod-sound "glauncher2"))))
+      (hl-choose-idle-wait! 5.0 10.0)
+      (add-aim-punch smg-grenade-aim-punch)
+        (when (and (<= (-> self current-smg-grenade-ammo) 0) (not (target-has-eco-type? (pickup-type eco-yellow))) (-> *pc-settings* hev-sounds?) (not (-> *pc-settings* unlimited-ammo?)))
+          (play-mod-sound "ammo_depleted"))      
+      )
     (set-time! (-> self weapon-last-second-attack-time)))
   :trans
   (behavior ()
     (smg-switch-handle)
-    (when (time-elapsed? (-> self weapon-last-second-attack-time) smg-grenade-cooldown)
+    (when (or (time-elapsed? (-> self weapon-last-second-attack-time) smg-grenade-cooldown) (= (-> self current-smg-grenade-ammo) 0))
       (go smg-idle)))
   :code
   (behavior ()
@@ -254,7 +286,22 @@
   :event hl-weapons-standard-event-handler
   :enter
   (behavior ()
-    (set! (-> self current-smg-mag-ammo) smg-max-mag-ammo)
+    (if (-> *pc-settings* unlimited-ammo?)
+      (begin
+        (set! (-> self current-smg-mag-ammo) smg-max-mag-ammo))
+    (begin
+      (let ((missing (- smg-max-mag-ammo
+                        (-> self current-smg-mag-ammo)))
+            (reserve (-> self current-9mm-ammo)))
+
+        (let ((to-load (min missing reserve)))
+          (set! (-> self current-smg-mag-ammo)
+                (+ (-> self current-smg-mag-ammo)
+                  to-load))
+
+          (set! (-> self current-9mm-ammo)
+                (- reserve to-load))))))
+
     (play-mod-sound "clipinsert1")
     (set-time! (-> self weapon-last-reload-time)))
   :trans

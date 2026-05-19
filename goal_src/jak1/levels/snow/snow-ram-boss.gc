@@ -5,6 +5,9 @@
 (require "levels/snow/ice-cube.gc")
 (declare-type ram-boss nav-enemy)
 
+;; Added for hl mod
+(define-extern spawn-hl-hit-part (function none))
+
 ;; DECOMP BEGINS
 
 (deftype ram-boss-proj (projectile)
@@ -738,6 +741,7 @@
       (cond ((-> self has-shield?)
         (cond
           ((send-event *target* 'query 'powerup (pickup-type eco-red))
+            (spawn-hl-hit-part)
             (let ((damage (the-as int8 (-> arg3 param 4))))
                 (-! (-> self health) damage)
                 (-> arg3 param 1)

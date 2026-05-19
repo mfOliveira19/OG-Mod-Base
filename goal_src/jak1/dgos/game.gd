@@ -320,7 +320,17 @@
   "tpage-1532.go"
   "fuel-cell-ag.go"
   "money-ag.go"
-  "smg-grenade-ag.go" ;; added for hl mod
+  "smg-grenade-ag.go"      ;; added for hl mod
+  "smg-grenade-ammo-ag.go" ;; added for hl mod
+  "pistol-clip-ag.go"      ;; added for hl mod
+  "shotgun-ammo-ag.go"     ;; added for hl mod
+  "revolver-ammo-ag.go"    ;; added for hl mod
+  "gauss-ammo-ag.go"       ;; added for hl mod
+  "pistol-pickup-ag.go"    ;; added for hl mod
+  "smg-pickup-ag.go"       ;; added for hl mod
+  "revolver-pickup-ag.go"  ;; added for hl mod
+  "shotgun-pickup-ag.go"   ;; added for hl mod
+  "gauss-pickup-ag.go"     ;; added for hl mod
   "buzzer-ag.go"
   "ecovalve-ag.go"
   "crate-ag.go"
@@ -353,6 +363,8 @@
   "hl-projectiles-h.o"
   "hl-grenade-launcher.o"
   "hl-weapons.o"
+  "hl-ammo-collectable.o"
+  "hl-weapon-collectable.o"
   "hl-projectiles.o"
   "hl-weapon-shot.o"
   "hl-weapons-crowbar.o"

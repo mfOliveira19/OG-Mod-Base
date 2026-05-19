@@ -4,6 +4,8 @@
 (require "engine/common-obs/nav-enemy.gc")
 (require "levels/beach/twister.gc")
 
+(define-extern spawn-hl-hit-part (function none))
+
 ;; DECOMP BEGINS
 
 (deftype lurkerworm (process-drawable)
@@ -218,7 +220,8 @@
 
 (defbehavior lurkerworm-default-event-handler lurkerworm ((arg0 process) (arg1 int) (arg2 symbol) (arg3 event-message-block))
   (case arg2
-    (('attack-hl) 
+    (('attack-hl)
+      (spawn-hl-hit-part)
       (let ((damage (the-as int8 (-> arg3 param 4))))
           (-! (-> self health) damage)
           (-> arg3 param 1)

@@ -274,7 +274,7 @@
 ;; maps options to a progress screen
 ;; the length matches with `(progress-screen max)`
 (define *options-remap*
-  (new 'static 'boxed-array :type (array game-option) :length 0 :allocated-length (#if (not PC_PORT) 35 73))) ;; Changed for hl mod - Increased from 71 to 73
+  (new 'static 'boxed-array :type (array game-option) :length 0 :allocated-length (#if (not PC_PORT) 35 77))) ;; Changed for hl mod - Increased from 71 to 77
 
 ;; added in PC port
 (defenum level-task-data-index

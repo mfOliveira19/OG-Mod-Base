@@ -4,6 +4,9 @@
 (require "engine/common-obs/nav-enemy.gc")
 (require "engine/common-obs/water.gc")
 
+;; Added for hl mod
+(define-extern additional-shark-chase-condition (function symbol))
+
 ;; DECOMP BEGINS
 
 (defpartgroup group-sharkey-splash
@@ -119,7 +122,8 @@ nav-enemy-default-event-handler
   (if *target*
     (and (< (- (-> *target* control trans y) (-> self y-max)) 0.0)
          (let ((gp-0 'racer)) (!= gp-0 (send-event *target* 'query 'mode)))
-         (nav-enemy-test-point-near-nav-mesh? (-> *target* control shadow-pos)))))
+         (nav-enemy-test-point-near-nav-mesh? (-> *target* control shadow-pos))
+         (additional-shark-chase-condition))))
 
 (defun sharkey-get-player-position ((arg0 vector))
   (set! (-> arg0 quad) (-> (target-pos 5) quad))

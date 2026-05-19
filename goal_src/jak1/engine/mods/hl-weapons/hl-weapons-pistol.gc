@@ -16,27 +16,39 @@
 (defconstant pistol-damage 20)
 
 (defbehavior pistol-switch-handle hl-weapons ()
+  ;; Crowbar
   (when (and (should-switch-slot1?)
              (time-elapsed? (-> self weapon-last-switch-time) weapon-switch-cooldown)
              (not (= (-> self current-weapon) (weapons-enum crowbar))))
     (set-time! (-> self weapon-last-switch-time))
     (set! (-> self last-weapon) (weapons-enum pistol))
     (go crowbar-draw))
+  ;; Revolver
   (when (and (should-switch-slot2?)
              (time-elapsed? (-> self weapon-last-switch-time) weapon-switch-cooldown)
-             (not (= (-> self current-weapon) (weapons-enum revolver))))
+             (not (= (-> self current-weapon) (weapons-enum revolver)))
+             (check-weapon-owned (owned-weapons revolver)))
     (set-time! (-> self weapon-last-switch-time))
     (set! (-> self last-weapon) (weapons-enum pistol))
     (go revolver-draw))
+  ;; SMG or Shotgun
   (when (and (should-switch-slot3?)
-             (time-elapsed? (-> self weapon-last-switch-time) weapon-switch-cooldown)
-             (not (= (-> self current-weapon) (weapons-enum smg))))
+             (time-elapsed? (-> self weapon-last-switch-time) weapon-switch-cooldown))
     (set-time! (-> self weapon-last-switch-time))
-    (set! (-> self last-weapon) (weapons-enum pistol))
-    (go smg-draw))
+
+    (if (and (check-weapon-owned (owned-weapons smg)) (not (= (-> self current-weapon) (weapons-enum smg))))
+      (begin (set! (-> self last-weapon) (weapons-enum pistol)) (go smg-draw))
+      (begin (when (and (check-weapon-owned (owned-weapons shotgun)) (not (= (-> self current-weapon) (weapons-enum shotgun))))
+          (set! (-> self last-weapon) (weapons-enum pistol))
+          (go shotgun-draw))
+      )
+    )
+  )
+  ;; Gauss
   (when (and (should-switch-slot4?)
              (time-elapsed? (-> self weapon-last-switch-time) weapon-switch-cooldown)
-             (not (= (-> self current-weapon) (weapons-enum gauss))))
+             (not (= (-> self current-weapon) (weapons-enum gauss)))
+             (check-weapon-owned (owned-weapons gauss)))
     (set-time! (-> self weapon-last-switch-time))
     (set! (-> self last-weapon) (weapons-enum pistol))
     (go gauss-draw))
@@ -50,17 +62,29 @@
         (set! (-> self last-weapon) (weapons-enum pistol))
         (go crowbar-draw))
       (((weapons-enum revolver))
-        (set! (-> self last-weapon) (weapons-enum pistol))
-        (go revolver-draw))
+        (when (check-weapon-owned (owned-weapons revolver))
+          (set! (-> self last-weapon) (weapons-enum pistol))
+          (go revolver-draw))
+      )
       (((weapons-enum shotgun))
-        (set! (-> self last-weapon) (weapons-enum pistol))
-        (go shotgun-draw))
+        (when (check-weapon-owned (owned-weapons shotgun))
+          (set! (-> self last-weapon) (weapons-enum pistol))
+          (go shotgun-draw))
+      )
       (((weapons-enum smg))
-        (set! (-> self last-weapon) (weapons-enum pistol))
-        (go smg-draw))
+        (when (check-weapon-owned (owned-weapons smg))
+          (set! (-> self last-weapon) (weapons-enum pistol))
+          (go smg-draw))
+      )
       (((weapons-enum gauss))
-        (set! (-> self last-weapon) (weapons-enum pistol))
-        (go gauss-draw)))))
+        (when (check-weapon-owned (owned-weapons gauss))
+          (set! (-> self last-weapon) (weapons-enum pistol))
+          (go gauss-draw))
+      ))))
+
+(defbehavior do-pistol-reload hl-weapons ()
+ (when (and (should-reload?) (!= (-> self current-pistol-mag-ammo) pistol-max-mag-ammo) (or (> (-> self current-9mm-ammo) 0) (-> *pc-settings* unlimited-ammo?)))
+  (go pistol-reload-part1)))
 
 (defstate pistol-holster (hl-weapons)
   :event hl-weapons-standard-event-handler
@@ -118,9 +142,8 @@
     (when (and (should-second-attack?)
                (time-elapsed? (-> self weapon-last-attack-time) pistol-second-attack-cooldown))
       (go pistol-attack-secondary))
-    (when (and (should-reload?) (!= (-> self current-pistol-mag-ammo) pistol-max-mag-ammo))
-      (go pistol-reload-part1))
-    (when (and (= (-> self current-pistol-mag-ammo) 0) (not (should-attack?)))
+    (do-pistol-reload)
+    (when (and (= (-> self current-pistol-mag-ammo) 0) (or (> (-> self current-9mm-ammo) 0) (-> *pc-settings* unlimited-ammo?)) (not (paused?)) (not (should-attack?)))
       (go pistol-reload-part1))
     (when (time-elapsed? (-> self weapon-last-idle-time) (-> self weapon-next-idle-wait))
       (go pistol-idle-anim)))
@@ -164,8 +187,7 @@
     (when (and (should-second-attack?)
                (time-elapsed? (-> self weapon-last-attack-time) pistol-second-attack-cooldown))
       (go pistol-attack-secondary))
-    (when (and (should-reload?) (!= (-> self current-pistol-mag-ammo) pistol-max-mag-ammo))
-      (go pistol-reload-part1)))
+      (do-pistol-reload))
   :code
   (behavior ()
     (loop (suspend)))
@@ -181,9 +203,9 @@
   :event hl-weapons-standard-event-handler
   :enter
   (behavior ()
-    (when (> (-> self current-pistol-mag-ammo) 0)
+    (when (or (> (-> self current-pistol-mag-ammo) 0) (target-has-eco-type? (pickup-type eco-yellow)))
       ;; In fish we have unlimited pistol ammo
-      (unless (= (-> *target* state name) 'target-hl-fishing)
+      (unless (or (= (-> *target* state name) 'target-hl-fishing) (target-has-eco-type? (pickup-type eco-yellow)))
         (-! (-> self current-pistol-mag-ammo) 1))
       (let ((spread-x (rand-vu-float-range 0.0 0.001))
             (spread-y (rand-vu-float-range 0.0 0.001)))
@@ -191,7 +213,10 @@
       (viewmodel-play-animation (viewmodel-animations-enum pistol-shoot) 1.0)
       (add-aim-punch pistol-aim-punch-amount)
       (play-mod-sound "pl_gun3")
-      (hl-choose-idle-wait! 5.0 15.0))
+      (hl-choose-idle-wait! 5.0 15.0)
+      (when (and (!= (-> *target* state name) 'target-hl-fishing) (not (target-has-eco-type? (pickup-type eco-yellow))) (<= (-> self current-pistol-mag-ammo) 0) (<= (-> self current-9mm-ammo) 0) (-> *pc-settings* hev-sounds?) (not (-> *pc-settings* unlimited-ammo?)))
+        (play-mod-sound "ammo_depleted"))
+    )
     (set-time! (-> self weapon-last-attack-time)))
   :trans
   (behavior ()
@@ -217,8 +242,8 @@
   :event hl-weapons-standard-event-handler
   :enter
   (behavior ()
-    (when (> (-> self current-pistol-mag-ammo) 0)
-      (unless (= (-> *target* state name) 'target-hl-fishing)
+    (when (or (> (-> self current-pistol-mag-ammo) 0) (target-has-eco-type? (pickup-type eco-yellow)))
+      (unless (or (= (-> *target* state name) 'target-hl-fishing) (target-has-eco-type? (pickup-type eco-yellow)))
         (-! (-> self current-pistol-mag-ammo) 1))
       (let ((spread-x (rand-vu-float-range -0.1 0.1))
             (spread-y (rand-vu-float-range -0.1 0.1)))
@@ -226,7 +251,10 @@
       (viewmodel-play-animation (viewmodel-animations-enum pistol-shoot) 1.0)
       (add-aim-punch pistol-aim-punch-amount)
       (play-mod-sound "pl_gun3")
-      (hl-choose-idle-wait! 5.0 15.0))
+      (hl-choose-idle-wait! 5.0 15.0)
+      (when (and (!= (-> *target* state name) 'target-hl-fishing) (not (target-has-eco-type? (pickup-type eco-yellow))) (<= (-> self current-pistol-mag-ammo) 0) (<= (-> self current-9mm-ammo) 0) (-> *pc-settings* hev-sounds?) (not (-> *pc-settings* unlimited-ammo?)))
+        (play-mod-sound "ammo_depleted"))
+      )
     (set-time! (-> self weapon-last-attack-time)))
   :trans
   (behavior ()
@@ -277,7 +305,25 @@
   :event hl-weapons-standard-event-handler
   :enter
   (behavior ()
-    (set! (-> self current-pistol-mag-ammo) pistol-max-mag-ammo)
+    (if (-> *pc-settings* unlimited-ammo?)
+      (begin
+        (set! (-> self current-pistol-mag-ammo) pistol-max-mag-ammo)
+      )
+
+      (begin
+        (let ((missing (- pistol-max-mag-ammo
+                          (-> self current-pistol-mag-ammo)))
+              (reserve (-> self current-9mm-ammo)))
+
+          (let ((to-load (min missing reserve)))
+            (set! (-> self current-pistol-mag-ammo)
+                  (+ (-> self current-pistol-mag-ammo)
+                    to-load))
+
+            (set! (-> self current-9mm-ammo)
+                  (- reserve to-load)))))
+    )
+
     (play-mod-sound "9mmclip1")
     (set-time! (-> self weapon-last-reload-time)))
   :trans

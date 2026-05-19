@@ -4,6 +4,7 @@
 (require "engine/common-obs/nav-enemy.gc")
 
 ;; note: changed for high fps
+(define-extern spawn-hl-hit-part (function none))
 
 ;; DECOMP BEGINS
 
@@ -95,7 +96,8 @@
 
 (defbehavior robber-event-handler robber ((arg0 process) (arg1 int) (arg2 symbol) (arg3 event-message-block))
   (case arg2
-  (('attack-hl) 
+  (('attack-hl)
+    (spawn-hl-hit-part)
     (let ((damage (the-as int8 (-> arg3 param 4))))
         (-! (-> self health) damage)
         (-> arg3 param 1)
@@ -467,7 +469,7 @@
       (set! (-> s3-0 prim-core action) (collide-action solid attackable attackable-unused))
       (set! (-> s3-0 prim-core offense) (collide-offense indestructible))
       (set! (-> s3-0 transform-index) 3)
-      (set-vector! (-> s3-0 local-sphere) 0.0 0.0 0.0 10240.0)
+      (set-vector! (-> s3-0 local-sphere) 0.0 0.0 0.0 16240.0) ;; Changed for hl mod
       (set-root-prim! s4-0 s3-0))
     (set! (-> s4-0 nav-radius) (* 0.75 (-> s4-0 root-prim local-sphere w)))
     (backup-collide-with-as s4-0)

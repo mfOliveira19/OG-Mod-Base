@@ -60,12 +60,12 @@ void Crosshair::draw_crosshair(SharedRenderState* render_state) {
   glEnable(GL_BLEND);
   glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-  CrosshairSprite* sprite = pick_sprite(get_type(), render_state->render_fb_w);
+  CrosshairSprite* sprite = pick_sprite(get_type(), render_state->draw_region_w);
   if (!sprite || sprite->tex == 0)
     return;
 
-  int screen_w = Gfx::g_global_settings.lbox_w;
-  int screen_h = Gfx::g_global_settings.lbox_h;
+  int screen_w = render_state->draw_region_w;
+  int screen_h = render_state->draw_region_h;
 
   float base_frac = 0.0f;
     switch (get_type()) {

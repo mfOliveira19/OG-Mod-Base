@@ -4,6 +4,9 @@
 (require "levels/jungleb/aphid.gc")
 (declare-type plant-boss-leaf process-drawable)
 
+;; Added for hl mod
+(define-extern spawn-gauss (function vector none))
+
 ;; DECOMP BEGINS
 
 (deftype plant-boss (process-drawable)
@@ -1124,12 +1127,15 @@
          (ja :group! plant-boss-main-die-ja :num! max)
          (suspend)
          (if (not (task-complete? *game-info* (-> self entity extra perm task)))
+            (begin
            (birth-pickup-at-point (-> self node-list data 42 bone transform vector 3)
                                   (pickup-type fuel-cell)
                                   (the float (-> self entity extra perm task))
                                   #f
                                   self
-                                  (the-as fact-info #f))))
+                                  (the-as fact-info #f))
+            (spawn-gauss (-> self node-list data 42 bone transform vector 3))
+                                  )))
         (else
          (let ((s4-0 #f)
                (s5-2 #f))
@@ -1156,7 +1162,9 @@
                                         (the float (-> self entity extra perm task))
                                         #f
                                         self
-                                        (the-as fact-info #f))))
+                                        (the-as fact-info #f))
+                  (spawn-gauss (-> self node-list data 42 bone transform vector 3))
+                                        ))
              (suspend)
              (ja :num! (seek!))))))
       (let ((s5-3 (-> self child)))

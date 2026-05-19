@@ -4,7 +4,7 @@
 
 ;; movement constants
 (defconstant jump-speed 38000.0)
-(defconstant double-jump-speed 58000.0)
+(defconstant double-jump-speed 62000.0)
 (defconstant high-jump-speed 88000.0)
 (defconstant swim-jump-speed 15000.0)
 (defconstant gravity-factor 0.55)
@@ -12,7 +12,7 @@
 (defconstant hl-max-speed-blue-eco 70650.0)
 (defconstant hl-max-speed-swim 36325.0)
 (defconstant hl-max-speed-swim-blue-eco 50325.0)
-(defconstant hl-accel       12.0)
+(defconstant hl-accel       11.0)
 (defconstant hl-accel-ice    2.0)
 (defconstant hl-air-accel   190.0)
 (defconstant hl-friction    4.0)
@@ -728,8 +728,8 @@
              (friction
 
               (if (= (-> self control ground-pat material) (pat-material ice))
-                           (if (fully-grounded? 512.0) hl-friction-ice (* hl-friction-ice 2))
-                           (if (fully-grounded? 512.0) hl-friction (* hl-friction 2)))
+                           (if (fully-grounded? 612.0) hl-friction-ice (* hl-friction-ice 2))
+                           (if (fully-grounded? 612.0) hl-friction (* hl-friction 2)))
                   )
                   (drop (* control friction frametime))
                   (new-speed (max 0.0 (- speed drop))))
@@ -808,6 +808,42 @@
          (air-accel     30000.0)
          (wishspeed-max 30000.0)
          (turn-boost    2.5))
+
+    (let ((saved-y (-> curvel y)))
+      (set! (-> curvel y) 0.0)
+      (set! (-> wishvel y) 0.0)
+
+      (let ((wishspeed (vector-xz-length wishvel)))
+        (when (> wishspeed 0.0)
+          (vector-normalize! wishvel 1.0)
+
+          (when (> wishspeed wishspeed-max)
+            (set! wishspeed wishspeed-max))
+          (let* ((currspeed (vector-dot curvel wishvel))
+                 (addspeed (- wishspeed currspeed)))
+            (when (> addspeed 0.0)
+
+              (let ((accelspeed (* air-accel
+                                   wishspeed
+                                   frametime
+                                   (+ 1.0 turn-boost))))
+                (when (> accelspeed addspeed)
+                  (set! accelspeed addspeed))
+
+                (vector+! curvel curvel
+                          (vector-float*! (new-stack-vector0)
+                                          wishvel
+                                          accelspeed)))))))
+      (set! (-> curvel y) saved-y))))
+
+(defbehavior hl-add-air-thrust-high-jump target ()
+  (let* ((curvel    (-> self control ltransv))
+         (wishvel   (-> self control trans-targ))
+         (frametime (seconds-per-frame))
+
+         (air-accel     1.0)
+         (wishspeed-max 20000.0)
+         (turn-boost    1.0))
 
     (let ((saved-y (-> curvel y)))
       (set! (-> curvel y) 0.0)
@@ -922,6 +958,100 @@
         (hl-update-step-sound))
       (let ((s4-0 (new-stack-vector0)))
         (read-input s4-0)
+        (let ((f30-0 (-> self control pad-stick-speed)))
+          (turn-to-vector-hl s4-0 f30-0)))
+
+      (let ((yv (-> self control transv y)))
+        (if (and (on-ground?) (<= yv (meters 8.5))) ;; This is so we can bhop up slopes without getting stuck in ground state
+            (unless (should-jump?)
+              (hl-add-thrust))
+            (if (= (-> *target* state name) 'target-hl-duck-high-jump-jump)
+              (hl-add-air-thrust-launcher)
+              (begin 
+                (if (= (-> *target* state name) 'target-hl-movement-air-high-jump)
+                  (hl-add-air-thrust-high-jump)
+                  (hl-add-air-thrust)
+                )
+              )
+            )
+          ))
+
+      (if (= (-> *target* state name) 'target-hl-duck-high-jump-jump) (add-gravity) (hl-add-gravity))
+      ;;(hl-add-gravity)
+      (do-rotations2-hl)
+      (reverse-conversions (-> self control transv))
+
+      (if *debug-segment*
+        (add-frame (-> *display* frames (-> *display* on-screen) frame profile-bar 0)
+                   'draw
+                   (new 'static 'rgba :r #x40 :b #x40 :a #x80)))
+
+      (set! (-> self control reaction) target-collision-reaction)
+
+      (fill-cache-integrate-and-collide! (-> self control)
+                                         (-> self control transv)
+                                         (-> self control root-prim collide-with))
+      #|(if (logtest? (-> self control root-prim prim-core action) (collide-action edgegrab-possible))
+        (find-edge-grabs! *target* *collide-cache*))|#
+      (when (cpad-hold? 0 l1)
+        (find-edge-grabs! *target* *collide-cache*))
+      ;; debug
+      (if *debug-segment*
+        (add-frame (-> *display* frames (-> *display* on-screen) frame profile-bar 0)
+                   'draw
+                   (new 'static 'rgba :r #x80 :g #x60 :b #x40 :a #x80)))
+      (bend-gravity)
+      (hl-post-flag-setup))
+    (set-time-ratios *display* (the float gp-0)))
+
+  (if *debug-segment*
+    (add-frame (-> *display* frames (-> *display* on-screen) frame profile-bar 0)
+               'draw
+               (new 'static 'rgba :r #x40 :b #x40 :a #x80)))
+
+  (ja-post)
+  (if *debug-segment*
+    (add-frame (-> *display* frames (-> *display* on-screen) frame profile-bar 0)
+               'draw
+               (new 'static 'rgba :r #x80 :a #x80)))
+
+  (joint-points)
+  (do-target-shadow)
+  (target-calc-camera-pos-hl)
+  (target-powerup-process)
+  (none))
+
+(defbehavior target-hl-movement-force-forward-post target ()
+  (let* ((gp-0 (the int (-> *display* time-ratio))))
+    (set-time-ratios *display* 1.0)
+    (countdown (s5-0 gp-0)
+    (set! (-> self control unknown-int40) s5-0)
+      (flag-setup)
+      (if (< (-> self control force-push-speed-mod) 0.0)
+        (set! (-> self control force-push-speed-mod) (- 1.0 (-> self control cpad stick0-speed))))
+      (build-conversions (-> self control transv))
+      (do-rotations1)
+      (let ((s4-0 (new-stack-vector0)))
+        (read-pad s4-0)
+        (let ((f30-0 (-> self control pad-stick-speed)))
+          (if (and (< 0.0 f30-0)
+                   (< 0.3 (-> self control pad-stick-speed))
+                   (< (vector-dot (-> self control stick-vec) (-> self control last-stick-vec)) 0.2)
+                   (< f30-0 0.7))
+            (set! f30-0 0.0))
+          (when (!= (-> self control force-push-speed-mod) 0.0)
+            (let ((f0-12 (fmin 1.0 (-> self control force-push-speed-mod))))
+              (set! (-> self control force-push-speed-mod) f0-12)
+              (let ((a1-2 (vector-float*! (new 'stack-no-clear 'vector) (if (= f30-0 0.0) *zero-vector* s4-0) f30-0))
+                    (a2-1 (vector-float*! (new 'stack-no-clear 'vector) (-> self control force-push-transv) (-> self control tongue-pull-force))))
+                (vector-lerp! s4-0 a1-2 a2-1 f0-12)))
+            (set! f30-0 (vector-length s4-0))
+            (vector-normalize! s4-0 1.0))
+          (turn-to-vector-hl s4-0 f30-0)))
+      (when (on-ground?)
+        (hl-update-step-sound))
+      (let ((s4-0 (new-stack-vector0)))
+        (force-forward-input s4-0)
         (let ((f30-0 (-> self control pad-stick-speed)))
           (turn-to-vector-hl s4-0 f30-0)))
 
@@ -1518,3 +1648,15 @@
   (target-calc-camera-pos-hl)
   (target-powerup-process)
   (none))
+
+;; So the shark does not chase in misty zoomer section
+(defun additional-shark-chase-condition ()
+  (let ((water-proc (handle->process (-> *target* water volume))))
+  (cond
+    ((string= (the-as string (-> water-proc name)) "water-vol-30") #f)
+    ((string= (the-as string (-> water-proc name)) "water-vol-29") #f)
+    ((string= (the-as string (-> water-proc name)) "water-vol-28") #f)
+    ((string= (the-as string (-> water-proc name)) "water-vol-27") #f)
+    (else #t))
+  )
+)

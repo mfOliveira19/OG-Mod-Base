@@ -8,6 +8,8 @@
 (require "engine/common-obs/nav-enemy-h.gc")
 (declare-type battlecontroller process-drawable)
 
+(define-extern spawn-hl-hit-part (function none))
+
 ;; DECOMP BEGINS
 
 (defun nav-enemy-rnd-float ()
@@ -110,6 +112,7 @@
         (go (method-of-object this nav-enemy-die)))
         (else (touch-handler this arg0 arg1))))
     (('attack-hl)
+      (spawn-hl-hit-part)
       (let ((damage (the-as int8 (-> arg1 param 4))))
         (cond
           ((logtest? (-> this nav-enemy-flags) (nav-enemy-flags navenmf5))
@@ -133,7 +136,7 @@
   (case arg2
     (('touch) (set-time! (-> self touch-time)) (touch-handler self arg0 arg3))
     (('attack) (nav-enemy-set-hit-from-direction arg0) (attack-handler self arg0 arg3))
-    (('attack-hl) (nav-enemy-set-hit-from-direction arg0) (attack-handler self arg0 arg3))
+    (('attack-hl) (spawn-hl-hit-part) (nav-enemy-set-hit-from-direction arg0) (attack-handler self arg0 arg3))
     (('instant-death)
      (let ((gp-1 (-> self hit-from-dir)))
        (vector-z-quaternion! gp-1 (-> self collide-info quat))
@@ -160,7 +163,7 @@
 (defbehavior nav-enemy-jump-event-handler nav-enemy ((arg0 process) (arg1 int) (arg2 symbol) (arg3 event-message-block))
   (case arg2
     (('touch) (set-time! (-> self touch-time)) (nav-enemy-touch-handler self arg0 arg3))
-    (('attack 'attack-hl) (nav-enemy-set-hit-from-direction arg0) (nav-enemy-attack-handler self arg0 arg3))))
+    (('attack 'attack-hl) (spawn-hl-hit-part) (nav-enemy-set-hit-from-direction arg0) (nav-enemy-attack-handler self arg0 arg3))))
 
 (defbehavior process-drawable-death-event-handler process-drawable ((arg0 process) (arg1 int) (arg2 symbol) (arg3 event-message-block))
   (case arg2

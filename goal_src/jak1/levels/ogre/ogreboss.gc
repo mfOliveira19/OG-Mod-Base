@@ -10,6 +10,9 @@
 
 (define-extern *ogreboss* ogreboss)
 
+;; Added for hl mod
+(define-extern spawn-hl-hit-part (function none))
+
 ;; DECOMP BEGINS
 
 (defskelgroup *ogreboss-sg*
@@ -345,6 +348,7 @@
   (case arg2
     ;; og:preserve-this PAL patch here
     (('touch 'attack 'attack-hl)
+    (spawn-hl-hit-part)
      (when (and *target*
                 ((method-of-type touching-shapes-entry prims-touching?)
                  (the-as touching-shapes-entry (-> arg3 param 0))
@@ -1130,6 +1134,7 @@
 (defbehavior ogreboss-attack-event-handler ogreboss ((arg0 process) (arg1 int) (arg2 symbol) (arg3 event-message-block))
   (case arg2
     (('attack 'attack-hl)
+     (spawn-hl-hit-part)
      (when (and (-> self vulnerable) (or (= (-> arg3 param 1) 'eco-yellow) (= (-> arg3 param 1) 'explode)) (target-has-eco-type? (pickup-type eco-yellow)))
        (if ((method-of-type touching-shapes-entry prims-touching?)
             (the-as touching-shapes-entry (-> arg3 param 0))

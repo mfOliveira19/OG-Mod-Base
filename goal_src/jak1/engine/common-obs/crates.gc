@@ -4,7 +4,11 @@
 (require "engine/common-obs/collectables.gc")
 (declare-type crate process-drawable)
 
+
 (declare-type crate-buzzer crate)
+
+;; Added for hl mod
+(define-extern spawn-hl-ammo (function vector string none))
 
 ;; DECOMP BEGINS
 
@@ -453,7 +457,7 @@
        (case (-> self defense)
          (('iron)
           (case (-> arg3 param 1)
-            (('flop 'uppercut 'explode 'darkeco 'eco-yellow 'bonk 'racer 'tube 'flut-bonk 'flut-attack)
+            (('flop 'uppercut 'explode 'darkeco 'eco-yellow 'bonk 'racer 'tube 'flut-bonk 'flut-attack 'shotgun-or-revolver)
              (if (and (logtest? (-> self fact options) (fact-options require-zoomer))
                       *target*
                       (not (logtest? (-> *target* control root-prim prim-core action) (collide-action racer))))
@@ -478,7 +482,7 @@
              #f)))
          (('steel)
           (case (-> arg3 param 1)
-            (('explode 'darkeco 'eco-yellow 'bonk 'tube 'flut-bonk 'flut-attack 'racer 'uppercut)
+            (('explode 'darkeco 'eco-yellow 'bonk 'tube 'flut-bonk 'flut-attack 'racer 'uppercut 'shotgun-or-revolver)
              (send-event arg0 'get-attack-count 1)
              (when (logtest? (-> self draw status) (draw-status was-drawn))
                (increment-success-for-hint (text-id sidekick-hint-crate-steel))
@@ -702,6 +706,12 @@
           (pickup-type fuel-cell))
          (go-virtual special-contents-die)))
       (drop-pickup (-> self fact) #t *entity-pool* (the-as fact-info #f) arg1)
+      ;; Added for hl mod - Drop ammo pickups on normal crates
+      (when (= (-> self fact pickup-type) (pickup-type eco-pill-random))
+        (let ((ammo-spawn-pos (new 'stack-no-clear 'vector)))
+          (set-vector! ammo-spawn-pos (-> self root trans x) (+ (-> self root trans y) (meters 1.0)) (-> self root trans z) (-> self root trans w))
+          (spawn-hl-ammo ammo-spawn-pos (the-as string (-> self name)))))
+
       (process-entity-status! self (entity-perm-status dead) #t)
       (process-entity-status! self (entity-perm-status complete) #t)
       (suspend-for (seconds 5))))

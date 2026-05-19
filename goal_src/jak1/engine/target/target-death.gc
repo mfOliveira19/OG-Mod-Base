@@ -481,10 +481,13 @@
        (sound-play "smack-surface")
        (effect-control-method-10 (-> self skel effect) 'group-smack-surface (the-as float 0.0) 5)
        (effect-control-method-10 (-> self skel effect) 'group-smack-surface-dizzy (the-as float 0.0) 8)))
+    #| Changed for hl mod
     (('shove)
      (ja-channel-push! 1 (seconds 0.05))
      (ja-no-eval :group! eichar-smack-surface-ja :num! (seek!) :frame-num 0.0)
-     (sound-play "smack-surface"))
+     (sound-play "smack-surface")
+     )
+     |#
     (else
      (when (not (ja-group? eichar-hit-from-front-ja))
        (ja-channel-push! 1 (seconds 0.075))

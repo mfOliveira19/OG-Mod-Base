@@ -812,6 +812,9 @@
   (controller-sens #x1633)
   (wheel-up-down-jump #x1634)
   (skip-power-cell-cutscenes #x1635)
+  (all-weapons #x1636)
+  (unlimited-ammo #x1637)
+  (show-enemy-hit-part #x1638)
   ;; mod text mod-base-change
   (pad-triangle #x2000)
   (pad-circle #x2001)

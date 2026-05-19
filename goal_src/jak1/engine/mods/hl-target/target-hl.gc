@@ -37,11 +37,14 @@
     (when (and (not (should-duck?)) (can-exit-duck-hl?))
       (go target-hl-movement-ground))
       (when (should-jump?)
+        (when (and (should-do-duck-high-jump?) (can-exit-duck-hl?) (<= (target-xzv) (meters 3.1250)))
+          (go target-hl-movement-air-high-jump))
         ;; So we can use launchers
         (when (not (target-should-use-launcher?))
-          (target-hl-apply-jump))
-        (when (and (should-duck?) (should-walk?) (can-exit-duck-hl?) (<= (target-xzv) (meters 4.1250)))
-          (go target-hl-movement-air-high-jump)))
+          (target-hl-apply-jump)
+          ;;(go target-hl-movement-air-jump-duck)
+          )
+          )
       (when (not (on-ground?))
         (if (and (not (should-duck?)) (can-exit-duck-hl?)) (go target-hl-movement-air) (go target-hl-movement-air-duck))))
   :code
@@ -50,6 +53,33 @@
   :post 
   (behavior ()
       (target-hl-movement-post)))
+
+;; Not being used
+(defstate target-hl-movement-air-jump-duck (target)
+  :event target-hl-jump-event-handler
+  :enter
+  (behavior ()
+    (pc-set-fog-intensity 1.0)
+    (set! *should-show-swim-screen?* #f)
+    ;;(target-hl-collide-set! 'normal (the-as float 0.0))
+    ;;(sound-play "jump")
+    (max! (-> (-> self control transv) y) 45000.0))
+  :trans 
+  (behavior ()
+    (when (not (on-ground?))
+      (go target-hl-movement-air-duck)))
+  :code
+    (behavior ()
+      (loop (suspend)))
+
+  :post 
+  (behavior ()
+    ;; This helps getting out of the water
+    (when (and (should-swim-up?) (near-wall? (meters 1.5)) (logtest? (-> self water flags) (water-flags wt09))) 
+      (+! (-> self control transv y) 5000.0))
+
+    ;;(apply-air-duck)
+    (target-hl-movement-post)))
 
 (defstate target-hl-movement-air-high-jump (target)
   :event target-hl-jump-event-handler
@@ -80,11 +110,12 @@
   :enter
   (behavior ()
     (pc-set-fog-intensity 1.0)
+    (set! *ducked?* #f)
     (set! *should-show-swim-screen?* #f)
     (target-hl-collide-set! 'normal (the-as float 0.0)))
   :trans 
   (behavior ()
-    (when (and (cpad-pressed? 0 l3) *can-double-jump?*)
+    (when (and (should-do-double-jump?) *can-double-jump?*)
       (go target-hl-movement-air-double-jump))
     (when (on-ground?)
       (go target-hl-movement-ground)))
@@ -210,7 +241,11 @@
   (behavior ()
     (when (should-jump?)
       (when (and (not (target-should-use-launcher?)) (not (target-hl-apply-longjump)))
-            (go target-hl-movement-air-jump)
+            ;; Jumping in water can cause us to get stuck in the air-jump state, this is cheap work around to use the hold jump method 
+            (if (logtest? (-> self water flags) (water-flags wt09))
+              (target-hl-apply-jump)
+              (go target-hl-movement-air-jump)
+            )
             ;;(target-hl-apply-jump)
             ))
       (when (not (on-ground?))
@@ -625,7 +660,7 @@
       (target-hl-falling-trans #f (the-as time-frame (if (ja-group? eichar-jump-loop-ja) 15 -1)))
       (mod-var-jump #t #t (cpad-hold? (-> self control cpad number) x) (-> self control transv))
       (hl-slide-down-test)
-    (when (and (should-walk?) *can-double-jump?*)
+    (when (and (should-do-double-jump?) *can-double-jump?*)
       (go target-hl-movement-air-double-jump))
       (seek! (-> self control turn-vec-len2)
              (fmax 0.0 (fmin 1.0 (* 0.000048828126 (+ -10240.0 (-> self control speed-mod)))))
@@ -891,16 +926,16 @@
             (until (time-elapsed? *edge-grab-enter-time* (seconds 0.2))
 
               (let ((dt (seconds-per-frame)))
-                (set! (-> s4-0 y) (meters (* 15.52 dt))))
+                (set! (-> s4-0 y) (meters (* 16.52 dt))))
 
               (move-by-vector! (-> self control) s4-0)
               (suspend)))
       (set! (-> self control transv quad) (the-as uint128 0))
       (set! (-> self control unknown-dword70) 0)
-      (set-forward-vel (the-as float 16384.0))
+      (set-forward-vel (the-as float 37384.0))
       (go target-hl-movement-jump-forward arg0 arg1)
       )
-  :post target-no-move-post)
+  :post target-hl-movement-force-forward-post)
 
 ;; Used when exiting edge grab
 (defstate target-hl-movement-jump-forward (target)

@@ -800,14 +800,14 @@
                                  819.2
                                  (new 'static 'rgba :r #xff :a #x80))
                (-> gp-0 alt-cam-pos))
-              ((and (logtest? (state-flags has-saved-position) (-> gp-0 state-flags)) (!= (-> *target* state name) 'target-hl-fishing))
+              #|((and (logtest? (state-flags has-saved-position) (-> gp-0 state-flags)) (!= (-> *target* state name) 'target-hl-fishing))
                 ;; Changed for hl mod, this was preventing the camera to stay on target while in fish
                (add-debug-sphere *display-camera-marks*
                                  (bucket-id debug-no-zbuf)
                                  (-> gp-0 alt-cam-pos)
                                  819.2
                                  (new 'static 'rgba :r #xff :a #x80))
-               (-> gp-0 alt-cam-pos))
+               (-> gp-0 alt-cam-pos))|#
               ((logtest? (state-flags falling-into-pool-of-bad) (-> gp-0 state-flags))
                (let ((s5-0 (the-as object (new 'static 'vector))))
                  (set! (-> (the-as vector s5-0) quad) (-> (&-> (-> gp-0 control) unknown-qword00) 0))
