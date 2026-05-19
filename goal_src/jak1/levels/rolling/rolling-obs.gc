@@ -805,7 +805,7 @@
       (send-event (ppointer->process (-> *hud-parts* fuel-cell)) 'hide)
       (send-event (ppointer->process (-> *hud-parts* money)) 'disable)
       (send-event (ppointer->process (-> *hud-parts* money)) 'hide)
-      (race-time-read (-> self record-time) (-> self tasks) (seconds 45))
+      (race-time-read (-> self record-time) (-> self tasks) (seconds 55)) ;; Changed for hl mod (was 45) - Since now we no longer have infinite grenade jumps, the race is impossible for those who cant bhop
       (set! (-> self end-banner)
             (ppointer->handle (process-spawn rolling-start (new 'static 'vector :x -86016.0 :y 112640.0 :z -6309888.0) 16384.0 :to self)))
       (process-spawn gorge-finish

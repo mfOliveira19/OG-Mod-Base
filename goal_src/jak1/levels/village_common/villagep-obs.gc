@@ -53,9 +53,6 @@
       (start-green-flash 2)
       (send-event *camera* 'change-state cam-bike 0) ;; set camera to behind jak
       (send-event *camera* 'change-state *camera-base-mode* 0)
-      ;; For some reason, the first time we enter geiser rock does not need to turn the camera
-      (when (> (-> *game-info* fuel) 0)
-        (set! *do-180?* #t))
       (play-sound-file
         "sound_replacements/warpgate-tele.mp3"
         (the int

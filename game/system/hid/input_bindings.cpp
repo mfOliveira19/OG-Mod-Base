@@ -108,7 +108,7 @@ const InputBindingGroups DEFAULT_KEYBOARD_BINDS =
                         {SDLK_I, {InputBinding(PadData::AnalogIndex::RIGHT_Y, true)}}},
                        {},
                         // Some defaults were changed
-                       {{SDLK_DOWN, {InputBinding(PadData::ButtonIndex::CROSS)}},
+                       {{SDLK_DOWN, {InputBinding(PadData::ButtonIndex::DPAD_DOWN)}},
                         {SDLK_E, {InputBinding(PadData::ButtonIndex::CIRCLE)}},
                         {SDLK_R, {InputBinding(PadData::ButtonIndex::SQUARE)}},
                         {SDLK_BACKSPACE, {InputBinding(PadData::ButtonIndex::TRIANGLE)}},
@@ -121,7 +121,7 @@ const InputBindingGroups DEFAULT_KEYBOARD_BINDS =
                         {SDLK_LCTRL, {InputBinding(PadData::ButtonIndex::L2)}},
                         {SDLK_P, {InputBinding(PadData::ButtonIndex::R2)}},
                         {SDLK_UP, {InputBinding(PadData::ButtonIndex::DPAD_UP)}},
-                        {SDLK_Q, {InputBinding(PadData::ButtonIndex::DPAD_DOWN)}},
+                        {SDLK_Q, {InputBinding(PadData::ButtonIndex::CROSS)}},
                         {SDLK_LEFT, {InputBinding(PadData::ButtonIndex::DPAD_LEFT)}},
                         {SDLK_RIGHT, {InputBinding(PadData::ButtonIndex::DPAD_RIGHT)}}});
 

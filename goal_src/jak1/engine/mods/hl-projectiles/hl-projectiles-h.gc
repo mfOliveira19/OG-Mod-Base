@@ -2,9 +2,14 @@
 (in-package goal)
 
 (declare-type projectile-hl process-drawable)
-(define-extern projectile-hl-init-by-other (function entity-actor vector vector uint handle none :behavior projectile-hl)) ;; 4th arg is `options`, 5th is `last-target`
 
-;; DECOMP BEGINS
+(defenum part-type-enum
+  :type uint16
+  (common-shot 0)
+  (gauss-shot-primary 1)
+  (gauss-shot-secondary 2))
+
+(define-extern projectile-hl-init-by-other (function entity-actor vector vector part-type-enum handle uint none :behavior projectile-hl)) ;; 4th arg is `options`, 5th is `last-target`
 
 (deftype projectile-hl (process-drawable)
   ((root            collide-shape-moving :override)
@@ -30,7 +35,9 @@
    (counter         int32)
    (target-count    int32)
    (sound-id        sound-id)
-   (has-damaged?    symbol))
+   (has-damaged?    symbol)
+   (damage          uint)
+   (hit-part-type   part-type-enum))
   (:state-methods
    projectile-hl-die
    projectile-hl-dissipate

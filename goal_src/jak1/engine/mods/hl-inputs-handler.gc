@@ -1,12 +1,16 @@
 (in-package goal)
 
 (define *hl-target-jump-buffer* 0)
-(defconstant hl-target-jump-buffer-time (seconds 0.3))
+(defconstant hl-target-jump-buffer-time (seconds 0.2))
 (define *last-duck-time* 0)
 (defconstant duck-cooldown (fsec 0.12))
 
 (defun in-hl-state? ()
   (and (= (-> *target* game mode) 'play) (or (-> *target* state name) 'target-hl-movement-ground 'target-hl-movement-ground-duck 'target-hl-movement-air 'target-hl-movement-air-duck) (!= (-> *target* state name) 'target-hl-periscope) (!= (-> *target* state name) 'target-hl-death)))
+
+(defun target-sleeping? ()
+  (nonzero? (logand (-> *target* mask)
+                    (process-mask sleep))))
 
 (defun clear-keyboard-edge-pressed! ()
   (set! (-> *keyboard-edge* enter-pressed) 0)
@@ -27,7 +31,8 @@
   (set! (-> *keyboard-edge* tab-pressed) 0)
   (set! (-> *keyboard-edge* ctrl-pressed) 0)
   (set! (-> *keyboard-edge* a-pressed) 0)
-  (set! (-> *keyboard-edge* d-pressed) 0))
+  (set! (-> *keyboard-edge* d-pressed) 0)
+  (set! (-> *keyboard-edge* comma-pressed) 0))
 
 (defun clear-mouse-edge-pressed! ()
   (set! (-> *mouse-edge* mouse1-pressed) 0)
@@ -92,12 +97,21 @@
   ;; A
   (update-key-edge key_a a-held a-pressed)
   ;; D
-  (update-key-edge key_d d-held d-pressed))
+  (update-key-edge key_d d-held d-pressed)
+  ;; COMMA
+  (update-key-edge key_comma comma-held comma-pressed))
 
 (defun update-mouse-input-stuff ()
   (clear-mouse-edge-pressed!)
-  (pc-get-mouse-data *mouse-data*)
-
+  (if (and (not (movie?)) (not (paused?)) (not (target-sleeping?)))
+    (begin
+      (pc-get-mouse-data *mouse-data*))
+    (begin 
+      (set! (-> *mouse-data* mouse-relx) 0.0)
+      (set! (-> *mouse-data* mouse-rely) 0.0)
+    )
+    )
+  ;;(format 0 "~f ~f~%" (-> *mouse-data* mouse-relx) (-> *mouse-data* mouse-rely))
   ;; Mouse 1
   (update-mouse-edge mouse1 mouse1-held mouse1-pressed)
   ;; Mouse 2
@@ -124,12 +138,20 @@
   (set-time! *hl-target-jump-buffer*)))
 
 (defun should-jump? ()
-  (if (-> *pc-settings* auto-jump?)
-    (begin 
-      (when (and (not (paused?)) (or (not (time-elapsed? *hl-target-jump-buffer* hl-target-jump-buffer-time)) (cpad-hold? 0 l1))) #t)
-    )
+  (if (= (-> *target* state name) 'target-hl-fishing)
+    #f
     (begin
-      (when (and (not (paused?)) (not (time-elapsed? *hl-target-jump-buffer* hl-target-jump-buffer-time))) #t))))
+      (if (-> *pc-settings* auto-jump?)
+        (begin 
+          (when (and (not (paused?)) (or (not (time-elapsed? *hl-target-jump-buffer* hl-target-jump-buffer-time)) (cpad-hold? 0 l1))) #t))
+        (begin
+          (when (and (not (paused?)) (not (time-elapsed? *hl-target-jump-buffer* hl-target-jump-buffer-time))) #t))))
+  )
+)
+
+(defun pressed-jump? ()
+  (when (and (not (paused?)) (not (time-elapsed? *hl-target-jump-buffer* hl-target-jump-buffer-time))) #t)
+)
 
 (defun should-swim-up? ()
   (or (cpad-hold? 0 l1) (should-jump?))
@@ -201,15 +223,19 @@
 )
 
 (defun should-switch-slot1? ()
-  (and (or (!= (-> *keyboard-data* key_1) 0) (cpad-pressed? 0 left)) (not (paused?)) (!= (-> *target* state name) 'target-hl-grab) (!= (-> *target* state name) 'target-hl-fishing))
+  (and (or (key-status? one-pressed) (cpad-pressed? 0 left)) (not (paused?)) (!= (-> *target* state name) 'target-hl-grab) (!= (-> *target* state name) 'target-hl-fishing))
 )
 
 (defun should-switch-slot2? ()
-  (and (or (!= (-> *keyboard-data* key_2) 0) (cpad-pressed? 0 up)) (not (paused?)) (!= (-> *target* state name) 'target-hl-grab) (!= (-> *target* state name) 'target-hl-fishing))
+  (and (or (key-status? two-pressed) (cpad-pressed? 0 up)) (not (paused?)) (!= (-> *target* state name) 'target-hl-grab) (!= (-> *target* state name) 'target-hl-fishing))
 )
 
 (defun should-switch-slot3? ()
-  (and (or (!= (-> *keyboard-data* key_3) 0) (cpad-pressed? 0 right)) (not (paused?)) (!= (-> *target* state name) 'target-hl-grab) (!= (-> *target* state name) 'target-hl-fishing))
+  (and (or (key-status? three-pressed) (cpad-pressed? 0 right)) (not (paused?)) (!= (-> *target* state name) 'target-hl-grab) (!= (-> *target* state name) 'target-hl-fishing))
+)
+
+(defun should-switch-slot4? ()
+  (and (or (key-status? four-pressed) (cpad-pressed? 0 down)) (not (paused?)) (!= (-> *target* state name) 'target-hl-grab) (!= (-> *target* state name) 'target-hl-fishing))
 )
 
 (defun should-use? () #f)
@@ -219,10 +245,23 @@
   (or (key-status? backspace-pressed) (cpad-pressed? 0 triangle)))
 
 (defun should-switch-last-weapon? ()
-  (and (cpad-pressed? 0 down) (not (paused?)) (!= (-> *target* state name) 'target-hl-fishing)))
+  ;; Controller mode has no last weapon switch
+  (and (not (-> *pc-settings* controller-aim?)) (cpad-pressed? 0 x) (not (paused?)) (!= (-> *target* state name) 'target-hl-fishing)))
 
 (defun should-show-hud? ()
   (cpad-pressed? 0 r3))
+
+(defun should-do-double-jump? ()
+  ;; In controller mode we use X to double jump
+  (if (-> *pc-settings* controller-aim?)
+    (cpad-pressed? 0 x)
+    (should-walk?))
+)
+
+(defun should-do-duck-high-jump? ()
+  ;;(and (should-duck?) (should-walk?))
+  (should-duck?)
+)
 
 (defun get-use-bind-string ()
   (let ((info (new 'static 'bind-assignment-info)))
@@ -263,7 +302,8 @@
   (set! (-> mouse mouse-scrolly) 0.0))
 
 (defbehavior target-hl-is-in-duck? target ()
-  (or (= (-> self state name) 'target-hl-movement-ground-duck) (= (-> self state name) 'target-hl-movement-air-duck)))
+  (or (= (-> self state name) 'target-hl-movement-ground-duck) (= (-> self state name) 'target-hl-movement-air-duck) 
+    (= (-> self state name) 'target-hl-movement-air-jump-duck)))
 #|
 (defbehavior read-input target ((arg0 vector))
   (when (!= (-> self control pad-read-time) (-> *display* real-frame-counter))
@@ -292,11 +332,11 @@
           (vector-matrix*! arg0 arg0 (matrix-local->world #t #f))
 ))))|#
 
-(defun walk-speed-multiplier ()
-  (if (should-walk?) 0.465 1.5))
-
-(defun duck-speed-multiplier ()
-  (if (target-hl-is-in-duck?) 0.275 1.0))
+(defun movement-speed-multiplier ()
+  (cond
+    ((target-hl-is-in-duck?) 0.4125)
+    ((should-walk?) 0.465)
+    (else 1.5)))
 
 (defbehavior read-input target ((arg0 vector))
   ;; frame sync
@@ -317,12 +357,47 @@
   (set! (-> self control stick-vec quad) (-> arg0 quad))
 
   ;; scale pad-stick-speed by analog magnitude * walk/duck
-  (set! (-> self control pad-stick-speed)
-        (* (if (> (-> self control cpad stick0-speed) 0.0) 1.0 (-> self control cpad stick0-speed))
-           (walk-speed-multiplier)
-           (duck-speed-multiplier)))
+  (let ((mag (-> self control cpad stick0-speed))
+        (deadzone (-> *pc-settings* stick-deadzone)))
+
+    ;; apply deadzone
+    (when (< mag deadzone)
+      (set! mag 0.0))
+
+    ;; apply movement scaling
+    (set! (-> self control pad-stick-speed)
+          (* (min mag 1.0)
+            (movement-speed-multiplier))))
 
   ;; finally, apply world transform
+  (vector-matrix*! arg0 arg0 (matrix-local->world #t #f)))
+
+(defbehavior force-forward-input target ((arg0 vector))
+  ;; frame sync like normal input
+  (when (!= (-> self control pad-read-time)
+             (-> *display* real-frame-counter))
+    (set! (-> self control last-stick-vec quad)
+          (-> self control stick-vec quad))
+    (set! (-> self control last-pad-stick-speed)
+          (-> self control pad-stick-speed))
+    (set! (-> self control pad-read-time)
+          (the-as uint (-> *display* real-frame-counter))))
+
+  ;; force local forward
+  (set! (-> arg0 x) 0.0)
+  (set! (-> arg0 y) 0.0)
+  (set! (-> arg0 z) 1.0)
+  (set! (-> arg0 w) 0.0)
+
+  ;; store vector
+  (set! (-> self control stick-vec quad)
+        (-> arg0 quad))
+
+  ;; force full movement speed
+  (set! (-> self control pad-stick-speed)
+        (movement-speed-multiplier))
+
+  ;; transform into world space
   (vector-matrix*! arg0 arg0 (matrix-local->world #t #f)))
 
 (defun get-camera-pitch ()

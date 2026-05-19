@@ -593,7 +593,15 @@
 
 ;;main music end
 
+(define-extern play-mod-sound-file-pitch (function string int float int symbol))
+
+(define-extern stop-sound-file-hl (function string none))
+
+(define-extern is-sound-playing-hl (function string symbol))
+
 (define-extern play-sound-file (function string int symbol))
+
+(define-extern is-sound-playing (function string symbol))
 
 (define-extern stop-sound-file (function string none))
 

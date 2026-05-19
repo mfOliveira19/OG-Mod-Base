@@ -163,7 +163,10 @@
    (show-speed?                      symbol) ;; Added for hl mod
    (controller-aim?                  symbol) ;; Added for hl mod
    (controller-sens                  float)  ;; Added for hl mod
-   (skip-power-cell-cutscenes?            symbol) ;; Added for hl mod
+   (skip-power-cell-cutscenes?       symbol) ;; Added for hl mod
+   (all-weapons?                     symbol) ;; Added for hl mod
+   (unlimited-ammo?                  symbol) ;; Added for hl mod
+   (show-enemy-hit-part?             symbol) ;; Added for hl mod
    ;; audio settings
    (audio-latency-ms                 int16) ;; audio latency in milliseconds
    (audio-pan-override               float) ;; audio pan modifier
@@ -403,6 +406,9 @@
     (set! (-> obj show-speed?) #f)
     (set! (-> obj controller-aim?) #f)
     (set! (-> obj controller-sens) 5.0)
+    (set! (-> obj all-weapons?) #f)
+    (set! (-> obj unlimited-ammo?) #f)
+    (set! (-> obj show-enemy-hit-part?) #t)
   0)
 
 (defmethod reset-ps2 ((obj pc-settings) (call-handlers symbol))

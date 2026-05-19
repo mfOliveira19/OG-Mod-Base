@@ -28,7 +28,7 @@
     (when (logtest? (-> self control cur-surf flags) (surface-flags dive))
       (vector-flatten! s5-0 s5-0 (-> self control dynam gravity-normal))
       (vector-normalize! s5-0 1.0))
-    (forward-up-nopitch->inv-matrix (-> self control unknown-matrix01) s5-0 (-> self control local-normal)))
+    (forward-up-nopitch->inv-matrix (-> self control unknown-matrix01) s5-0 (-> self control dynam gravity-normal)))
   (matrix-transpose! (-> self control unknown-matrix00) (-> self control unknown-matrix01))
   (vector-matrix*! (-> self control ltransv) arg0 (-> self control unknown-matrix00))
   (set! (-> self control last-gravity-normal quad) (-> self control gravity-normal quad))
@@ -646,7 +646,7 @@
   (when (and (= *cheat-mode* 'debug)
              ;;(cpad-hold? (-> self control cpad number) r2)
              ;; Changed for hl mod
-             (cpad-hold? (-> self control cpad number) x)
+             (key-status? comma-held)
              (not *pause-lock*)
              (not (logtest? (-> self state-flags) (state-flags grabbed first-person-mode))))
     (if (!= (-> self next-state name) 'target-falling) (send-event self 'change-mode 'falling))

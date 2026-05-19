@@ -2,6 +2,9 @@
 (in-package goal)
 (require "engine/ui/progress/progress.gc")
 
+;; Added for hl mod
+(define-extern handle-hl-all-weapons-toggle (function none))
+
 #| Code for the progress menu in the PC port. The original code is still loaded, this just has some overriden functions. |#
 
 ;;---------------------------
@@ -249,7 +252,7 @@
        'boxed-array
        :type
        game-option
-       ;; Changed for hl mod - input stuff will also be in the MOD OPTIONS screen
+       ;; Changed for hl mod - input stuff will also be in the MOD MENU screen
        #|
        (new 'static
             'game-option
@@ -742,6 +745,12 @@
             :name (text-id sound-options)
             :scale #t
             :param3 (game-option-menu mod-sound))
+       (new 'static
+            'game-option
+            :option-type (game-option-type menu)
+            :name (text-id cheats)
+            :scale #t
+            :param3 (game-option-menu mod-cheats))
        (new 'static 'game-option :option-type (game-option-type button) :name (text-id back) :scale #t)))
 
 (define *mod-game*
@@ -823,6 +832,7 @@
             :slider-show-decimal? #f)
        (new 'static 'game-option :option-type (game-option-type on-off) :name (text-id teleport-effect) :scale #t)
        (new 'static 'game-option :option-type (game-option-type on-off) :name (text-id show-speed) :scale #t)
+       (new 'static 'game-option :option-type (game-option-type on-off) :name (text-id show-enemy-hit-part) :scale #t)
        (new 'static 'game-option :option-type (game-option-type button) :name (text-id back) :scale #t)))
 
 (define *mod-sound*
@@ -839,6 +849,15 @@
             :slider-step-size 0.1
             :slider-show-decimal? #f)
        (new 'static 'game-option :option-type (game-option-type on-off) :name (text-id hev-sounds) :scale #t)
+       (new 'static 'game-option :option-type (game-option-type button) :name (text-id back) :scale #t)))
+
+(define *mod-cheats*
+  (new 'static
+       'boxed-array
+       :type
+       game-option
+       (new 'static 'game-option :option-type (game-option-type on-off) :on-confirm (lambda () (handle-hl-all-weapons-toggle)) :name (text-id all-weapons) :scale #t)
+       (new 'static 'game-option :option-type (game-option-type on-off) :name (text-id unlimited-ammo) :scale #t)
        (new 'static 'game-option :option-type (game-option-type button) :name (text-id back) :scale #t)))
 
 (define *misc-options*
@@ -1512,7 +1531,7 @@
        string
        "JUMP"
        "DUCK"
-       "WALK"
+       "WALK/DOUBLE JUMP"
        "RELOAD"
        "LAST WEAPON USED"
        "SHOW HUD"
@@ -1734,12 +1753,12 @@
   (set! (-> option scale) #t)
   (1+! (-> *temp-options* length)))
 
-;; D-PAD DOWN (SWITCH TO LAST USED WEAPON)
+;; X (SWITCH TO LAST USED WEAPON)
 (let ((option (-> *temp-options* (length *temp-options*))))
   (set! (-> option bind-info device-type) 1)
   (set! (-> option bind-info port) 0)
   (set! (-> option bind-info for-buttons?) #t)
-  (set! (-> option bind-info input-idx) 6)
+  (set! (-> option bind-info input-idx) 14)
   (set! (-> option bind-info analog-min-range?) #f)
   (set! (-> option option-type) (game-option-type binding-assignment))
   (set! (-> option name-override) (copy-string<-string (-> option name-override) (-> *keyboard-action-bind-names* 4)))
@@ -2449,6 +2468,7 @@
   (set! (-> *options-remap* (progress-screen mod-input)) *mod-input*)
   (set! (-> *options-remap* (progress-screen mod-graphic)) *mod-graphic*)
   (set! (-> *options-remap* (progress-screen mod-sound)) *mod-sound*)
+  (set! (-> *options-remap* (progress-screen mod-cheats)) *mod-cheats*)
   (set! (-> *options-remap* (progress-screen mod-keyboard-binds)) *temp-options*)
   (set! (-> *options-remap* (progress-screen game-settings)) *game-options-pc*)
   (set! (-> *options-remap* (progress-screen graphic-settings)) *graphic-options-pc*)
@@ -2560,7 +2580,7 @@
   (set! (-> *mouse-options* 2 value-to-modify) (&-> *pc-settings* mouse-ysens))
   (set! (-> *mouse-options* 3 value-to-modify) (&-> *pc-settings* mouse-movement?))
 
-  ;; MOD OPTIONS
+  ;; MOD MENU
   (set! (-> *mod-game* 0 value-to-modify) (&-> *pc-settings* skip-power-cell-cutscenes?))
 
   (set! (-> *mod-input* 0 value-to-modify) (&-> *pc-settings* mouse-xsens)) ;; xsens will be used for both x and y
@@ -2574,9 +2594,13 @@
   (set! (-> *mod-graphic* 0 value-to-modify) (&-> *pc-settings* fov))
   (set! (-> *mod-graphic* 1 value-to-modify) (&-> *pc-settings* teleport-effect?))
   (set! (-> *mod-graphic* 2 value-to-modify) (&-> *pc-settings* show-speed?))
+  (set! (-> *mod-graphic* 3 value-to-modify) (&-> *pc-settings* show-enemy-hit-part?))
 
   (set! (-> *mod-sound* 0 value-to-modify) (&-> *pc-settings* mod-sfx-volume))
   (set! (-> *mod-sound* 1 value-to-modify) (&-> *pc-settings* hev-sounds?))
+
+  (set! (-> *mod-cheats* 0 value-to-modify) (&-> *pc-settings* all-weapons?))
+  (set! (-> *mod-cheats* 1 value-to-modify) (&-> *pc-settings* unlimited-ammo?))
   ;;
 
   (set! (-> *gfx-ps2-options* 0 value-to-modify) (&-> *progress-carousell* int-backup))
@@ -3956,7 +3980,7 @@
              (hide-progress-icons)
              (draw-options self 115 25 0.65))
             (((progress-screen gfx-ps2-options)) (hide-progress-icons) (draw-options self 115 25 0.67))
-            (((progress-screen game-settings) (progress-screen mod-options) (progress-screen mod-input) (progress-screen mod-game) (progress-screen mod-keyboard-binds) (progress-screen mod-graphic) (progress-screen mod-sound)) (hide-progress-icons) (draw-options self 115 25 0.70))
+            (((progress-screen game-settings) (progress-screen mod-options) (progress-screen mod-input) (progress-screen mod-game) (progress-screen mod-keyboard-binds) (progress-screen mod-graphic) (progress-screen mod-sound) (progress-screen mod-cheats)) (hide-progress-icons) (draw-options self 115 25 0.70))
             (((progress-screen memcard-removed) (progress-screen memcard-auto-save-error))
              (draw-notice-screen self)
              (draw-options self 192 0 0.82))

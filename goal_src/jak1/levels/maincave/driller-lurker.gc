@@ -4,6 +4,9 @@
 (require "levels/maincave/cavecrystal-light.gc")
 (require "engine/common-obs/nav-enemy.gc")
 
+;; Added for hl mod
+(define-extern spawn-hl-hit-part (function none))
+
 ;; DECOMP BEGINS
 
 (deftype driller-lurker (process-drawable)
@@ -195,6 +198,7 @@
 (defbehavior driller-lurker-default-event-handler driller-lurker ((arg0 process) (arg1 int) (arg2 symbol) (arg3 event-message-block))
   (local-vars (sv-96 collide-shape-prim))
   (cond ((= arg2 'attack-hl)
+    (spawn-hl-hit-part)
     (let ((damage (the-as int8 (-> arg3 param 4))))
         (-! (-> self health) damage)
         (-> arg3 param 1)

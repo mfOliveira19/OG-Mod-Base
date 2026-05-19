@@ -6,6 +6,9 @@
 (require "engine/anim/joint-mod-h.gc")
 (declare-type bully process-drawable)
 
+;; Added for hl mod
+(define-extern spawn-hl-hit-part (function none))
+
 ;; DECOMP BEGINS
 
 (deftype bully-broken-cage (process-drawable)
@@ -225,6 +228,7 @@
   (local-vars (v0-0 object))
   (case arg2
     (('attack-hl)
+      (spawn-hl-hit-part)
       (let ((damage (the-as int8 (-> arg3 param 4))))
           (-! (-> self health) damage)
           (when (<= (-> self health) 0)

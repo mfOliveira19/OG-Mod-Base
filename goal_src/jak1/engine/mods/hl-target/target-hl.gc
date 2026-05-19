@@ -30,15 +30,21 @@
   :event target-hl-standard-event-handler
   :enter 
   (behavior ()
+    (set! *can-double-jump?* #t)
     (set! *ducked?* #t))
   :trans
   (behavior ()
     (when (and (not (should-duck?)) (can-exit-duck-hl?))
       (go target-hl-movement-ground))
-    (when (should-jump?)
-      ;; So we can use launchers
-      (when (not (target-should-use-launcher?))
-        (target-hl-apply-jump)))
+      (when (should-jump?)
+        (when (and (should-do-duck-high-jump?) (can-exit-duck-hl?) (<= (target-xzv) (meters 3.1250)))
+          (go target-hl-movement-air-high-jump))
+        ;; So we can use launchers
+        (when (not (target-should-use-launcher?))
+          (target-hl-apply-jump)
+          ;;(go target-hl-movement-air-jump-duck)
+          )
+          )
       (when (not (on-ground?))
         (if (and (not (should-duck?)) (can-exit-duck-hl?)) (go target-hl-movement-air) (go target-hl-movement-air-duck))))
   :code
@@ -48,17 +54,166 @@
   (behavior ()
       (target-hl-movement-post)))
 
-(defstate target-hl-movement-air (target)
+;; Not being used
+(defstate target-hl-movement-air-jump-duck (target)
   :event target-hl-jump-event-handler
   :enter
   (behavior ()
     (pc-set-fog-intensity 1.0)
     (set! *should-show-swim-screen?* #f)
+    ;;(target-hl-collide-set! 'normal (the-as float 0.0))
+    ;;(sound-play "jump")
+    (max! (-> (-> self control transv) y) 45000.0))
+  :trans 
+  (behavior ()
+    (when (not (on-ground?))
+      (go target-hl-movement-air-duck)))
+  :code
+    (behavior ()
+      (loop (suspend)))
+
+  :post 
+  (behavior ()
+    ;; This helps getting out of the water
+    (when (and (should-swim-up?) (near-wall? (meters 1.5)) (logtest? (-> self water flags) (water-flags wt09))) 
+      (+! (-> self control transv y) 5000.0))
+
+    ;;(apply-air-duck)
+    (target-hl-movement-post)))
+
+(defstate target-hl-movement-air-high-jump (target)
+  :event target-hl-jump-event-handler
+  :enter
+  (behavior ()
+    (pc-set-fog-intensity 1.0)
+    (set! *should-show-swim-screen?* #f)
+    (target-hl-collide-set! 'normal (the-as float 0.0))
+    (set! *can-double-jump?* #f)
+    (set! *ducked?* #f)
+    (sound-play "jump")
+    (set-time! *high-jump-enter-time*)
+    (target-hl-apply-high-jump))
+  :trans 
+  (behavior ()
+    (when (and (on-ground?) (time-elapsed? *high-jump-enter-time* (seconds 0.5)))
+      (go target-hl-movement-ground)))
+  :code
+    (behavior ()
+      (loop (suspend)))
+
+  :post 
+  (behavior ()
+    (target-hl-movement-post)))
+
+(defstate target-hl-movement-air (target)
+  :event target-hl-jump-event-handler
+  :enter
+  (behavior ()
+    (pc-set-fog-intensity 1.0)
+    (set! *ducked?* #f)
+    (set! *should-show-swim-screen?* #f)
     (target-hl-collide-set! 'normal (the-as float 0.0)))
+  :trans 
+  (behavior ()
+    (when (and (should-do-double-jump?) *can-double-jump?*)
+      (go target-hl-movement-air-double-jump))
+    (when (on-ground?)
+      (go target-hl-movement-ground)))
+  :code
+    (behavior ()
+      (loop (suspend)))
+
+  :post 
+  (behavior ()
+    ;;(format 0 "YV: ~M ~%" (vector-dot (-> self control dynam gravity-normal) (-> self control transv)))
+    ;; This helps getting out of the water
+    (when (and (should-swim-up?) (near-wall? (meters 1.5)) (logtest? (-> self water flags) (water-flags wt09))) 
+      (+! (-> self control transv y) 5000.0))
+
+    (apply-air-duck)
+    (target-hl-movement-post)))
+
+(defstate target-hl-movement-air-double-jump (target)
+  :event target-hl-jump-event-handler
+  :enter
+  (behavior ()
+    (pc-set-fog-intensity 1.0)
+    (set! *should-show-swim-screen?* #f)
+    (target-hl-collide-set! 'normal (the-as float 0.0))
+    (set! *can-double-jump?* #f)
+    (sound-play "jump")
+    (target-hl-apply-double-jump))
   :trans 
   (behavior ()
     (when (on-ground?)
       (go target-hl-movement-ground)))
+  :code
+    (behavior ()
+      (loop (suspend)))
+
+  :post 
+  (behavior ()
+    ;; This helps getting out of the water
+    (when (and (should-swim-up?) (near-wall? (meters 1.5)) (logtest? (-> self water flags) (water-flags wt09))) 
+      (+! (-> self control transv y) 5000.0))
+
+    (apply-air-duck)
+    (target-hl-movement-post)))
+
+(defstate target-hl-movement-air-jump (target)
+  :event target-hl-jump-event-handler
+  :enter
+  (behavior ()
+    (pc-set-fog-intensity 1.0)
+    (set! *should-show-swim-screen?* #f)
+    (target-hl-collide-set! 'normal (the-as float 0.0))
+    ;;(sound-play "jump")
+    (max! (-> (-> self control transv) y) 45000.0))
+  :trans 
+  (behavior ()
+    (when (not (on-ground?))
+      (go target-hl-movement-air)))
+  :code
+    (behavior ()
+      (loop (suspend)))
+
+  :post 
+  (behavior ()
+    ;; This helps getting out of the water
+    (when (and (should-swim-up?) (near-wall? (meters 1.5)) (logtest? (-> self water flags) (water-flags wt09))) 
+      (+! (-> self control transv y) 5000.0))
+
+    (apply-air-duck)
+    (target-hl-movement-post)))
+
+(defstate target-hl-movement-air-long-jump (target)
+  :event target-hl-jump-event-handler
+  :enter
+  (behavior ()
+    (pc-set-fog-intensity 1.0)
+    (set! *should-show-swim-screen?* #f)
+    (target-hl-collide-set! 'normal (the-as float 0.0))
+    ;;(sound-play "jump")
+    (hl-play-step-sound)
+    (let* ((curvel (-> self control transv))
+          (vel (-> self control ltransv))
+          (cam-fwd  (-> *math-camera* inv-camera-rot vector 2))
+          (speed    99000.0)
+          (jump-up  50070.0)
+          (horiz-speed (vector-xz-length vel)))
+      (when (and (> horiz-speed 20000.0))
+        (set! (-> cam-fwd y) 0.0)
+        (vector-normalize! cam-fwd 1.0)
+        (when (time-elapsed? *last-step-time* (fsec 0.5))
+          (hl-play-step-sound))
+        (vector-float*! cam-fwd cam-fwd speed)
+        (set! (-> curvel x) (-> cam-fwd x))
+        (set! (-> curvel z) (-> cam-fwd z))
+        (set! (-> curvel y) jump-up))))
+  :trans 
+  (behavior ()
+    (when (not (on-ground?))
+      (go target-hl-movement-air)))
   :code
     (behavior ()
       (loop (suspend)))
@@ -77,6 +232,7 @@
   :enter
   (behavior ()
     ;;(set! *ducked?* #f)
+    (set! *can-double-jump?* #t)
     (target-hl-collide-set! 'normal (the-as float 0.0)))
   :exit
   (behavior ()
@@ -85,7 +241,13 @@
   (behavior ()
     (when (should-jump?)
       (when (and (not (target-should-use-launcher?)) (not (target-hl-apply-longjump)))
-            (target-hl-apply-jump)))
+            ;; Jumping in water can cause us to get stuck in the air-jump state, this is cheap work around to use the hold jump method 
+            (if (logtest? (-> self water flags) (water-flags wt09))
+              (target-hl-apply-jump)
+              (go target-hl-movement-air-jump)
+            )
+            ;;(target-hl-apply-jump)
+            ))
       (when (not (on-ground?))
         (go target-hl-movement-air)))
   :code
@@ -463,6 +625,7 @@
   :event target-hl-jump-event-handler
   :enter
     (behavior ((arg0 float) (arg1 float) (arg2 surface))
+      (set! *can-double-jump?* #t)
       (when (= (-> self control unknown-symbol40) 'launch)
         (level-hint-spawn (text-id sidekick-launcher1) "sksp009d" (the-as entity #f) *entity-pool* (game-task none))
         (level-hint-spawn (text-id sidekick-launcher2) "sksp009e" (the-as entity #f) *entity-pool* (game-task none))
@@ -497,6 +660,8 @@
       (target-hl-falling-trans #f (the-as time-frame (if (ja-group? eichar-jump-loop-ja) 15 -1)))
       (mod-var-jump #t #t (cpad-hold? (-> self control cpad number) x) (-> self control transv))
       (hl-slide-down-test)
+    (when (and (should-do-double-jump?) *can-double-jump?*)
+      (go target-hl-movement-air-double-jump))
       (seek! (-> self control turn-vec-len2)
              (fmax 0.0 (fmin 1.0 (* 0.000048828126 (+ -10240.0 (-> self control speed-mod)))))
              (seconds-per-frame)))
@@ -688,3 +853,137 @@
     )
 
     (target-hl-movement-swim-post)))
+
+(defstate target-hl-movement-edge-grab (target)
+  :event
+    (behavior ((proc process) (argc int) (message symbol) (block event-message-block))
+      (case message
+        (else (target-hl-standard-event-handler proc argc message block))))
+  :enter
+    (behavior ()
+      (send-event *hl-weapons* 'edge-grab 0 self)
+
+      (set-time! (-> self state-time))
+      (set! (-> self control cur-surf) *edge-grab-mods*)
+      (set-time! (-> self control edge-grab-time))
+      (logior! (-> self control root-prim prim-core action) (collide-action edgegrab-active edgegrab-cam))
+      (set! (-> self control last-transv2 quad) (-> self control transv quad))
+      (set! (-> self control transv quad) (the-as uint128 0)))
+  :exit
+    (behavior ()
+      (when (logtest? (-> self control root-prim prim-core action) (collide-action edgegrab-cam))
+        (logclear! (-> self control root-prim prim-core action) (collide-action edgegrab-active edgegrab-cam))))
+  :trans
+    (behavior ()
+      (go target-hl-movement-edge-grab-jump (-> *TARGET-bank* edge-grab-jump-height-min) (-> *TARGET-bank* edge-grab-jump-height-max)))
+  :code
+    (behavior ()
+      (target-compute-edge)
+      (set! (-> self control temp-flop-end-checks)
+            (the-as uint
+                    (vector-dot (-> self control last-transv0)
+                                (vector-normalize! (-> self control last-transv2) (the-as float 1.0)))))
+          (loop (suspend))
+          )
+  :post target-no-move-post)
+
+(defstate target-hl-movement-edge-grab-jump (target)
+  :enter
+    (behavior ()
+      (set-time! *edge-grab-enter-time*)
+    )
+  :event
+    (behavior ((proc process) (argc int) (message symbol) (block event-message-block))
+      (case message
+        ;;(('end-mode) (go target-falling 'target-hl-movement-edge-grab))
+        (else (target-hl-standard-event-handler proc argc message block))))
+  :exit
+    (behavior ()
+    (send-event *hl-weapons* 'go-draw 0 self)
+      (-> target-hl-movement-edge-grab
+          exit))
+  :code
+    (behavior ((arg0 float) (arg1 float))
+      ;;(ja-channel-set! 1)
+      (set-quaternion! (-> self control) (-> self control dir-targ))
+      (logclear! (-> self control root-prim prim-core action) (collide-action edgegrab-active edgegrab-cam))
+      (set! (-> self control transv quad) (the-as uint128 0))
+      #|(let ((s4-0 (new 'stack-no-clear 'vector)))
+        (ja-no-eval :group! eichar-edge-grab-to-jump-ja :num! (seek!) :frame-num 0.0)
+        (until (ja-done? 0)
+          (target-compute-edge-rider)
+          (compute-alignment! (-> self align))
+          (when (not (logtest? (-> self align flags) (align-flags disabled)))
+            (vector-matrix*! s4-0 (the-as vector (-> self align delta)) (-> self control unknown-matrix01))
+            (print-vector4m s4-0)
+            (move-by-vector! (-> self control) s4-0))
+          (suspend)
+          (ja :num! (seek!))))|#
+          (let ((s4-0 (new 'stack-no-clear 'vector)))
+            (set! (-> s4-0 x) 0.0)
+            (set! (-> s4-0 z) 0.0)
+
+            (until (time-elapsed? *edge-grab-enter-time* (seconds 0.2))
+
+              (let ((dt (seconds-per-frame)))
+                (set! (-> s4-0 y) (meters (* 16.52 dt))))
+
+              (move-by-vector! (-> self control) s4-0)
+              (suspend)))
+      (set! (-> self control transv quad) (the-as uint128 0))
+      (set! (-> self control unknown-dword70) 0)
+      (set-forward-vel (the-as float 37384.0))
+      (go target-hl-movement-jump-forward arg0 arg1)
+      )
+  :post target-hl-movement-force-forward-post)
+
+;; Used when exiting edge grab
+(defstate target-hl-movement-jump-forward (target)
+  :event target-hl-jump-event-handler
+  :enter
+    (behavior ((arg0 float) (arg1 float))
+      ((-> target-hl-jump enter) arg0 arg1 (the-as surface #f))
+      (set! (-> self control cur-surf) *forward-jump-mods*))
+  :exit target-exit
+  :trans
+    (-> target-hl-movement-air
+        trans)
+  :code
+    (behavior ((arg0 float) (arg1 float))
+      (loop (suspend))
+        )
+  :post target-post)
+
+(defstate target-hl-movement-pole-cycle (target)
+  :event
+    (behavior ((proc process) (argc int) (message symbol) (block event-message-block))
+      (if (and (= message 'query) (= (-> block param 0) 'mode))
+        (-> self state name)
+        (target-hl-standard-event-handler proc argc message block)))
+  :enter
+    (behavior ((arg0 handle))
+      (send-event *hl-weapons* 'edge-grab 0 self)
+      (set! (-> self control pole) arg0)
+      (set-time! (-> self state-time))
+      (set! (-> self control cur-surf) *pole-mods*)
+      (logior! (-> self control root-prim prim-core action) (collide-action swingpole-active))
+      (set! (-> self control last-transv2 quad) (-> self control transv quad))
+      (set! (-> self control transv quad) (the-as uint128 0))
+      (set! *can-double-jump?* #t)
+      (set! (-> self control unknown-int21) (the-as int #f)))
+  :exit
+    (behavior ()
+      (send-event *hl-weapons* 'go-draw 0 self)
+      (target-collide-set! 'normal (the-as float 0.0))
+      (logclear! (-> self control root-prim prim-core action) (collide-action swingpole-active))
+      (sound-play "jump" :pitch -0.2)
+      (set! (-> self control pole) (the-as handle #f)))
+  :trans
+    (behavior ()
+      (when (pressed-jump?) 
+        (target-hl-apply-pole-jump)
+        (go target-hl-movement-air)))
+  :code
+    (behavior ((arg0 handle))
+          (loop (suspend)))
+  :post target-hl-no-move-post)

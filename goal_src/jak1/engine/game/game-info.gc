@@ -203,6 +203,19 @@
      (set-time! (-> this continue-time))
      (set-time! (-> this death-time))
      (set-time! (-> this hit-time))
+     ;; Added for hl mod
+     (set! (-> this smg-grenade-ammo) 0)
+     (set! (-> this 9mm-ammo) 0)
+     (set! (-> this revolver-ammo) 0)
+     (set! (-> this shotgun-ammo) 0)
+     (set! (-> this gauss-ammo) 0)
+     (set! (-> this pistol-mag-ammo) 0)
+     (set! (-> this smg-mag-ammo) 0)
+     (set! (-> this revolver-mag-ammo) 0)
+     (set! (-> this shotgun-mag-ammo) 0)
+     (set! (-> this current-weapon) 0)
+     (set! (-> this owned-weapons) 0)
+
      (dotimes (v1-50 (the int (game-task max))) ;; changed from hard-coded 116 to (game-task max) mod-base-change
        (set! (-> this fuel-cell-time 0) 0)
        (nop!))

@@ -9,10 +9,19 @@
 Crosshair::Crosshair() {
   pistol_1280.tex = load_texture("crosshair_1280_pistol.png", pistol_1280.width, pistol_1280.height);
   smg_1280.tex = load_texture("crosshair_1280_smg.png", smg_1280.width, smg_1280.height);
+  gauss_1280.tex = load_texture("crosshair_1280_gauss.png", gauss_1280.width, gauss_1280.height);
+  revolver_1280.tex = load_texture("crosshair_1280_revolver.png", revolver_1280.width, revolver_1280.height);
+  shotgun_1280.tex = load_texture("crosshair_1280_shotgun.png", shotgun_1280.width, shotgun_1280.height);
   pistol_2560.tex = load_texture("crosshair_2560_pistol.png", pistol_2560.width, pistol_2560.height);
   smg_2560.tex = load_texture("crosshair_2560_smg.png", smg_2560.width, smg_2560.height);
+  gauss_2560.tex = load_texture("crosshair_2560_gauss.png", gauss_2560.width, gauss_2560.height);
+  revolver_2560.tex = load_texture("crosshair_2560_revolver.png", revolver_2560.width, revolver_2560.height);
+  shotgun_2560.tex = load_texture("crosshair_2560_shotgun.png", shotgun_2560.width, shotgun_2560.height);
   pistol_low.tex = load_texture("crosshair_low_pistol.png", pistol_low.width, pistol_low.height);
   smg_low.tex = load_texture("crosshair_low_smg.png", smg_low.width, smg_low.height);
+  gauss_low.tex = load_texture("crosshair_low_gauss.png", gauss_low.width, gauss_low.height);
+  revolver_low.tex = load_texture("crosshair_low_revolver.png", revolver_low.width, revolver_low.height);
+  shotgun_low.tex = load_texture("crosshair_low_shotgun.png", shotgun_low.width, shotgun_low.height);
 }
 
 Crosshair::~Crosshair() {
@@ -51,20 +60,27 @@ void Crosshair::draw_crosshair(SharedRenderState* render_state) {
   glEnable(GL_BLEND);
   glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-  CrosshairSprite* sprite = pick_sprite(get_type(), render_state->render_fb_w);
+  CrosshairSprite* sprite = pick_sprite(get_type(), render_state->draw_region_w);
   if (!sprite || sprite->tex == 0)
     return;
 
-  int screen_w = Gfx::g_global_settings.lbox_w;
-  int screen_h = Gfx::g_global_settings.lbox_h;
+  int screen_w = render_state->draw_region_w;
+  int screen_h = render_state->draw_region_h;
 
   float base_frac = 0.0f;
     switch (get_type()) {
       case CrosshairType::Pistol:
+      case CrosshairType::Revolver:
         base_frac = 0.013f;
         break;
       case CrosshairType::SMG:
         base_frac = 0.022f;
+        break;
+      case CrosshairType::Gauss:
+        base_frac = 0.015f;
+        break;
+      case CrosshairType::Shotgun:
+        base_frac = 0.008f;
         break;
       default:
         base_frac = 0.022f;
@@ -220,6 +236,36 @@ CrosshairSprite* Crosshair::pick_sprite(CrosshairType type, int screen_width) {
           return &smg_1280;
         case ResTier::Low:
           return &smg_low;
+      }
+      break;
+    case CrosshairType::Gauss:
+      switch (tier) {
+        case ResTier::High:
+          return &gauss_2560;
+        case ResTier::Mid:
+          return &gauss_1280;
+        case ResTier::Low:
+          return &gauss_low;
+      }
+      break;
+    case CrosshairType::Revolver:
+      switch (tier) {
+        case ResTier::High:
+          return &revolver_2560;
+        case ResTier::Mid:
+          return &revolver_1280;
+        case ResTier::Low:
+          return &revolver_low;
+      }
+      break;
+    case CrosshairType::Shotgun:
+      switch (tier) {
+        case ResTier::High:
+          return &shotgun_2560;
+        case ResTier::Mid:
+          return &shotgun_1280;
+        case ResTier::Low:
+          return &shotgun_low;
       }
       break;
 

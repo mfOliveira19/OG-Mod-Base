@@ -153,10 +153,19 @@
    target-yellow-jump-blast
    target-hl-movement-ground
    target-hl-movement-air
+   target-hl-movement-air-double-jump
+   target-hl-movement-air-jump
+   target-hl-movement-air-long-jump
    target-hl-movement-ground-duck
+   target-hl-movement-air-high-jump
    target-hl-movement-air-duck
+   target-hl-movement-air-jump-duck
    target-hl-movement-swim
    target-hl-movement-swim-ducked
+   target-hl-movement-edge-grab
+   (target-hl-movement-edge-grab-jump float float)
+   (target-hl-movement-jump-forward float float)
+   (target-hl-movement-pole-cycle handle)
    (target-hl-jump float float surface)
    (target-hl-high-jump float float basic)
    (target-hl-play-anim string handle)

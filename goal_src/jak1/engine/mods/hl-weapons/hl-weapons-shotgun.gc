@@ -1,0 +1,350 @@
+(in-package goal)
+(require "engine/mods/hl-weapons.gc")
+(require "engine/mods/hl-inputs-handler.gc")
+(require "engine/mods/hl-weapons.gc")
+(require "engine/mods/hl-inputs-handler.gc")
+
+(defconstant shotgun-draw-duration (seconds 0.5))
+(defconstant shotgun-aim-punch-decay 0.08)
+(defconstant shotgun-aim-punch-amount 0.08)
+(defconstant shotgun-aim-punch-amount-secondary 0.2)
+(defconstant shotgun-attack-cooldown (seconds 0.8))
+(defconstant shotgun-second-attack-cooldown  (seconds 1.2))
+(defconstant shotgun-reload-loop-cooldown (seconds 0.6))
+(defconstant shotgun-deepidle-duration (seconds 4.00))
+(defconstant shotgun-idle4-duration (seconds 4.00))
+(define *shotgun-reload-time* 0)
+(define *shotgun-attack-pump-played?* #f)
+(defconstant shotgun-pellet-damage 10)
+(defconstant shotgun-num-pellets 6)
+(defconstant shotgun-num-pellets-secondary 12)
+
+(defbehavior shotgun-switch-handle hl-weapons ()
+  ;; Crowbar
+  (when (and (should-switch-slot1?)
+             (time-elapsed? (-> self weapon-last-switch-time) weapon-switch-cooldown)
+             (not (= (-> self current-weapon) (weapons-enum crowbar))))
+    (set-time! (-> self weapon-last-switch-time))
+    (set! (-> self last-weapon) (weapons-enum shotgun))
+    (go crowbar-draw))
+  ;; Pistol or Revolver
+  (when (and (should-switch-slot2?)
+             (time-elapsed? (-> self weapon-last-switch-time) weapon-switch-cooldown))
+    (set-time! (-> self weapon-last-switch-time))
+
+    (if (and (check-weapon-owned (owned-weapons pistol)) (not (= (-> self current-weapon) (weapons-enum pistol))))
+      (begin (set! (-> self last-weapon) (weapons-enum shotgun)) (go pistol-draw))
+      (begin (when (and (check-weapon-owned (owned-weapons revolver)) (not (= (-> self current-weapon) (weapons-enum revolver))))
+          (set! (-> self last-weapon) (weapons-enum shotgun))
+          (go revolver-draw))
+      )
+    )
+  )
+  ;; SMG
+  (when (and (should-switch-slot3?)
+             (time-elapsed? (-> self weapon-last-switch-time) weapon-switch-cooldown)
+             (not (= (-> self current-weapon) (weapons-enum smg)))
+             (check-weapon-owned (owned-weapons smg)))
+    (set-time! (-> self weapon-last-switch-time))
+    (set! (-> self last-weapon) (weapons-enum shotgun))
+    (go smg-draw))
+  ;; Gauss
+  (when (and (should-switch-slot4?)
+             (time-elapsed? (-> self weapon-last-switch-time) weapon-switch-cooldown)
+             (not (= (-> self current-weapon) (weapons-enum gauss)))
+             (check-weapon-owned (owned-weapons gauss)))
+    (set-time! (-> self weapon-last-switch-time))
+    (set! (-> self last-weapon) (weapons-enum shotgun))
+    (go gauss-draw))
+  (when (and (should-switch-last-weapon?)
+             (time-elapsed? (-> self weapon-last-switch-time) weapon-switch-cooldown)
+             (not (= (-> self current-weapon) (-> self last-weapon))))
+    (set-time! (-> self weapon-last-switch-time))
+    (case (-> self last-weapon)
+      (((weapons-enum crowbar))
+        (set! (-> self last-weapon) (weapons-enum shotgun))
+        (go crowbar-draw))
+      (((weapons-enum pistol))
+        (when (check-weapon-owned (owned-weapons pistol))
+          (set! (-> self last-weapon) (weapons-enum shotgun))
+          (go pistol-draw))
+      )
+      (((weapons-enum revolver))
+        (when (check-weapon-owned (owned-weapons revolver))
+          (set! (-> self last-weapon) (weapons-enum shotgun))
+          (go revolver-draw))
+      )
+      (((weapons-enum smg))
+        (when (check-weapon-owned (owned-weapons smg))
+          (set! (-> self last-weapon) (weapons-enum shotgun))
+          (go smg-draw))
+      )
+      (((weapons-enum gauss))
+        (when (check-weapon-owned (owned-weapons gauss))
+          (set! (-> self last-weapon) (weapons-enum shotgun))
+          (go gauss-draw))
+      ))))
+
+(defbehavior do-shotgun-reload hl-weapons ()
+ (when (and (should-reload?) (!= (-> self current-shotgun-mag-ammo) shotgun-max-mag-ammo) (or (> (-> self current-shotgun-ammo) 0) (-> *pc-settings* unlimited-ammo?)))
+  (go shotgun-start-reload)))
+
+(defstate shotgun-holster (hl-weapons)
+  :event hl-weapons-standard-event-handler
+  :enter
+  (behavior ()
+    (viewmodel-play-animation (viewmodel-animations-enum shotgun-reholster) 2.0))
+  :code
+  (behavior ()
+    (loop (suspend)))
+  :post
+  (behavior ()
+    (hl-weapons-common-post)
+    (update-aim-punch 0.1)))
+
+(defstate shotgun-draw (hl-weapons)
+  :event hl-weapons-standard-event-handler
+  :enter
+  (behavior ()
+    (hl-set-weapon (weapons-enum shotgun))
+    (viewmodel-play-animation (viewmodel-animations-enum draw) 0.5)
+    (hl-choose-idle-wait! 0.0 0.0)
+    (set-time! (-> self weapon-last-switch-time))
+    (set-time! (-> self weapon-last-second-attack-time))
+    (set-time! (-> self weapon-last-attack-time)))
+  :trans
+  (behavior ()
+    (shotgun-switch-handle)
+    (when (time-elapsed? (-> self weapon-last-attack-time) shotgun-draw-duration)
+      (go shotgun-idle)))
+  :code
+  (behavior ()
+    (loop (suspend)))
+  :post
+  (behavior ()
+    (hl-weapons-common-post)
+    (update-aim-punch shotgun-aim-punch-decay)))
+
+(defstate shotgun-idle (hl-weapons)
+  :event hl-weapons-standard-event-handler
+  :enter
+  (behavior ()
+    (when (= (-> self weapon-next-idle-wait) 0)
+      (hl-choose-idle-wait! 1.5 1.5)))
+  :trans
+  (behavior ()
+    (shotgun-switch-handle)
+
+    (when (and (should-attack?)
+               (time-elapsed? (-> self weapon-last-attack-time) shotgun-attack-cooldown) (or (> (-> self current-shotgun-mag-ammo) 0) (-> *pc-settings* unlimited-ammo?) (target-has-eco-type? (pickup-type eco-yellow))))
+      (go shotgun-attack))
+    (when (and (should-second-attack?)
+               (time-elapsed? (-> self weapon-last-attack-time) shotgun-second-attack-cooldown) (or (> (-> self current-shotgun-mag-ammo) 1) (-> *pc-settings* unlimited-ammo?) (target-has-eco-type? (pickup-type eco-yellow))))
+      (go shotgun-attack-secondary))
+    (do-shotgun-reload)
+    (when (and (= (-> self current-shotgun-mag-ammo) 0) (or (> (-> self current-shotgun-ammo) 0) (-> *pc-settings* unlimited-ammo?)) (not (paused?)) (not (should-attack?)))
+      (go shotgun-start-reload))
+    (when (time-elapsed? (-> self weapon-last-idle-time) (-> self weapon-next-idle-wait))
+      (go shotgun-idle-anim)))
+  :code
+  (behavior ()
+    (loop (suspend)))
+
+  :post
+  (behavior ()
+    (hl-weapons-common-post)
+    (update-aim-punch shotgun-aim-punch-decay)))
+
+(defstate shotgun-idle-anim (hl-weapons)
+  :event hl-weapons-standard-event-handler
+  :enter
+  (behavior ()
+    (let ((idx (rand-vu-int-range 0 1)))
+      (case idx
+        ((0)
+         (viewmodel-play-animation (viewmodel-animations-enum shotgun-idle4) 0.3)
+         (set! (-> self weapon-next-idle-wait) shotgun-idle4-duration))
+        ((1)
+         (viewmodel-play-animation (viewmodel-animations-enum shotgun-deepidle) 0.6)
+         (set! (-> self weapon-next-idle-wait) shotgun-deepidle-duration)))
+      (set-time! (-> self weapon-last-idle-time))))
+  :trans
+  (behavior ()
+    (shotgun-switch-handle)
+    (when (time-elapsed? (-> self weapon-last-idle-time) (-> self weapon-next-idle-wait))
+      (go shotgun-idle))
+    (when (and (should-attack?)
+               (time-elapsed? (-> self weapon-last-attack-time) shotgun-attack-cooldown) (or (> (-> self current-shotgun-mag-ammo) 0) (target-has-eco-type? (pickup-type eco-yellow))))
+      (go shotgun-attack))
+    (when (and (should-second-attack?)
+               (time-elapsed? (-> self weapon-last-attack-time) shotgun-second-attack-cooldown) (or (> (-> self current-shotgun-mag-ammo) 1) (target-has-eco-type? (pickup-type eco-yellow))))
+      (go shotgun-attack-secondary))
+    (do-shotgun-reload))
+  :code
+  (behavior ()
+    (loop (suspend)))
+  :post
+  (behavior ()
+    (hl-weapons-common-post)
+    (update-aim-punch shotgun-aim-punch-decay)))
+
+(defstate shotgun-attack (hl-weapons)
+  :event hl-weapons-standard-event-handler
+  :enter
+  (behavior ()
+    (when (or (> (-> self current-shotgun-mag-ammo) 0) (target-has-eco-type? (pickup-type eco-yellow)))
+      (unless (target-has-eco-type? (pickup-type eco-yellow))
+        (-! (-> self current-shotgun-mag-ammo) 1))
+      (set! *shotgun-attack-pump-played?* #f)
+      (viewmodel-play-animation (viewmodel-animations-enum shotgun-shoot) 1.0)
+      (add-aim-punch shotgun-aim-punch-amount)
+      (play-mod-sound "sbarrel1")
+      (dotimes (i shotgun-num-pellets)
+        (let ((spread-x (rand-vu-float-range -0.05 0.05))
+              (spread-y (rand-vu-float-range -0.05 0.05)))
+          (fire-hl-shot *target* #f spread-x spread-y shotgun-pellet-damage)))
+      (hl-choose-idle-wait! 5.0 15.0)
+      (when (and (<= (-> self current-shotgun-mag-ammo) 0) (not (target-has-eco-type? (pickup-type eco-yellow))) (<= (-> self current-shotgun-ammo) 0) (-> *pc-settings* hev-sounds?) (not (-> *pc-settings* unlimited-ammo?)))
+        (play-mod-sound "ammo_depleted")))
+    (set-time! (-> self weapon-last-attack-time)))
+  :trans
+  (behavior ()
+    (shotgun-switch-handle)
+    (when (time-elapsed? (-> self weapon-last-attack-time) shotgun-attack-cooldown)
+      (go shotgun-idle)))
+  
+  :code
+  (behavior ()
+    (loop
+      (when (and (time-elapsed? (-> self weapon-last-attack-time) (seconds 0.5)) (not *shotgun-attack-pump-played?*))
+        (set! *shotgun-attack-pump-played?* #t)
+        (let ((idx (rand-vu-int-range 0 1)))
+          (case idx
+            ((0)
+              (play-mod-sound-pitch "scock1" 1.2 0))
+            ((1)
+              (play-mod-sound-pitch "scock1" 1.1 0)))))
+      (suspend)))
+  :post
+  (behavior ()
+    (hl-weapons-common-post)
+    (update-aim-punch shotgun-aim-punch-decay)))
+
+(defstate shotgun-attack-secondary (hl-weapons)
+  :event hl-weapons-standard-event-handler
+  :enter
+  (behavior ()
+    (when (or (> (-> self current-shotgun-mag-ammo) 1) (target-has-eco-type? (pickup-type eco-yellow)))
+      (unless (target-has-eco-type? (pickup-type eco-yellow))
+        (-! (-> self current-shotgun-mag-ammo) 2))
+      (set! *shotgun-attack-pump-played?* #f)
+      (viewmodel-play-animation (viewmodel-animations-enum shotgun-shoot-big) 0.6)
+      (add-aim-punch shotgun-aim-punch-amount-secondary)
+      (play-mod-sound "dbarrel1")
+      (dotimes (i shotgun-num-pellets-secondary)
+        (let ((spread-x (rand-vu-float-range -0.05 0.05))
+              (spread-y (rand-vu-float-range -0.05 0.05)))
+          (fire-hl-shot *target* #f spread-x spread-y shotgun-pellet-damage)))
+      (hl-choose-idle-wait! 5.0 15.0)
+      (when (and (<= (-> self current-shotgun-mag-ammo) 0) (not (target-has-eco-type? (pickup-type eco-yellow))) (<= (-> self current-shotgun-ammo) 0) (-> *pc-settings* hev-sounds?) (not (-> *pc-settings* unlimited-ammo?)))
+        (play-mod-sound "ammo_depleted")))
+    (set-time! (-> self weapon-last-attack-time)))
+  :trans
+  (behavior ()
+    (shotgun-switch-handle)
+    (when (time-elapsed? (-> self weapon-last-attack-time) shotgun-second-attack-cooldown)
+      (go shotgun-idle)))
+  
+  :code
+  (behavior ()
+    (loop
+      (when (and (time-elapsed? (-> self weapon-last-attack-time) (seconds 1.0)) (not *shotgun-attack-pump-played?*))
+        (set! *shotgun-attack-pump-played?* #t)
+        (let ((idx (rand-vu-int-range 0 1)))
+          (case idx
+            ((0)
+              (play-mod-sound-pitch "scock1" 1.0 0))
+            ((1)
+              (play-mod-sound-pitch "scock1" 1.1 0)))))
+      (suspend)))
+  :post
+  (behavior ()
+    (hl-weapons-common-post)
+    (update-aim-punch shotgun-aim-punch-decay)))
+
+(defstate shotgun-start-reload (hl-weapons)
+  :enter
+  (behavior ()
+    (viewmodel-play-animation (viewmodel-animations-enum shotgun-start-reload) 1.0))
+    (set-time! (-> self weapon-last-reload-time))
+  :trans
+  (behavior ()
+    (shotgun-switch-handle)
+      (when (time-elapsed? (-> self weapon-last-reload-time) (seconds 1.0))
+        (go shotgun-reload)))
+  :code
+  (behavior ()
+    (loop
+      (suspend)))
+  :post
+  (behavior ()
+    (hl-weapons-common-post)
+    (update-aim-punch shotgun-aim-punch-decay)))
+
+(defstate shotgun-reload (hl-weapons)
+  :event hl-weapons-standard-event-handler
+  :enter
+  (behavior ()
+    (set-time! (-> self weapon-last-reload-time)))
+  :trans
+  (behavior ()
+    (shotgun-switch-handle))
+  :code
+  (behavior ()
+    (loop
+      (when (and (should-attack?)
+                (time-elapsed? (-> self weapon-last-attack-time) shotgun-attack-cooldown) (> (-> self current-shotgun-mag-ammo) 0))
+        (go shotgun-attack))
+      (when (and (should-second-attack?)
+                (time-elapsed? (-> self weapon-last-attack-time) shotgun-second-attack-cooldown) (> (-> self current-shotgun-mag-ammo) 1))
+        (go shotgun-attack-secondary))
+      (when (and (time-elapsed? (-> self weapon-last-reload-time) shotgun-reload-loop-cooldown) (< (-> self current-shotgun-mag-ammo) shotgun-max-mag-ammo) (or (> (-> self current-shotgun-ammo) 0) (-> *pc-settings* unlimited-ammo?)))
+        (+! (-> self current-shotgun-mag-ammo) 1)
+        (when (not (-> *pc-settings* unlimited-ammo?))
+          (-! (-> self current-shotgun-ammo) 1))
+        (viewmodel-play-animation (viewmodel-animations-enum shotgun-reload) 1.0)
+        (let ((idx (rand-vu-int-range 0 1)))
+          (case idx
+            ((0)
+              (play-mod-sound-pitch "reload1" 1.0 0))
+            ((1)
+            (play-mod-sound-pitch "reload3" 1.0 0))))
+        (set-time! (-> self weapon-last-reload-time)))
+
+      (when (and (or (= (-> self current-shotgun-mag-ammo) shotgun-max-mag-ammo) (not (-> *pc-settings* unlimited-ammo?)) (<= (-> self current-shotgun-ammo) 0)) (not (should-reload?)) (time-elapsed? (-> self weapon-last-reload-time) shotgun-reload-loop-cooldown))
+        (go shotgun-reload-pump))
+      (suspend)))
+  :post
+  (behavior ()
+    (hl-weapons-common-post)
+    (update-aim-punch shotgun-aim-punch-decay)))
+
+(defstate shotgun-reload-pump (hl-weapons)
+  :event hl-weapons-standard-event-handler
+  :enter
+  (behavior ()
+    (viewmodel-play-animation (viewmodel-animations-enum shotgun-pump) 0.6)
+    (play-mod-sound "scock1")
+    (hl-choose-idle-wait! 5.0 15.0)
+    (go shotgun-idle))
+  :trans
+  (behavior ()
+    (shotgun-switch-handle))
+  :code
+  (behavior ()
+    (loop
+      (suspend)))
+  :post
+  (behavior ()
+    (hl-weapons-common-post)
+    (update-aim-punch shotgun-aim-punch-decay)))

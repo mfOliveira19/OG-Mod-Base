@@ -178,6 +178,9 @@ enum ViewmodelModels {
   crowbar = 0,
   pistol = 1,
   smg = 2,
+  gauss = 3,
+  revolver = 4,
+  shotgun = 5,
   MAX_MODEL
 };
 
@@ -203,18 +206,43 @@ enum ViewmodelAnimations {
   smg_shoot3 = 18,
   smg_reload = 19,
   smg_grenade = 20,
+  gauss_fidget = 21,
+  gauss_fire = 22,
+  gauss_fire2 = 23,
+  gauss_idle1 = 24,
+  gauss_idle2 = 25,
+  gauss_spin = 26,
+  gauss_spinup = 27,
+  holster = 28,
+  revolver_fidget = 29,
+  revolver_fire = 30,
+  revolver_idle1 = 31,
+  revolver_idle2 = 32,
+  revolver_idle3 = 33,
+  revolver_reload = 34,
+  shotgun_start_reload = 35,
+  shotgun_shoot_big = 36,
+  shotgun_shoot = 37,
+  shotgun_reload = 38,
+  shotgun_reholster = 39,
+  shotgun_pump = 40,
+  shotgun_idle4 = 41,
+  shotgun_deepidle = 42,
+  none = 43,
   MAX_ANIMATIONS
 };
 
 // Map enum to string
 static const std::array<const char*, MAX_ANIMATIONS> g_viewmodelAnimationNames = {
     "draw",
+    // Crowbar
     "attack1",
     "attack1miss",
     "attack2",
     "attack2hit",
     "attack3",
     "attack3hit",
+    // Pistol
     "idle1",
     "idle2",
     "idle3",
@@ -222,14 +250,40 @@ static const std::array<const char*, MAX_ANIMATIONS> g_viewmodelAnimationNames =
     "shoot_empty",
     "reload",
     "reload_noshot",
+    // SMG
     "idle1",
     "longidle",
     "shoot",
     "shoot_2",
     "shoot_3",
     "reload",
-    "grenade"
-};
+    "grenade",
+    // Gauss
+    "fidget",
+    "fire",
+    "fire2",
+    "idle1",
+    "idle2",
+    "spin",
+    "spinup",
+    "holster",
+    // Revolver
+    "fidget1",
+    "fire1",
+    "idle1",
+    "idle2",
+    "idle3",
+    "reload",
+    // Shotgun
+    "start_reload",
+    "shoot_big",
+    "shoot",
+    "reload",
+    "reholster",
+    "pump",
+    "idle4",
+    "deepidle"
+    };
 
 inline const char* viewmodelAnimationName(ViewmodelAnimations anim) {
   int idx = static_cast<int>(anim);
@@ -269,8 +323,8 @@ class Viewmodel {
   float fogIntensity() { return Gfx::g_global_settings.fog_intensity; };
   ViewmodelAnimations viewmodelActiveAnimation() {
     int val = Gfx::g_global_settings.viewmodel_active_animation;
-    if (val < 0 || val > smg_grenade) {
-      return draw;
+    if (val < 0 || val >= MAX_ANIMATIONS) {
+      return none;
     }
     return static_cast<ViewmodelAnimations>(val);
   }
@@ -303,6 +357,7 @@ class Viewmodel {
    float m_current_time = 0.0f;
    int m_active_animation = 0;
    bool m_playing_animation = false;
+   ViewmodelAnimations m_current_anim = ViewmodelAnimations::draw;
 
    // Skeleton
    Skeleton m_skeleton;
@@ -334,8 +389,4 @@ class Viewmodel {
    float m_muzzle_flash_duration = 0.040f;
    GLuint m_muzzle_flash_texture_current = 0;
    math::Vector3f m_muzzle_flash_local;
-
-  // Helper
-  //void draw_muzzle_flash(const math::Matrix4f& view_proj);
-  //void trigger_muzzle_flash(ViewmodelAnimations anim);
 };

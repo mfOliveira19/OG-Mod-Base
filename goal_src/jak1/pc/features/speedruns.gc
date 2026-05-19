@@ -9,6 +9,14 @@
 
 (define-extern *mod-version-text* string)
 
+;; Added for hl mod
+(define-extern start-all-weapons-and-max-ammo (function none))
+(define-extern start-no-weapons (function none))
+(define-extern start-weapons-sandover-il (function none))
+(define-extern start-weapons-jungle-il (function none))
+(define-extern start-weapons-beach-il (function none))
+(define-extern start-weapons-misty-il (function none))
+
 (define *hub1-cell-list*
   (new 'static
        'boxed-array
@@ -282,29 +290,44 @@
     (set! (-> *speedrun-info* needs-post-blackout-setup?) #f)
     (case (-> *speedrun-info* category)
       (((speedrun-category full-game))
+       ;; Added for hl mod - Start with no weapons and spawn pickups
+       (start-no-weapons)
        ;; skip intro cutscene
        (close-specific-task! (game-task intro) (task-status need-resolution)))
       (((speedrun-category il-training))
+       ;; Added for hl mod
+       (start-no-weapons)
        ;; skip intro cutscene
        (close-specific-task! (game-task intro) (task-status need-resolution))
        (mark-text-as-seen *game-info* (text-id training-level-name)))
       (((speedrun-category il-village1))
+       ;; Added for hl mod
+       (start-weapons-sandover-il)
        ;; give enough orbs to buy all cells 120+120+90+90=420
        (set! (-> *game-info* money-total) 420.0)
        (set! (-> *game-info* money) 420.0)
        (mark-text-as-seen *game-info* (text-id village1-level-name)))
       (((speedrun-category il-beach))
+       ;; Added for hl mod
+       (start-weapons-beach-il)
        ;; unlock blue eco vent
        (close-specific-task! (game-task jungle-eggtop) (task-status need-resolution))
        (send-event *target* 'get-pickup (pickup-type fuel-cell) (the float (game-task jungle-eggtop)))
        (mark-text-as-seen *game-info* (text-id beach-level-name)))
-      (((speedrun-category il-jungle)) (mark-text-as-seen *game-info* (text-id jungle-level-name)))
+      (((speedrun-category il-jungle)) 
+       ;; Added for hl mod
+       (start-weapons-jungle-il)
+        (mark-text-as-seen *game-info* (text-id jungle-level-name)))
       (((speedrun-category il-misty))
+       ;; Added for hl mod
+       (start-weapons-misty-il)
        ;; unlock fisherman's boat
        (close-specific-task! (game-task jungle-fishgame) (task-status need-resolution))
        (send-event *target* 'get-pickup (pickup-type fuel-cell) (the float (game-task jungle-fishgame)))
        (mark-text-as-seen *game-info* (text-id misty-level-name)))
       (((speedrun-category il-firecanyon))
+       ;; Added for hl mod
+       (start-all-weapons-and-max-ammo)
        ;; skip keira intro cutscene
        (close-specific-task! (game-task firecanyon-assistant) (task-status need-reward-speech))
        ;; unlock upgraded suit
@@ -314,18 +337,27 @@
        (send-event *target* 'get-pickup (pickup-type fuel-cell) (the float (game-task jungle-eggtop)))
        (mark-text-as-seen *game-info* (text-id firecanyon-level-name)))
       (((speedrun-category il-village2))
+       ;; Added for hl mod
+       (start-all-weapons-and-max-ammo)
        ;; give enough orbs to buy all cells 120+120+90+90+90=510
        (set! (-> *game-info* money-total) 510.0)
        (set! (-> *game-info* money) 510.0)
        (mark-text-as-seen *game-info* (text-id village2-level-name)))
-      (((speedrun-category il-sunken)) (mark-text-as-seen *game-info* (text-id sunken-level-name)))
+      (((speedrun-category il-sunken)) 
+       ;; Added for hl mod
+       (start-all-weapons-and-max-ammo)
+      (mark-text-as-seen *game-info* (text-id sunken-level-name)))
       (((speedrun-category il-swamp))
+       ;; Added for hl mod
+       (start-all-weapons-and-max-ammo)
        ;; unlock flutflut
        (close-specific-task! (game-task beach-flutflut) (task-status need-resolution))
        (close-specific-task! (game-task village2-levitator) (task-status need-introduction))
        (send-event *target* 'get-pickup (pickup-type fuel-cell) (the float (game-task beach-flutflut)))
        (mark-text-as-seen *game-info* (text-id swamp-level-name)))
       (((speedrun-category il-rolling))
+       ;; Added for hl mod
+       (start-all-weapons-and-max-ammo)
        ;; unlock zoomer
        (close-specific-task! (game-task village2-levitator) (task-status need-introduction))
        ;; unlock DMG
@@ -334,6 +366,8 @@
        (close-specific-task! (game-task rolling-moles) (task-status need-introduction))
        (mark-text-as-seen *game-info* (text-id rolling-level-name)))
       (((speedrun-category il-ogre))
+       ;; Added for hl mod
+       (start-all-weapons-and-max-ammo)
        ;; skip klaww intro cutscene
        (close-specific-task! (game-task ogre-boss) (task-status need-hint))
        ;; unlock yellow eco vent
@@ -341,11 +375,15 @@
        (send-event *target* 'get-pickup (pickup-type fuel-cell) (the float (game-task snow-eggtop)))
        (mark-text-as-seen *game-info* (text-id ogre-level-name)))
       (((speedrun-category il-village3))
+       ;; Added for hl mod
+       (start-all-weapons-and-max-ammo)
        ;; give enough orbs to buy all cells 120+120+90+90+90+90=600
        (set! (-> *game-info* money-total) 600.0)
        (set! (-> *game-info* money) 600.0)
        (mark-text-as-seen *game-info* (text-id village3-level-name)))
       (((speedrun-category il-snow))
+       ;; Added for hl mod
+       (start-all-weapons-and-max-ammo)
        ;; unlock flutflut
        (close-specific-task! (game-task beach-flutflut) (task-status need-resolution))
        (send-event *target* 'get-pickup (pickup-type fuel-cell) (the float (game-task beach-flutflut)))
@@ -353,17 +391,23 @@
        (close-specific-task! (game-task village3-button) (task-status need-introduction))
        (mark-text-as-seen *game-info* (text-id snow-level-name)))
       (((speedrun-category il-cave))
+       ;; Added for hl mod
+       (start-all-weapons-and-max-ammo)
        ;; unlock yellow eco vent
        (close-specific-task! (game-task snow-eggtop) (task-status need-resolution))
        (send-event *target* 'get-pickup (pickup-type fuel-cell) (the float (game-task snow-eggtop)))
        (mark-text-as-seen *game-info* (text-id cave-level-name)))
       (((speedrun-category il-lavatube))
+       ;; Added for hl mod
+       (start-all-weapons-and-max-ammo)
        ;; skip keira intro cutscene
        (close-specific-task! (game-task lavatube-start) (task-status need-reward-speech))
        ;; unlock upgraded suit
        (set! (-> *game-info* total-deaths) 2)
        (mark-text-as-seen *game-info* (text-id lavatube-level-name)))
       (((speedrun-category il-citadel))
+       ;; Added for hl mod
+       (start-all-weapons-and-max-ammo)
        ;; remove invisible wall
        (close-specific-task! (game-task lavatube-end) (task-status need-resolution))
        (send-event *target* 'get-pickup (pickup-type fuel-cell) (the float (game-task lavatube-end)))
@@ -371,6 +415,8 @@
        (close-specific-task! (game-task village4-button) (task-status need-reward-speech))
        (mark-text-as-seen *game-info* (text-id citadel-level-name)))
       (((speedrun-category new-game-plus))
+       ;; Added for hl mod - Start with all weapons and max ammo
+       (start-all-weapons-and-max-ammo)
        ;; skip intro cutscene
        (close-specific-task! (game-task intro) (task-status need-resolution))
        ;; unlock hub1 cells
@@ -386,9 +432,13 @@
          (close-specific-task! (-> *hub3-cell-list* idx) (task-status need-resolution))
          (send-event *target* 'get-pickup (pickup-type fuel-cell) (the float (-> *hub3-cell-list* idx)))))
       (((speedrun-category hub1-100))
+       ;; Added for hl mod - Start with no weapons and spawn pickups
+       (start-no-weapons)
        ;; skip intro cutscene
        (close-specific-task! (game-task intro) (task-status need-resolution)))
       (((speedrun-category hub2-100))
+       ;; Added for hl mod - Start with all weapons and max ammo
+       (start-all-weapons-and-max-ammo)
        ;; skip intro cutscene
        (close-specific-task! (game-task intro) (task-status need-resolution))
        ;; unlock hub1 cells
@@ -400,6 +450,8 @@
        (set! (-> *game-info* money) 180.0) ;; 50+50+150+150+150+50 - (90+90+120+120)
        )
       (((speedrun-category hub3-100))
+       ;; Added for hl mod - Start with all weapons and max ammo
+       (start-all-weapons-and-max-ammo)
        ;; skip intro cutscene
        (close-specific-task! (game-task intro) (task-status need-resolution))
        ;; unlock hub1 cells
@@ -415,6 +467,8 @@
        (set! (-> *game-info* money) 370.0) ;; 50+50+150+150+150+50 - (90+90+120+120) + 50+200+200+200+50 - (90+90+90+120+120)
        )
       (((speedrun-category all-cutscenes))
+       ;; Added for hl mod - Start with no weapons and spawn pickups
+       (start-no-weapons)
        ;; no post-blackout actions needed
        )
       (else

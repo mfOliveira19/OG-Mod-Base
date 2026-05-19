@@ -62,9 +62,9 @@ This behavior was replicated here by only transitioning from movement-ground to 
 
 A small change was made to target collision to be closer to Half-Life’s player collision. Half-Life uses a box for player collision, while Jak uses three spheres, which can cause sliding when standing on edges. To improve this, I added four spheres at the bottom to flatten the collision shape, and it significantly improved the behavior. Since i could only add 3 more spheres, i had to move the middle sphere to the bottom to make it 4.
 
-### Controls
+## Controls
 
-It is recommended to use keyboard and mouse. Some controls can be rebound, but controller controls cannot.
+It is recommended to use keyboard and mouse. Some controls can be rebound, but controller controls cannot. There is a ``Controller Mode`` setting which enables aiming with the controller and changes the ``double jump`` key to ``X``. 
 
 Default keyboard and controller controls:
 <ul>
@@ -83,6 +83,10 @@ Default keyboard and controller controls:
   <li>Shift / L3</li>
   <ul>
     <li>Walks</li>
+  </ul>
+  <li>Shift / X</li>
+  <ul>
+    <li>Double Jump (in air)</li>
   </ul>
   <li>E / Circle</li>
   <ul>
@@ -128,24 +132,68 @@ Default keyboard and controller controls:
 
 It was also added settings for jumping and ducking using the mouse wheel.
 
+## Additional Movement
+
+In order to better navigate around the levels without needing grenade jumps, it was added ``double jump``, ``duck high jump``, ``edge grab`` and ``pole grab``.
+
+### Double jump
+To double jump, use the ``Walk`` key while in the air. In ``Controller Mode`` it is ``X``. It is not possible to double jump after a grenade jump.
+
+### Duck high jump
+Use ``duck + jump`` when horizontal velocity is below 3.
+
+### Edge grab
+Similar detection to vanilla, but requires holding the ``jump`` key for the detection to work.
+
+### Pole grab
+While in pole grab state, press ``jump`` to jump in the direction the camera is looking.
+
+## Debug And Speedrun Mode Controls
+
 In debug mode, to open the debug menu use ``. + ESC``, ``arrow keys`` to navigate and ``ENTER`` and ``BACKSPACE`` to select and return. In debug mode there is also a method of setting custom checkpoints for practice, use `TAB + ENTER` to set a checkpoint and `TAB + BACKSPACE` to load.
 
 In speedrunner mode use `BACKSPACE + ESC` to open the speedrunner menu.
 
-### Weapons
+## Weapons
 
 The shooting mechanics consist of using ``fill-and-probe-using-line-sphere`` which casts a line from the center of our camera to a fixed range. When firing, a projectile is spawned at the collision point of the probe (basically, it creates small yellow eco fireballs at where we are aiming).
 
-Currently, only 3 weapons are implemented. They are drawn using a new renderer which is  ``viewmodel`` and all their animation stuff and logic are in a new process called ``hl-weapons`` which contains the behavior of all the weapons such as reload time, firerate, switching weapons, etc. Also, ammo is unlimited.
+The weapons are drawn using a new renderer which is  ``viewmodel`` and all their animation stuff and logic are in a new process called ``hl-weapons`` which contains the behavior of all the weapons such as reload time, firerate, switching weapons, etc.
 
-#### Crowbar
+### Crowbar
 
-The crowbar works the same as shooting with the other weapons except it has far less range and creates a bigger projectile where it connects. It also deals double the damage as the other weapons except the grenades.
+The crowbar works the same as shooting with the other weapons except it has far less range and creates a bigger projectile where it connects. Deals 60 damage.
 
-#### Pistol
+### Pistol
 
-Deals the same damage as the SMG but has higher accuracy. It also has a secondary attack with higher fire rate but less accuracy.
+Deals 20 damage but has perfect accuracy. It also has a secondary attack with higher fire rate but less accuracy.
 
-#### SMG
+### SMG
 
 Same damage as the pistol, less accuracy but higher firerate. Its secondary attack is the grenade launcher which deals the most damage, but its most useful function is the grenade jump which is needed in order to perform most of the jumps to be able to progress in the game. The grenade is basically a bomb from the cannons of the vanilla game but with changes to its gravity and a new model.
+
+### Shotgun
+Fires 6 pellets that deal 10 damage each. It has a secondary attack that fires double the pellets. Can be used to break metal boxes.
+
+### 357 Revolver
+Deals 60 damage and has perfect accuracy. Can also be used to break metal boxes.
+
+### Gauss/Tau Cannon
+Primary attack deals 20 damage. Secondary attack charges the weapon to deal a maximum of 200 damage after 4 seconds. A full charge counts as an explosion which can break metal boxes and kill the pelican. The secondary attack also has a recoil which can be used for speed boosts.
+
+### Weapon and Ammo pickups
+
+We only start with the crowbar, all the other weapons are collectables scattered throughout HUB 1. Ammo is dropped by the normal crates that provide random health. It is checked which weapons the player currently owns, evaluates the current ammo ratio for each valid ammo type (current ammo divided by maximum capacity), and assigns higher drop probability to ammo types the player is low on. Weapons the player does not own are ignored entirely. If the player is already full on every ammo type, it falls back to a fully random owned ammo selection.
+
+There are settings for infinite ammo and all weapons to provide behavior similar to how the mod worked prior to `1.0.0`.
+
+## Ecos
+
+#### Blue Eco
+Blue Eco is similar to vanilla, it increases the max speed.
+
+#### Yellow Eco
+Yellow Eco causes shots to behave like Yellow Eco fireballs, allowing the player to break objectives, hit bosses, and destroy metal crates. While the player has Yellow Eco, ammo is unlimited so objectives can always be hit even when the player has no ammo.
+
+#### Red Eco
+Red Eco doubles the damage of each shot.

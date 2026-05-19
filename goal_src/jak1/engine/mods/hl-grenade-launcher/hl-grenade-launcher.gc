@@ -498,6 +498,7 @@
     (set! (-> s5-0 vel) arg2)
     (set! (-> s5-0 rotate) arg3)
     (set! (-> s5-0 blast-radius) arg6)
-    (process-spawn smg-grenade s5-0 arg7 :to arg0))
+    (process-spawn smg-grenade s5-0 arg7 :to arg0)
+    )
   0
   (none))

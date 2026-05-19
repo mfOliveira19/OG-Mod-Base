@@ -3,6 +3,9 @@
 (bundles "JUN.DGO")
 (require "engine/common-obs/nav-enemy.gc")
 
+;; Added for hl mod
+(define-extern spawn-hl-hit-part (function none))
+
 ;; DECOMP BEGINS
 
 (defskelgroup *junglesnake-sg*
@@ -102,7 +105,8 @@
          (else
           (do-push-aways! (-> self root))
           (send-event arg0 'shove (-> arg3 param 0) (static-attack-info ((shove-back (meters 2)) (shove-up (meters 0.5)))))))))
-    (('attack-hl) 
+    (('attack-hl)
+      (spawn-hl-hit-part)
       (let ((damage (the-as int8 (-> arg3 param 4))))
           (-! (-> self health) damage)
           (-> arg3 param 1)

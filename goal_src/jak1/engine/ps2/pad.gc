@@ -239,18 +239,20 @@
 
 (defun cpad-set-buzz! ((pad cpad-info) (buzz-idx int) (buzz-amount int) (duration time-frame))
   "Turn on vibration motor 'buzz-idx' for duration, at magnitude buzz-amount."
-  (cond
-    ((zero? buzz-amount)
-     ;; set buzz-amount to 0, immediately kill it.
-     (set! (-> pad buzz-val buzz-idx) 0))
-    ((= buzz-amount (-> pad buzz-val buzz-idx))
-     ;; we are already buzzing at this intensity.
-     ;; buzz for max (old_buzz, new_buzz) duration
-     (set! (-> pad buzz-time buzz-idx) (max (-> pad buzz-time buzz-idx) (+ (get-current-time) duration))))
-    ((< (-> pad buzz-val buzz-idx) (the-as uint buzz-amount))
-     ;; buzz harder than the older value, overwrite the old buzz.
-     (set! (-> pad buzz-val buzz-idx) buzz-amount)
-     (set! (-> pad buzz-time buzz-idx) (+ (get-current-time) duration))))
+  ;; Changed for hl mod - So the controller doesnt vibrate when were are not in controller mode
+  (when (-> *pc-settings* controller-aim?)
+    (cond
+      ((zero? buzz-amount)
+      ;; set buzz-amount to 0, immediately kill it.
+      (set! (-> pad buzz-val buzz-idx) 0))
+      ((= buzz-amount (-> pad buzz-val buzz-idx))
+      ;; we are already buzzing at this intensity.
+      ;; buzz for max (old_buzz, new_buzz) duration
+      (set! (-> pad buzz-time buzz-idx) (max (-> pad buzz-time buzz-idx) (+ (get-current-time) duration))))
+      ((< (-> pad buzz-val buzz-idx) (the-as uint buzz-amount))
+      ;; buzz harder than the older value, overwrite the old buzz.
+      (set! (-> pad buzz-val buzz-idx) buzz-amount)
+      (set! (-> pad buzz-time buzz-idx) (+ (get-current-time) duration)))))
   (none))
 
 ;; the four controllers

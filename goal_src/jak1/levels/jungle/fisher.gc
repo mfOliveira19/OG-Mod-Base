@@ -9,6 +9,8 @@
 
 ;; DECOMP BEGINS
 
+(define-extern tp-jak (function float float float float))
+
 (deftype fisher-bank (basic)
   ((width      meters)
    (net-radius meters)
@@ -784,8 +786,8 @@
   (none))
 
 (defbehavior fisher-fish-move fisher-fish ()
-  ;; Normal speed when using controller aiming
-  (+! (-> self pos) (* (-> self vel) (if (-> *pc-settings* controller-aim?) 1.0 1.6) (seconds-per-frame)))
+  ;; Normal speed when using CONTROLLER MODE
+  (+! (-> self pos) (* (-> self vel) (if (or (-> *pc-settings* controller-aim?) (not (check-pistol-owned))) 1.0 1.6) (seconds-per-frame)))
   (eval-path-curve-div! (-> (the-as fisher (-> self parent 0)) path) (-> self root trans) (-> self pos) 'interp)
   (path-control-method-12 (-> (the-as fisher (-> self parent 0)) path) (-> self dir) (-> self pos))
   (seek-toward-heading-vec! (-> self root) (-> self dir) 291271.12 (seconds 0.2))
@@ -913,7 +915,7 @@
       (set! (-> s3-0 prim-core action) (collide-action solid))
       (set! (-> s3-0 prim-core offense) (collide-offense touch))
       (set! (-> s3-0 transform-index) 3)
-      ;; Hitbox size is bigger when using controller aiming
+      ;; Hitbox size is bigger when using CONTROLLER MODE
       (let ((fish-sphere-size 3276.8))
         (set-vector! (-> s3-0 local-sphere) 0.0 0.0 0.0 
           (if (-> *pc-settings* controller-aim?)
@@ -1337,7 +1339,9 @@
     (behavior ()
       (set-blackout-frames (seconds 0.017))
       (if (send-event *target* 'change-mode 'fishing self) (go fisher-playing))
-      (send-event *hl-weapons* 'change-mode 'fishing self)))
+      (if (check-pistol-owned)
+        (send-event *hl-weapons* 'change-mode 'fishing self)
+        (send-event *hl-weapons* 'go-draw-crowbar 0 self))))
 
 ;; og:preserve-this pc port needs its own implementation of play-anim for cutscene skipping
 (#when PC_PORT
@@ -1597,7 +1601,10 @@
       (set-zero! (-> self control unknown-smush00))
       (set! (-> self control temp-flop-end-checks) (the-as uint #f))
       (send-event *camera* 'set-rotation (degrees -260.0))
-      (set-camera-pitch -0.2))
+      (set-camera-pitch -0.2)
+      #|(unless (check-pistol-owned)
+        (go target-hl-movement-ground))|#
+        )
   :exit
     (behavior ()
       (logclear! (-> self state-flags) (state-flags invulnerable))
@@ -1609,12 +1616,14 @@
   :code
     (behavior ((arg0 handle))
       ;; This is what positions the target when the fishing game starts
-      (set-vector! (-> self control trans) 1067827.2 9420.8 -955596.8 1.0)
-
+      (if (check-pistol-owned)
+        (set-vector! (-> self control trans) 1067827.2 9420.8 -955596.8 1.0)
+        (tp-jak 258.82 -0.92 -233.50))
       (loop
-      (suspend)))
-  :post 
-    target-post)
+        (suspend)))
+  :post
+    (behavior ()
+      (if (check-pistol-owned) (target-post) (target-hl-movement-post))))
 
 (defstate target-fishing (target)
   :event

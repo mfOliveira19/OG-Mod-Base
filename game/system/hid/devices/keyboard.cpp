@@ -134,6 +134,7 @@ void KeyboardDevice::poll_state(std::shared_ptr<PadData> data) {
   m_key_status.arrow_up = keyboard_state[SDL_SCANCODE_UP];
   m_key_status.period = keyboard_state[SDL_SCANCODE_PERIOD];
   m_key_status.tab = keyboard_state[SDL_SCANCODE_TAB];
+  m_key_status.comma = keyboard_state[SDL_SCANCODE_COMMA];
 }
 
 void KeyboardDevice::clear_actions(std::shared_ptr<PadData> data) {
@@ -164,7 +165,7 @@ void KeyboardDevice::process_event(const SDL_Event& event,
       }
       // We do not allow rebinding these keys
       if (key_event.key == SDLK_RETURN || key_event.key == SDLK_ESCAPE || key_event.key == SDLK_1 ||
-          key_event.key == SDLK_2 || key_event.key == SDLK_3) {
+          key_event.key == SDLK_2 || key_event.key == SDLK_3 || key_event.key == SDLK_4) {
         return;
       }
 

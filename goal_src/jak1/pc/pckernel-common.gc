@@ -2,6 +2,10 @@
 (in-package goal)
 (require "engine/gfx/sprite/sparticle/sparticle-launcher.gc")
 
+;; Added for hl mod
+(define-extern kill-hl-weapons-collectable (function none))
+(define-extern spawn-hl-weapons-collectable (function none))
+
 #|
   This file contains new code that we need for the PC port of the game specifically.
   It should be included as part of the game engine package (engine.cgo).
@@ -530,6 +534,9 @@
     (("show-speed?") (set! (-> obj show-speed?) (file-stream-read-symbol file))) ;; added for hl mod
     (("controller-aim?") (set! (-> obj controller-aim?) (file-stream-read-symbol file))) ;; added for hl mod
     (("controller-sens") (set! (-> obj controller-sens) (file-stream-read-float file))) ;; added for hl mod
+    (("all-weapons?") (set! (-> obj all-weapons?) (file-stream-read-symbol file))) ;; added for hl mod
+    (("unlimited-ammo?") (set! (-> obj unlimited-ammo?) (file-stream-read-symbol file))) ;; added for hl mod
+    (("show-enemy-hit-part?") (set! (-> obj show-enemy-hit-part?) (file-stream-read-symbol file))) ;; added for hl mod
     (("mouse-movement?") (set! (-> obj mouse-movement?) (file-stream-read-symbol file)))
     (("auto-hide-cursor?") (set! (-> obj auto-hide-cursor?) (file-stream-read-symbol file)))
     (("ps2-read-speed?") (set! (-> obj ps2-read-speed?) (file-stream-read-symbol file)))
@@ -618,6 +625,9 @@
   (format file "  (show-speed? ~A)~%" (-> obj show-speed?)) ;; added for hl mod
   (format file "  (controller-aim? ~A)~%" (-> obj controller-aim?)) ;; added for hl mod
   (format file "  (controller-sens ~f)~%" (-> obj controller-sens)) ;; added for hl mod
+  (format file "  (all-weapons? ~A)~%" (-> obj all-weapons?)) ;; added for hl mod
+  (format file "  (unlimited-ammo? ~A)~%" (-> obj unlimited-ammo?)) ;; added for hl mod
+  (format file "  (show-enemy-hit-part? ~A)~%" (-> obj show-enemy-hit-part?)) ;; added for hl mod
   (format file "  (mouse-ysens ~f)~%" (-> obj mouse-ysens))
   (format file "  (mouse-ysens ~f)~%" (-> obj mouse-ysens))
   (format file "  (mouse-movement? ~A)~%" (-> obj mouse-movement?))

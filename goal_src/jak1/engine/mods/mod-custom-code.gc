@@ -54,10 +54,6 @@
                (= st 'target-hl-clone-anim)
                (on-zoomer?))))))
 
-(defun target-sleeping? ()
-  (nonzero? (logand (-> *target* mask)
-                    (process-mask sleep))))
-
 (defun show-viewmodel-and-hud ()
   (logclear! (-> *hl-weapons* mask) (process-mask sleep))
   (hud-hl-display-on)
@@ -131,10 +127,11 @@
   (when (on-zoomer?)
     (send-event *camera* 'change-state cam-string 0))
 
-  ;; Handle input and new hints when not paused
+  (unless (or (= (-> *target* state name) 'target-warp-in) (-> *pc-settings* controller-aim?)) (update-mouse-input-stuff))
+
+  ;; Handle new hints when not paused
   (when (and (not (paused?)) (not (target-sleeping?)))
     (hud-hl-display-on)
-    (unless (or (= (-> *target* state name) 'target-warp-in) (-> *pc-settings* controller-aim?)) (update-mouse-input-stuff))
     (update-cell-suit-upgrade-status)
     (update-suit-upgrade-message))
 
@@ -274,6 +271,21 @@
     (set! *last-duck-time* 0)
     (set! *last-step-time* 0)
     (set! *hl-target-explosion-invinc-time* 0)
+    (set! *edge-grab-enter-time* 0)
+    (set! *high-jump-enter-time* 0)
+    (kill-by-name "hl-ammo-collectable" *active-pool*)
+    (unless (or (-> *pc-settings* all-weapons?) (string= (-> *game-info* current-continue name) "title-start"))
+      (kill-hl-weapons-collectable)
+      (spawn-hl-weapons-collectable))
+    (when (or 
+      (string= (-> *game-info* current-continue name) "training-warp")
+      (and (string= (-> *game-info* current-continue name) "village1-warp") (is-speedrun-category? 'new-game-plus))
+      (string= (-> *game-info* current-continue name) "village2-warp")
+      (string= (-> *game-info* current-continue name) "village3-warp")
+      (string= (-> *game-info* current-continue name) "citadel-warp"))
+      (set! *do-180?* #t)
+    )
+
     ;; This is what allows us to do the % warp when doing LTS to get the suit upgrade
     (when (and (string= (-> *game-info* current-continue name) "lavatube-middle") (< (-> *game-info* total-deaths) 3))
       (set! (-> *game-info* total-deaths) 2))

@@ -650,6 +650,7 @@
                         (= v1-2 (progress-screen mod-keyboard-binds)) ;; Added for hl mod
                         (= v1-2 (progress-screen mod-graphic)) ;; Added for hl mod
                         (= v1-2 (progress-screen mod-sound)) ;; Added for hl mod
+                        (= v1-2 (progress-screen mod-cheats)) ;; Added for hl mod
                         )))))))
 
 (defmethod visible? ((this progress))

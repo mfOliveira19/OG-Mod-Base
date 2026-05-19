@@ -1665,6 +1665,16 @@
 ;; to also generate a collide-mesh, add :gen-mesh #t
 (build-actor "test-actor" :gen-mesh #t)
 (build-actor "smg-grenade")
+(build-actor "smg-grenade-ammo")
+(build-actor "pistol-clip")
+(build-actor "shotgun-ammo")
+(build-actor "revolver-ammo")
+(build-actor "gauss-ammo")
+(build-actor "pistol-pickup")
+(build-actor "smg-pickup")
+(build-actor "revolver-pickup")
+(build-actor "shotgun-pickup")
+(build-actor "gauss-pickup")
 
 (build-custom-level "crossfire")
 ;; the DGO file
@@ -2132,9 +2142,14 @@
 (goal-src "engine/mods/hl-projectiles/hl-weapon-shot.gc")
 (goal-src "engine/mods/hl-grenade-launcher/hl-grenade-launcher.gc")
 (goal-src "engine/mods/hl-weapons/hl-weapons.gc")
+(goal-src "engine/mods/hl-collectables/hl-ammo-collectable.gc")
+(goal-src "engine/mods/hl-collectables/hl-weapon-collectable.gc")
 (goal-src "engine/mods/hl-weapons/hl-weapons-crowbar.gc")
 (goal-src "engine/mods/hl-weapons/hl-weapons-pistol.gc")
 (goal-src "engine/mods/hl-weapons/hl-weapons-smg.gc")
+(goal-src "engine/mods/hl-weapons/hl-weapons-gauss.gc")
+(goal-src "engine/mods/hl-weapons/hl-weapons-revolver.gc")
+(goal-src "engine/mods/hl-weapons/hl-weapons-shotgun.gc")
 
 (group-list "all-code"
   `(,@(reverse *all-gc*))

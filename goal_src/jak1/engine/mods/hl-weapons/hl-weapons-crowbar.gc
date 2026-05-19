@@ -7,29 +7,87 @@
 (defconstant crowbar-draw-duration (seconds 0.5))
 
 (defbehavior crowbar-switch-handle hl-weapons ()
+  ;; Pistol or Revolver
   (when (and (should-switch-slot2?)
-             (time-elapsed? (-> self weapon-last-switch-time) weapon-switch-cooldown)
-             (not (= (-> self current-weapon) (weapons-enum pistol))))
+             (time-elapsed? (-> self weapon-last-switch-time) weapon-switch-cooldown))
     (set-time! (-> self weapon-last-switch-time))
-    (set! (-> self last-weapon) (weapons-enum crowbar))
-    (go pistol-draw))
+
+    (if (and (check-weapon-owned (owned-weapons pistol)) (not (= (-> self current-weapon) (weapons-enum pistol))))
+      (begin (set! (-> self last-weapon) (weapons-enum crowbar)) (go pistol-draw))
+      (begin (when (and (check-weapon-owned (owned-weapons revolver)) (not (= (-> self current-weapon) (weapons-enum revolver))))
+          (set! (-> self last-weapon) (weapons-enum crowbar))
+          (go revolver-draw))
+      )
+    )
+  )
+  ;; SMG or Shotgun
   (when (and (should-switch-slot3?)
+             (time-elapsed? (-> self weapon-last-switch-time) weapon-switch-cooldown))
+    (set-time! (-> self weapon-last-switch-time))
+
+    (if (and (check-weapon-owned (owned-weapons smg)) (not (= (-> self current-weapon) (weapons-enum smg))))
+      (begin (set! (-> self last-weapon) (weapons-enum crowbar)) (go smg-draw))
+      (begin (when (and (check-weapon-owned (owned-weapons shotgun)) (not (= (-> self current-weapon) (weapons-enum shotgun))))
+          (set! (-> self last-weapon) (weapons-enum crowbar))
+          (go shotgun-draw))
+      )
+    )
+  )
+  ;; Gauss
+  (when (and (should-switch-slot4?)
              (time-elapsed? (-> self weapon-last-switch-time) weapon-switch-cooldown)
-             (not (= (-> self current-weapon) (weapons-enum smg))))
+             (not (= (-> self current-weapon) (weapons-enum gauss)))
+             (check-weapon-owned (owned-weapons gauss)))
     (set-time! (-> self weapon-last-switch-time))
     (set! (-> self last-weapon) (weapons-enum crowbar))
-    (go smg-draw))
+    (go gauss-draw))
   (when (and (should-switch-last-weapon?)
              (time-elapsed? (-> self weapon-last-switch-time) weapon-switch-cooldown)
              (not (= (-> self current-weapon) (-> self last-weapon))))
     (set-time! (-> self weapon-last-switch-time))
     (case (-> self last-weapon)
       (((weapons-enum pistol))
-        (set! (-> self last-weapon) (weapons-enum crowbar))
-        (go pistol-draw))
+        (when (check-weapon-owned (owned-weapons pistol))
+          (set! (-> self last-weapon) (weapons-enum crowbar))
+          (go pistol-draw))
+      )
+      (((weapons-enum revolver))
+        (when (check-weapon-owned (owned-weapons revolver))
+          (set! (-> self last-weapon) (weapons-enum crowbar))
+          (go revolver-draw))
+      )
       (((weapons-enum smg))
-        (set! (-> self last-weapon) (weapons-enum crowbar))
-        (go smg-draw)))))
+        (when (check-weapon-owned (owned-weapons smg))
+          (set! (-> self last-weapon) (weapons-enum crowbar))
+          (go smg-draw))
+      )
+      (((weapons-enum shotgun))
+        (when (check-weapon-owned (owned-weapons shotgun))
+          (set! (-> self last-weapon) (weapons-enum crowbar))
+          (go shotgun-draw))
+      )
+      (((weapons-enum gauss))
+        (when (check-weapon-owned (owned-weapons gauss))
+          (set! (-> self last-weapon) (weapons-enum crowbar))
+          (go gauss-draw))
+      ))))
+
+(defstate crowbar-holster (hl-weapons)
+  :event hl-weapons-standard-event-handler
+  :enter
+  (behavior ()
+    (viewmodel-play-animation (viewmodel-animations-enum holster) 5.0))
+  :trans
+   (behavior ()
+   (when (should-use?) (go crowbar-draw))
+   )
+  :code
+  (behavior ()
+    (loop (suspend)))
+  :post
+  (behavior ()
+    (hl-weapons-common-post)
+    (update-aim-punch 0.1)))
 
 (defstate crowbar-draw (hl-weapons)
   :event hl-weapons-standard-event-handler
@@ -48,6 +106,7 @@
     (loop (suspend)))
   :post
   (behavior ()
+    (hl-weapons-common-post)
     (update-aim-punch 0.1)))
 
 (defstate crowbar-idle (hl-weapons)
@@ -66,6 +125,7 @@
     (loop (suspend)))
   :post
   (behavior ()
+    (hl-weapons-common-post)
   )
 )
 
@@ -92,6 +152,9 @@
   :code
   (behavior ()
     (loop (suspend)))
+  :post
+  (behavior ()
+    (hl-weapons-common-post))
 )
 
 (defstate crowbar-attack-hit (hl-weapons)
@@ -131,4 +194,7 @@
   :code
   (behavior ()
     (loop (suspend)))
+  :post
+  (behavior ()
+    (hl-weapons-common-post))
 )

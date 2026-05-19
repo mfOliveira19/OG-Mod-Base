@@ -133,12 +133,13 @@
      (save-and-load-game)
      (memcard-saving-and-loading)
      (memcard-data-exists-save-and-load)
-     (mod-options) ;; Added for hl mod - a dedicated screen for the mod options
+     (mod-options) ;; Added for hl mod - a dedicated screen for the MOD MENU
      (mod-game) ;; Added for hl mod
      (mod-input) ;; Added for hl mod
      (mod-graphic) ;; Added for hl mod
      (mod-sound) ;; Added for hl mod
      (mod-keyboard-binds) ;; Added for hl mod
+     (mod-cheats) ;; Added for hl mod
      ;; the last one!
      (max))
    (defenum game-option-type

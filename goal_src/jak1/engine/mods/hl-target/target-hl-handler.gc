@@ -147,19 +147,14 @@
 
           (if (> dy -7000.0)
               (begin
-              (set! (-> dir y)
-                    (* vertical-strength 0.5))
+                (set! (-> dir y)
+                      (* vertical-strength 0.5))
               )
               (begin
-              (set! (-> dir y) (- (* vertical-strength 0.5)))
+                (set! (-> dir y) (- (* vertical-strength 0.5)))
               ))
 
-          (when (> (-> dir y) 0)
-            ;; to avoid the invulnerability glitch but to still be able to go the air state after we gain height from grenade
-            (when (logtest? (-> self state-flags) (state-flags being-attacked))
-              (logclear! (-> self state-flags) (state-flags being-attacked)))
-            (when (> (-> self fact health) 0.0)
-              (if (should-duck?) (go target-hl-movement-air-duck) (go target-hl-movement-air))))
+
 
           (let* ((base-force 100000.0)
                 (len (max 0.25 (vector-length dir)))
@@ -171,7 +166,14 @@
             (vector+! (-> self control transv)
                       (-> self control transv)
                       (vector-float*! (new-stack-vector0) dir scaled-force)))
-
+          (when (> (-> dir y) 0)
+            ;; We cant double jump after we are hit with the grenade
+            (set! *can-double-jump?* #f)
+            ;; to avoid the invulnerability glitch but to still be able to go the air state after we gain height from grenade
+            (when (logtest? (-> self state-flags) (state-flags being-attacked))
+              (logclear! (-> self state-flags) (state-flags being-attacked)))
+            (when (> (-> self fact health) 0.0)
+              (if (should-duck?) (go target-hl-movement-air-duck) (go target-hl-movement-air-jump))))
                       
           ))
           
@@ -638,8 +640,33 @@
       (go target-hl-movement-ground))
   :post target-hl-no-stick-post)
 
+(defbehavior target-apply-gauss-knockback target ((damage float))
+  (let* ((curvel (-> self control transv))
+         (cam-fwd-src (-> *math-camera* inv-camera-rot vector 2))
+         (cam-fwd (new 'stack 'vector))
+         (force (* damage 5.0 150.0))
+         (impulse (new 'stack 'vector)))
+
+    (vector-copy! cam-fwd cam-fwd-src)
+
+    (set! (-> cam-fwd y) 0.0)
+
+    (vector-normalize! cam-fwd 1.0)
+
+    (vector-float*! impulse cam-fwd force)
+
+    (-! (-> curvel x) (-> impulse x))
+    (-! (-> curvel z) (-> impulse z))))
+
 (defbehavior target-hl-standard-event-handler target ((arg0 process) (arg1 int) (arg2 symbol) (arg3 event-message-block))
   (case arg2
+    (('gauss-knockback)
+      (target-apply-gauss-knockback (the-as float (-> arg3 param 0)))
+
+    )
+    (('gauss-overcharge)
+      (send-event self 'attack #f (static-attack-info ((mode 'damage))))
+    )
     (('attack 'attack-or-shove 'attack-invinc)
      (target-hl-attacked arg2
                       (the-as attack-info (-> arg3 param 1))
@@ -659,8 +686,10 @@
        (when (not (logtest? (-> self attack-info-rec mask) (attack-mask attacker)))
          (set! (-> self attack-info-rec attacker) (process->handle arg0))
          (logior! (-> self attack-info-rec mask) (attack-mask attacker)))
-       (go target-hl-hit 'shove (-> self attack-info-rec))))
+       (go target-hl-hit 'shove (-> self attack-info-rec))
+       ))
     (('launch) (mem-copy! (&-> (-> self control) unknown-pointer00) (the-as pointer arg3) 72) #t)
+    (('edge-grab) (go target-hl-movement-edge-grab))
     #|
     (('loading)
      (if (not (or (and (logtest? (-> self control cur-surf flags) (surface-flags jump))
@@ -671,6 +700,9 @@
                                 (collide-action edgegrab-cam swingpole-active racer snowball tube flut))
                       (>= (-> self no-load-wait) (current-time)))))
        (go target-load-wait)))|#
+    (('pole-grab)
+     (if (not (logtest? (-> self control root-prim prim-core action) (collide-action swingpole-active)))
+       (go target-hl-movement-pole-cycle (process->handle (the-as process (-> arg3 param 0))))))
     (('change-mode)
      (case (-> arg3 param 0)
        (('grab) (go target-hl-grab))
@@ -758,7 +790,8 @@
              (let ((v1-7 gp-0))
                (set! (-> v1-7 shove-back) (-> *TARGET-bank* smack-surface-dist))
                (set! (-> v1-7 shove-up) (-> *TARGET-bank* smack-surface-height))
-               (set! (-> v1-7 angle) 'shove))))
+               (set! (-> v1-7 angle) 'shove)
+               )))
           (combine! gp-0 arg1)
           (when (not (logtest? (-> gp-0 mask) (attack-mask vector)))
             (vector-z-quaternion! (-> gp-0 vector) (-> self control quat-targ))
@@ -805,7 +838,8 @@
                     (pickup-collectable! (-> self fact) (pickup-type eco-green) (- (-> *FACT-bank* health-single-inc)) (the-as handle #f))
                     (go target-hl-death (-> self attack-info mode)))
                 ))
-             (target-hl-hit-effect gp-0))
+             (target-hl-hit-effect gp-0)
+             )
             (else
              (case (-> gp-0 mode)
                (('burn 'burnup) (sound-play "get-burned")))))

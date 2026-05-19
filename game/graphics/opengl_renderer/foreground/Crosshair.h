@@ -24,7 +24,10 @@ struct CrosshairDebugStats {
 enum class CrosshairType {
   None,
   Pistol,
-  SMG ,
+  SMG,
+  Gauss,
+  Revolver,
+  Shotgun
 };
 
 inline CrosshairType int_to_crosshair(int value) {
@@ -33,6 +36,12 @@ inline CrosshairType int_to_crosshair(int value) {
       return CrosshairType::Pistol;
     case 2:
       return CrosshairType::SMG;
+    case 3:
+      return CrosshairType::Gauss;
+    case 4:
+      return CrosshairType::Revolver;
+    case 5:
+      return CrosshairType::Shotgun;
     case 0:
     default:
       return CrosshairType::None;
@@ -61,10 +70,19 @@ class Crosshair {
   CrosshairType m_type = CrosshairType::Pistol;
   CrosshairSprite pistol_1280;
   CrosshairSprite smg_1280;
+  CrosshairSprite gauss_1280;
+  CrosshairSprite revolver_1280;
+  CrosshairSprite shotgun_1280;
   CrosshairSprite pistol_2560;
   CrosshairSprite smg_2560;
+  CrosshairSprite gauss_2560;
+  CrosshairSprite revolver_2560;
+  CrosshairSprite shotgun_2560;
   CrosshairSprite pistol_low;
   CrosshairSprite smg_low;
+  CrosshairSprite gauss_low;
+  CrosshairSprite revolver_low;
+  CrosshairSprite shotgun_low;
 
   void draw_sprite(GLuint tex, float cx, float cy, float w, float h);
   GLuint load_texture(const std::string& filename, int& out_w, int& out_h);

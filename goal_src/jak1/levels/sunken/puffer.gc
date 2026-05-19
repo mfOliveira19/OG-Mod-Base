@@ -7,6 +7,9 @@
 (require "engine/geometry/path.gc")
 (require "engine/common-obs/collectables.gc")
 
+;; Added for hl mod
+(define-extern spawn-hl-hit-part (function none))
+
 ;; DECOMP BEGINS
 
 (deftype puffer (process-drawable)
@@ -83,6 +86,7 @@
     ;; changed for hl mod
     (('touch 'attack 'attack-hl)
      (when (and (or (= arg2 'attack) (= arg2 'attack-hl)) (!= (-> self cprims-type) 2))
+       (spawn-hl-hit-part)
        (let* ((gp-0 arg0)
               (v1-7 (if (and (nonzero? gp-0) (type-type? (-> gp-0 type) process-drawable)) gp-0)))
          (when v1-7
