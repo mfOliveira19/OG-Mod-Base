@@ -203,7 +203,7 @@
   :event hl-weapons-standard-event-handler
   :enter
   (behavior ()
-    (when (or (> (-> self current-pistol-mag-ammo) 0) (target-has-eco-type? (pickup-type eco-yellow)))
+    (when (or (> (-> self current-pistol-mag-ammo) 0) (target-has-eco-type? (pickup-type eco-yellow)) (= (-> *target* state name) 'target-hl-fishing))
       ;; In fish we have unlimited pistol ammo
       (unless (or (= (-> *target* state name) 'target-hl-fishing) (target-has-eco-type? (pickup-type eco-yellow)))
         (-! (-> self current-pistol-mag-ammo) 1))
@@ -242,7 +242,7 @@
   :event hl-weapons-standard-event-handler
   :enter
   (behavior ()
-    (when (or (> (-> self current-pistol-mag-ammo) 0) (target-has-eco-type? (pickup-type eco-yellow)))
+    (when (or (> (-> self current-pistol-mag-ammo) 0) (target-has-eco-type? (pickup-type eco-yellow)) (= (-> *target* state name) 'target-hl-fishing))
       (unless (or (= (-> *target* state name) 'target-hl-fishing) (target-has-eco-type? (pickup-type eco-yellow)))
         (-! (-> self current-pistol-mag-ammo) 1))
       (let ((spread-x (rand-vu-float-range -0.1 0.1))

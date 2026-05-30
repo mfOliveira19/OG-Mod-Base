@@ -537,6 +537,7 @@
     (("all-weapons?") (set! (-> obj all-weapons?) (file-stream-read-symbol file))) ;; added for hl mod
     (("unlimited-ammo?") (set! (-> obj unlimited-ammo?) (file-stream-read-symbol file))) ;; added for hl mod
     (("show-enemy-hit-part?") (set! (-> obj show-enemy-hit-part?) (file-stream-read-symbol file))) ;; added for hl mod
+    (("double-jump-behavior") (set! (-> obj double-jump-behavior) (file-stream-read-int file))) ;; added for hl mod
     (("mouse-movement?") (set! (-> obj mouse-movement?) (file-stream-read-symbol file)))
     (("auto-hide-cursor?") (set! (-> obj auto-hide-cursor?) (file-stream-read-symbol file)))
     (("ps2-read-speed?") (set! (-> obj ps2-read-speed?) (file-stream-read-symbol file)))
@@ -628,6 +629,7 @@
   (format file "  (all-weapons? ~A)~%" (-> obj all-weapons?)) ;; added for hl mod
   (format file "  (unlimited-ammo? ~A)~%" (-> obj unlimited-ammo?)) ;; added for hl mod
   (format file "  (show-enemy-hit-part? ~A)~%" (-> obj show-enemy-hit-part?)) ;; added for hl mod
+  (format file "  (double-jump-behavior ~D)~%" (-> obj double-jump-behavior)) ;; added for hl mod
   (format file "  (mouse-ysens ~f)~%" (-> obj mouse-ysens))
   (format file "  (mouse-ysens ~f)~%" (-> obj mouse-ysens))
   (format file "  (mouse-movement? ~A)~%" (-> obj mouse-movement?))

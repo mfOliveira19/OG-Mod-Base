@@ -108,7 +108,7 @@
 
 ;; Added for hl mod
 (def-progress-carousell *carousell-mouse-wheel* (off wheel-down-jump wheel-up-jump wheel-up-down-jump))
-
+(def-progress-carousell *carousell-double-jump-behavior* (use-walk-key use-jump-key use-mwheel-up use-mwheel-down))
 
 ;; pad remap stuff
 (define *progress-pad-timeout* (the-as time-frame 0)) ;; timeout for remap buttons
@@ -788,6 +788,7 @@
        (new 'static 'game-option :option-type (game-option-type on-off) :name (text-id auto-jump) :scale #t)
        (new 'static 'game-option :option-type (game-option-type on-off) :name (text-id long-jump) :scale #t)
        (new 'static 'game-option :option-type (game-option-type mouse-wheel) :name (text-id mouse-wheel) :scale #t)
+       (new 'static 'game-option :option-type (game-option-type double-jump-behavior) :name (text-id double-jump) :scale #t)       
        (new 'static 'game-option :option-type (game-option-type on-off) :name (text-id controller-aim) :scale #t)
        (new 'static
             'game-option
@@ -2587,9 +2588,10 @@
   (set! (-> *mod-input* 2 value-to-modify) (&-> *pc-settings* auto-jump?))
   (set! (-> *mod-input* 3 value-to-modify) (&-> *pc-settings* longjump-enabled?))
   (set! (-> *mod-input* 4 value-to-modify) (&-> *progress-carousell* int-backup)) ;; This is the mouse wheel setting
-  (set! (-> *mod-input* 5 value-to-modify) (&-> *pc-settings* controller-aim?))
-  (set! (-> *mod-input* 6 value-to-modify) (&-> *pc-settings* controller-sens))
-  (set! (-> *mod-input* 7 value-to-modify) (&-> *pc-settings* stick-deadzone))
+  (set! (-> *mod-input* 5 value-to-modify) (&-> *progress-carousell* int-backup)) ;; This is the double-jump behavior setting
+  (set! (-> *mod-input* 6 value-to-modify) (&-> *pc-settings* controller-aim?))
+  (set! (-> *mod-input* 7 value-to-modify) (&-> *pc-settings* controller-sens))
+  (set! (-> *mod-input* 8 value-to-modify) (&-> *pc-settings* stick-deadzone))
 
   (set! (-> *mod-graphic* 0 value-to-modify) (&-> *pc-settings* fov))
   (set! (-> *mod-graphic* 1 value-to-modify) (&-> *pc-settings* teleport-effect?))
@@ -2725,7 +2727,8 @@
                     (game-option-type frame-rate)
                     (game-option-type language-subtitles)
                     (game-option-type language-text)
-                    (game-option-type mouse-wheel))
+                    (game-option-type mouse-wheel)
+                    (game-option-type double-jump-behavior))
                    ;; a carousell like language
                    (if (> (-> (the-as (pointer int) (-> options (-> obj option-index) value-to-modify))) 0)
                      (+! (-> (the-as (pointer int) (-> options (-> obj option-index) value-to-modify))) -1)
@@ -2812,7 +2815,8 @@
                     (game-option-type frame-rate)
                     (game-option-type language-subtitles)
                     (game-option-type language-text)
-                    (game-option-type mouse-wheel))
+                    (game-option-type mouse-wheel)
+                    (game-option-type double-jump-behavior))
                    ;; same thing as before. if at last, go to first. otherwise, keep going forward.
                    (if (< (-> (the-as (pointer int) (-> options (-> obj option-index) value-to-modify)))
                           (1- (length (-> *progress-carousell* current-carousell))))
@@ -3125,6 +3129,12 @@
                     ((2) (set! (-> *progress-carousell* int-backup) 2))
                     ((3) (set! (-> *progress-carousell* int-backup) 3))
                     (else (set! (-> *progress-carousell* int-backup) 0))))
+                 (((game-option-type double-jump-behavior))
+                  (case (-> *pc-settings* double-jump-behavior)
+                    ((1) (set! (-> *progress-carousell* int-backup) 1))
+                    ((2) (set! (-> *progress-carousell* int-backup) 2))
+                    ((3) (set! (-> *progress-carousell* int-backup) 3))
+                    (else (set! (-> *progress-carousell* int-backup) 0))))
                  (((game-option-type display-mode))
                   ;; display-mode just reuses language stuff
                   (case (pc-get-display-mode)
@@ -3184,6 +3194,7 @@
                   (case (-> options (-> obj option-index) option-type)
                     (((game-option-type display-mode)) (set! (-> *progress-carousell* current-carousell) *carousell-display-mode*))
                     (((game-option-type mouse-wheel)) (set! (-> *progress-carousell* current-carousell) *carousell-mouse-wheel*)) ;; Added for hl mod
+                    (((game-option-type double-jump-behavior)) (set! (-> *progress-carousell* current-carousell) *carousell-double-jump-behavior*)) ;; Added for hl mod                    
                     (((game-option-type msaa)) (set! (-> *progress-carousell* current-carousell) *carousell-msaa*))
                     (((game-option-type lod-bg)) (set! (-> *progress-carousell* current-carousell) *carousell-lod-bg*))
                     (((game-option-type lod-fg)) (set! (-> *progress-carousell* current-carousell) *carousell-lod-bg*))
@@ -3222,6 +3233,12 @@
                  ((1) (set! (-> *pc-settings* mouse-wheel-behavior) 1))
                  ((2) (set! (-> *pc-settings* mouse-wheel-behavior) 2))
                  ((3) (set! (-> *pc-settings* mouse-wheel-behavior) 3))))
+              (((game-option-type double-jump-behavior))
+               (case (-> *progress-carousell* int-backup)
+                 ((0) (set! (-> *pc-settings* double-jump-behavior) 0))
+                 ((1) (set! (-> *pc-settings* double-jump-behavior) 1))
+                 ((2) (set! (-> *pc-settings* double-jump-behavior) 2))
+                 ((3) (set! (-> *pc-settings* double-jump-behavior) 3))))
               (((game-option-type display-mode))
                ;; same thing.
                (case (-> *progress-carousell* int-backup)
@@ -3644,7 +3661,8 @@
                       (game-option-type frame-rate)
                       (game-option-type language-subtitles)
                       (game-option-type language-text)
-                      (game-option-type mouse-wheel))
+                      (game-option-type mouse-wheel)
+                      (game-option-type double-jump-behavior))
                      ;; crunched down to one generic function.
                      (progress-draw-carousell-from-string-list (-> *progress-carousell* current-carousell)
                                                                font
@@ -3711,7 +3729,8 @@
                       (game-option-type frame-rate)
                       (game-option-type normal-inverted)
                       (game-option-type confirmation)
-                      (game-option-type mouse-wheel))
+                      (game-option-type mouse-wheel)
+                      (game-option-type double-jump-behavior))
                      ;; slider and aspect ratio options just show their text
                      (set! option-str (lookup-text! *common-text* (-> options index name) #f)))
                     (((game-option-type on-off) (game-option-type aspect-native))
