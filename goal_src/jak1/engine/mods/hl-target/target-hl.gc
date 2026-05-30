@@ -37,7 +37,7 @@
     (when (and (not (should-duck?)) (can-exit-duck-hl?))
       (go target-hl-movement-ground))
       (when (should-jump?)
-        (when (and (should-do-duck-high-jump?) (can-exit-duck-hl?) (<= (target-xzv) (meters 1.0)))
+        (when (and (should-do-duck-high-jump?) (can-exit-duck-hl?) (<= (target-xzv) (meters 0.5)))
           (go target-hl-movement-air-high-jump))
         ;; So we can use launchers
         (when (not (target-should-use-launcher?))
