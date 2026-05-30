@@ -1026,7 +1026,7 @@
   (do-target-shadow)
   (target-calc-camera-pos-hl)
   (target-powerup-process)
-  (when (cpad-pressed? 0 circle) (play-mod-sound "use-sound"))
+  (when (and (cpad-pressed? 0 circle) (-> *pc-settings* hev-sounds?)) (play-mod-sound "use-sound"))
   (none))
 
 (defbehavior target-hl-movement-force-forward-post target ()
