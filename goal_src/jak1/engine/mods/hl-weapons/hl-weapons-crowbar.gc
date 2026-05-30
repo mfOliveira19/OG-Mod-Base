@@ -78,9 +78,7 @@
   (behavior ()
     (viewmodel-play-animation (viewmodel-animations-enum holster) 5.0))
   :trans
-   (behavior ()
-   (when (should-use?) (go crowbar-draw))
-   )
+   (behavior ())
   :code
   (behavior ()
     (loop (suspend)))

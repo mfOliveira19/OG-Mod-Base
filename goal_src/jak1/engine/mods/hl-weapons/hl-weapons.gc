@@ -368,6 +368,7 @@
 (defbehavior hl-weapons-common-post hl-weapons ()
   (when (-> *pc-settings* unlimited-ammo?)
     (recharge-gauss-ammo))
+  (change-weapon-fishgame)
   (none)
 )
 

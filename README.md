@@ -140,7 +140,7 @@ In order to better navigate around the levels without needing grenade jumps, it 
 To double jump, use the ``Walk`` key while in the air. In ``Controller Mode`` it is ``X``. It is not possible to double jump after a grenade jump.
 
 ### Duck high jump
-Use ``duck + jump`` when horizontal velocity is below 3.
+Use ``duck + jump`` when horizontal velocity is below 0.5.
 
 ### Edge grab
 Similar detection to vanilla, but requires holding the ``jump`` key for the detection to work.

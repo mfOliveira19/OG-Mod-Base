@@ -174,7 +174,8 @@
      (binding-assignment)
      (confirmation)
      ;; Added for hl mod
-     (mouse-wheel))) ;; end of PC_PORT = #t branch for enum initialization
+     (mouse-wheel)
+     (double-jump-behavior))) ;; end of PC_PORT = #t branch for enum initialization
   ) ;; end of PC_PORT cond
 
 (defenum game-option-menu

@@ -815,6 +815,11 @@
   (all-weapons #x1636)
   (unlimited-ammo #x1637)
   (show-enemy-hit-part #x1638)
+  (use-walk-key #x1639)
+  (use-jump-key #x1640)
+  (use-mwheel-up #x1641)
+  (use-mwheel-down #x1642)
+  (double-jump #x1643)
   ;; mod text mod-base-change
   (pad-triangle #x2000)
   (pad-circle #x2001)
