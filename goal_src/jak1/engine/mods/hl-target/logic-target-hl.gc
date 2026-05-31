@@ -340,6 +340,9 @@
 
 (defun update-duck-camera-offset ()
   (cond
+    ((= (-> *target* state name) 'target-hl-fishing) 
+    0.0)
+
     ;; air duck = instant
     ((target-hl-is-in-duck?)
     duck-camera-depth)
