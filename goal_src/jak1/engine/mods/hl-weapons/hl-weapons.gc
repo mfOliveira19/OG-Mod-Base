@@ -334,9 +334,13 @@
       (go gauss-draw))
 ))
 
+(defun check-pistol-owned ()
+  (or (logtest? (-> *hl-weapons* owned-weapons) (owned-weapons pistol)) (-> *pc-settings* all-weapons?)))
+
 (defbehavior change-weapon-fishgame hl-weapons ()
-  (when (and (= (-> *target* state name) 'target-hl-fishing) (!= (-> self current-weapon) (weapons-enum pistol)))
-    (go pistol-draw)))
+  (if (check-pistol-owned)
+    (when (and (= (-> *target* state name) 'target-hl-fishing) (!= (-> self current-weapon) (weapons-enum pistol))) (go pistol-draw))
+    (when (and (= (-> *target* state name) 'target-hl-fishing) (!= (-> self current-weapon) (weapons-enum crowbar))) (go crowbar-draw))))
 
 (defbehavior hl-choose-idle-wait! hl-weapons ((min-secs float) (max-secs float))
   (let ((rand-secs (rand-vu-float-range min-secs max-secs)))
@@ -1118,9 +1122,6 @@
 
 (defbehavior check-weapon-owned hl-weapons ((weapon owned-weapons))
   (or (logtest? (-> self owned-weapons) weapon) (-> *pc-settings* all-weapons?)))
-
-(defun check-pistol-owned ()
-  (or (logtest? (-> *hl-weapons* owned-weapons) (owned-weapons pistol)) (-> *pc-settings* all-weapons?)))
 
 (defun get-current-ammo ((ammo ammo-type))
   (case ammo
