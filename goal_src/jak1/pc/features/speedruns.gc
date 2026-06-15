@@ -658,21 +658,27 @@
     (else
      "(No CS Skips) (No PCCS Skips)")))
 
+(define *speedrun-vars-str* (new 'global 'string 128 (the-as string #f)))
 (defun speedrun-draw-settings ()
   "Draw speedrun related settings in the bottom left corner"
   (when (and (-> *pc-settings* speedrunner-mode?) (not (paused?)) (-> *speedrun-info* should-display?))
+    (format (clear *speedrun-vars-str*) "~DFPS / ~S / ~S ~%~S / ~S" 
+      (-> *pc-settings* target-fps)
+      (if (-> *pc-settings* auto-jump?) "Auto Jump" "No Auto Jump")
+      (if (-> *pc-settings* longjump-enabled?) "Long Jump" "No Long Jump")
+      (if (-> *pc-settings* all-weapons?) "All Weapons" "Normal Weapons")
+      (if (-> *pc-settings* unlimited-ammo?) "Unlimited Ammo" "Normal Ammo")
+      )
     (with-dma-buffer-add-bucket ((buf (-> (current-frame) global-buf)) (bucket-id subtitle))
-      (draw-string-xy (string-format "Speedrunner Mode ~%Mod Version: ~S ~%Category: ~S ~S~%~DFPS / ~S / ~S"
+      (draw-string-xy (string-format "Speedrunner Mode ~%Mod Version: ~S ~%Category: ~S ~S~%~S"
                                      *mod-version-text*
                                      (enum->string speedrun-category (-> *speedrun-info* category))
                                      (cutscene-skip-text)
-                                     (-> *pc-settings* target-fps)
-                                     (if (-> *pc-settings* auto-jump?) "Auto Jump" "No Auto Jump")
-                                     (if (-> *pc-settings* longjump-enabled?) "Long Jump" "No Long Jump")
+                                     *speedrun-vars-str*
                                      )
                       buf
                       4
-                      (- 222 (* 8 4))
+                      (- 222 (* 8 5))
                       (font-color flat-yellow)
                       (font-flags shadow kerning))))
   (none))
