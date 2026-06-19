@@ -10,6 +10,14 @@
 (define *suit-upgrade-duration* 6.0) ;; seconds on screen
 (define *in-cutscene-after-geyser* #f)
 
+(defun reset-target-hl-stuff ()
+    (set! *hl-target-jump-buffer* 0)
+    (set! *last-duck-time* 0)
+    (set! *last-step-time* 0)
+    (set! *hl-target-explosion-invinc-time* 0)
+    (set! *edge-grab-enter-time* 0)
+    (set! *high-jump-enter-time* 0))
+
 (defun start-suit-upgrade-message ((val int))
   (set! *suit-upgrade-active* #t)
   (set! *suit-upgrade-val* val)

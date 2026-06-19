@@ -79,7 +79,9 @@
   :event
     (behavior ((proc process) (argc int) (message symbol) (block event-message-block))
       (case message
-        (('notify) (if (= (-> block param 0) 'attack) (sound-play "get-shocked")))
+        (('notify) (if (= (-> block param 0) 'attack) ;;(sound-play "get-shocked") changed for hl mod
+          (none)
+        ))
         (else ((-> (method-of-type water-anim water-vol-idle) event) proc argc message block))))
   :trans
     (behavior ()
