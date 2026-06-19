@@ -18,6 +18,16 @@
 
 (define *gauss-hit-pos* (new 'global 'vector))
 
+(defun reset-gauss-stuff ()
+  (set! *after-attack-enter-time* 0)
+  (set! *aftershock-delay* 0.0)
+  (set! *enter-secondary-time* 0)
+  (set! *secondary-anim-loop-time* 0)
+  (set! *play-secondary-sound-time* 0)
+  (set! *ammo-secondary-drain-time* 0)
+  (set! *charge-damage* 0.0)
+  (set! *is-primary-attack?* #t))
+
 (defun overcharge-screen ()
   (with-dma-buffer-add-bucket ((dma-buf (-> (current-frame) global-buf)) (bucket-id debug-no-zbuf))
     (draw-sprite2d-xy dma-buf 0 0 512 224 (new 'static 'rgba :r #xFF :g #xFF :b #x00 :a #x20))) (none))

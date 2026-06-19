@@ -19,6 +19,10 @@
 (defconstant shotgun-num-pellets 6)
 (defconstant shotgun-num-pellets-secondary 12)
 
+(defun reset-shotgun-stuff ()
+  (set! *shotgun-reload-time* 0)
+  (set! *shotgun-attack-pump-played?* #f))
+
 (defbehavior shotgun-switch-handle hl-weapons ()
   ;; Crowbar
   (when (and (should-switch-slot1?)
