@@ -457,51 +457,12 @@
 ;; INFO: Used lq/sq
 ;; WARN: Return type mismatch int vs none.
 (defun movie-nest-metalkor-shot-draw-impact ((arg0 scene-player) (arg1 vector) (arg2 vector))
-  (local-vars
-    (sv-240 (function vector entity-actor skeleton-group vector object none :behavior manipy))
-    (sv-256 vector)
-    (sv-272 entity-actor)
-    )
   (let ((v0-0 (vector-normalize! (vector-! (new 'stack-no-clear 'vector) arg2 arg1) 2048.0))
         (gp-0 (new 'stack-no-clear 'vector))
         )
     (set! (-> gp-0 quad) (-> arg1 quad))
     (vector+! gp-0 gp-0 v0-0)
-    (let ((s4-0 (get-process *default-dead-pool* part-tracker #x4000)))
-      (when s4-0
-        (let ((t9-2 (method-of-type part-tracker activate)))
-          (t9-2
-            (the-as part-tracker s4-0)
-            *entity-pool*
-            (symbol->string (-> part-tracker symbol))
-            (the-as pointer #x70004000)
-            )
-          )
-        (let ((t9-3 run-function-in-process)
-              (a0-7 s4-0)
-              (a1-6 part-tracker-init)
-              (a2-5 (-> *part-group-id-table* 141))
-              (a3-1 0)
-              (t0-0 #f)
-              (t1-0 #f)
-              (t2-0 #f)
-              (t3-0 *launch-matrix*)
-              )
-          (set! (-> t3-0 trans quad) (-> gp-0 quad))
-          ((the-as (function object object object object object object object object none) t9-3)
-           a0-7
-           a1-6
-           a2-5
-           a3-1
-           t0-0
-           t1-0
-           t2-0
-           t3-0
-           )
-          )
-        (-> s4-0 ppointer)
-        )
-      )
+    (part-tracker-spawn :to *entity-pool* :group group-metalhead-shot-hit :mat-joint gp-0)
     )
   (let ((s4-1 (new 'stack-no-clear 'vector)))
     (set! (-> s4-1 quad) (-> arg1 quad))
@@ -559,36 +520,18 @@
           (matrix->quaternion gp-1 s2-0)
           )
         (sound-play "nboss-shoot-hit")
-        (let* ((s1-2 (get-process *default-dead-pool* manipy #x4000))
-               (s2-2 (when s1-2
-                       (let ((t9-10 (method-of-type manipy activate)))
-                         (t9-10 (the-as manipy s1-2) arg0 (symbol->string (-> manipy symbol)) (the-as pointer #x70004000))
-                         )
-                       (let ((s2-3 run-function-in-process)
-                             (s0-1 s1-2)
-                             )
-                         (set! sv-240 manipy-init)
-                         (set! sv-256 s4-1)
-                         (set! sv-272 (-> arg0 entity))
-                         (let ((t0-2 (art-group-get-by-name *level* "skel-bomb-blast" (the-as (pointer uint32) #f)))
-                               (t1-2 #f)
-                               (t2-2 0)
-                               )
-                           ((the-as (function object object object object object object object none) s2-3)
-                            s0-1
-                            sv-240
-                            sv-256
-                            sv-272
-                            t0-2
-                            t1-2
-                            t2-2
-                            )
-                           )
-                         )
-                       (-> s1-2 ppointer)
-                       )
-                     )
-               )
+        (let ((s2-2 (process-spawn
+                      manipy
+                      :init manipy-init
+                      s4-1
+                      (-> arg0 entity)
+                      (art-group-get-by-name *level* "skel-bomb-blast" (the-as (pointer uint32) #f))
+                      #f
+                      0
+                      :to arg0
+                      )
+                    )
+              )
           (when s2-2
             (send-event (ppointer->process s2-2) 'anim-mode 'play1)
             (send-event (ppointer->process s2-2) 'anim "idle")

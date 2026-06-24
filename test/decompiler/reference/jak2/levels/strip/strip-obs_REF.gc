@@ -167,7 +167,6 @@
    - collision information
    - loading the skeleton group / bones
    - sounds"
-  (local-vars (sv-64 res-tag))
   (set-vector! (-> this shove-vec) 0.0 12288.0 24576.0 1.0)
   (set! (-> this no-collision-timer) (the-as uint 0))
   (let* ((v1-1 *game-info*)
@@ -180,8 +179,9 @@
         (s3-0 1200)
         (f30-0 0.0)
         )
-    (set! sv-64 (new 'static 'res-tag))
-    (let ((v1-3 (res-lump-data arg0 'sync (pointer float) :tag-ptr (& sv-64))))
+    (let* ((sv-64 (new 'static 'res-tag))
+           (v1-3 (res-lump-data arg0 'sync (pointer float) :tag-ptr (& sv-64)))
+           )
       (when v1-3
         (set! s3-0 (the int (* 300.0 (-> v1-3 0))))
         (set! f30-0 (-> v1-3 1))
@@ -268,7 +268,6 @@
    - collision information
    - loading the skeleton group / bones
    - sounds"
-  (local-vars (sv-16 string))
   (let ((s4-0 (new 'process 'collide-shape-moving this (collide-list-enum hit-by-player))))
     (set! (-> s4-0 dynam) (copy *standard-dynamics* 'process))
     (set! (-> s4-0 reaction) cshape-reaction-default)
@@ -313,8 +312,9 @@
     (t9-9 this arg0)
     )
   (quaternion-copy! (-> this start-quat) (-> this root quat))
-  (set! sv-16 "#f")
-  (let ((a0-24 (entity-lookup-part-group arg0 (& sv-16) 'art-name)))
+  (let* ((sv-16 "#f")
+         (a0-24 (entity-lookup-part-group arg0 (& sv-16) 'art-name))
+         )
     (when a0-24
       (let ((a0-25 (-> a0-24 0)))
         (if (and (nonzero? a0-25) (= (-> a0-25 type) sparticle-launch-group))
@@ -463,7 +463,7 @@
                           (vector<-cspace! (new 'static 'vector) (-> this node-list data 4))
                           )
         )
-  (set! (-> this part) (create-launch-control (-> *part-group-id-table* 214) this))
+  (set! (-> this part) (create-launch-control group-strip-pitspikes-dust this))
   (logclear! (-> this mask) (process-mask actor-pause))
   (go (method-of-object this idle))
   (none)
@@ -572,7 +572,7 @@
                           (vector<-cspace! (new 'static 'vector) (-> this node-list data 3))
                           )
         )
-  (set! (-> this part) (create-launch-control (-> *part-group-id-table* 213) this))
+  (set! (-> this part) (create-launch-control group-strip-curtain-saw-dust this))
   (logclear! (-> this mask) (process-mask actor-pause))
   (go (method-of-object this idle))
   (none)
@@ -972,10 +972,10 @@
     )
   (process-drawable-from-entity! this arg0)
   (set! (-> this camera-name) (res-lump-struct (-> this entity) 'camera-name string))
-  (set! (-> this part) (create-launch-control (-> *part-group-id-table* 215) this))
-  (set! (-> this part2) (create-launch-control (-> *part-group-id-table* 216) this))
-  (set! (-> this part3) (create-launch-control (-> *part-group-id-table* 217) this))
-  (set! (-> this part-lightning-hit) (create-launch-control (-> *part-group-id-table* 218) this))
+  (set! (-> this part) (create-launch-control group-grenade-point this))
+  (set! (-> this part2) (create-launch-control group-grenade-point-hit this))
+  (set! (-> this part3) (create-launch-control group-grenade-point-dead this))
+  (set! (-> this part-lightning-hit) (create-launch-control group-lightning-silo-tip this))
   (set! (-> this lightning-time) 0)
   (set! (-> this strike-table)
         (-> *grenade-point-strike-table*
@@ -1214,41 +1214,7 @@
 ;; WARN: Return type mismatch int vs none.
 (defmethod draw-laser-sight ((this grenade))
   "TODO - confirm If applicable, draw the laser sight particles"
-  (let ((gp-0 (get-process *default-dead-pool* part-tracker #x4000)))
-    (when gp-0
-      (let ((t9-1 (method-of-type part-tracker activate)))
-        (t9-1
-          (the-as part-tracker gp-0)
-          *entity-pool*
-          (symbol->string (-> part-tracker symbol))
-          (the-as pointer #x70004000)
-          )
-        )
-      (let ((t9-2 run-function-in-process)
-            (a0-3 gp-0)
-            (a1-2 part-tracker-init)
-            (a2-4 (-> *part-group-id-table* 237))
-            (a3-1 0)
-            (t0-0 #f)
-            (t1-0 #f)
-            (t2-0 #f)
-            (t3-0 *launch-matrix*)
-            )
-        (set! (-> t3-0 trans quad) (-> this root trans quad))
-        ((the-as (function object object object object object object object object none) t9-2)
-         a0-3
-         a1-2
-         a2-4
-         a3-1
-         t0-0
-         t1-0
-         t2-0
-         t3-0
-         )
-        )
-      (-> gp-0 ppointer)
-      )
-    )
+  (part-tracker-spawn :to *entity-pool* :group group-grenade-fired :mat-joint (-> this root trans))
   0
   (none)
   )
@@ -1268,41 +1234,7 @@
 ;; WARN: Return type mismatch int vs none.
 (defmethod spawn-shell-particles ((this grenade))
   "TODO - confirm"
-  (let ((gp-0 (get-process *default-dead-pool* part-tracker #x4000)))
-    (when gp-0
-      (let ((t9-1 (method-of-type part-tracker activate)))
-        (t9-1
-          (the-as part-tracker gp-0)
-          *entity-pool*
-          (symbol->string (-> part-tracker symbol))
-          (the-as pointer #x70004000)
-          )
-        )
-      (let ((t9-2 run-function-in-process)
-            (a0-3 gp-0)
-            (a1-2 part-tracker-init)
-            (a2-4 (-> *part-group-id-table* 236))
-            (a3-1 0)
-            (t0-0 #f)
-            (t1-0 #f)
-            (t2-0 #f)
-            (t3-0 *launch-matrix*)
-            )
-        (set! (-> t3-0 trans quad) (-> this root trans quad))
-        ((the-as (function object object object object object object object object none) t9-2)
-         a0-3
-         a1-2
-         a2-4
-         a3-1
-         t0-0
-         t1-0
-         t2-0
-         t3-0
-         )
-        )
-      (-> gp-0 ppointer)
-      )
-    )
+  (part-tracker-spawn :to *entity-pool* :group group-grenade-hit :mat-joint (-> this root trans))
   0
   (none)
   )
@@ -1499,7 +1431,7 @@
   (set! (-> this end-target)
         (process->handle (as-type (send-event (ppointer->process (-> this parent)) 'target) process-drawable))
         )
-  (set! (-> this part) (create-launch-control (-> *part-group-id-table* 235) this))
+  (set! (-> this part) (create-launch-control group-grenade-armed this))
   (cpad-set-buzz! (-> *cpad-list* cpads 0) 1 204 (seconds 0.1))
   (none)
   )
@@ -1564,7 +1496,6 @@
   TASK_MANAGER_CODE_HOOK
   (lambda :behavior task-manager
     ()
-    (local-vars (sv-16 object))
     (set-time! (-> self start-time))
     (set! (-> self total-time) (seconds 120))
     (set! (-> self hud-timer) (ppointer->handle (process-spawn hud-timer :init hud-init-by-other :to *target*)))
@@ -1578,73 +1509,74 @@
             )
         (set! (-> *game-info* timer) (the-as time-frame v1-18))
         )
-      (set! sv-16 (-> self actor-group 0 0))
-      (when (-> self actor-group 0)
-        (dotimes (v1-23 (the-as int (-> self actor-group 0 0)))
-          (let ((a1-8 (-> (&+ (-> self actor-group 0) (* v1-23 8)) 3)))
-            (if (and a1-8 (logtest? (-> a1-8 extra perm status) (entity-perm-status subtask-complete)))
-                (set! sv-16 (&+ (the-as (pointer entity-actor) sv-16) -1))
+      (let ((sv-16 (the-as (pointer entity-actor) (-> self actor-group 0 0))))
+        (when (-> self actor-group 0)
+          (dotimes (v1-23 (the-as int (-> self actor-group 0 0)))
+            (let ((a1-8 (-> (&+ (-> self actor-group 0) (* v1-23 8)) 3)))
+              (if (and a1-8 (logtest? (-> a1-8 extra perm status) (entity-perm-status subtask-complete)))
+                  (&+! sv-16 -1)
+                  )
+              )
+            )
+          )
+        (when (!= sv-16 (-> self count))
+          (case sv-16
+            ((5)
+             (talker-spawn-func (-> *talker-speech* 198) *entity-pool* (target-pos 0) (the-as region #f))
+             )
+            ((4)
+             (talker-spawn-func (-> *talker-speech* 199) *entity-pool* (target-pos 0) (the-as region #f))
+             )
+            ((3)
+             (talker-spawn-func (-> *talker-speech* 200) *entity-pool* (target-pos 0) (the-as region #f))
+             )
+            ((2)
+             (talker-spawn-func (-> *talker-speech* 201) *entity-pool* (target-pos 0) (the-as region #f))
+             )
+            ((1)
+             (talker-spawn-func (-> *talker-speech* 202) *entity-pool* (target-pos 0) (the-as region #f))
+             )
+            )
+          (set! (-> self count) (the-as int sv-16))
+          )
+        (cond
+          ((and (>= (current-time) (+ #x80e8 (-> self start-time)))
+                (< (-> self state-time) (+ #x80e8 (-> self start-time)))
                 )
+           (talker-spawn-func (-> *talker-speech* 197) *entity-pool* (target-pos 0) (the-as region #f))
+           )
+          ((and (>= (current-time) (+ (-> self start-time) (seconds 90)))
+                (< (-> self state-time) (+ (-> self start-time) (seconds 90)))
+                )
+           (talker-spawn-func (-> *talker-speech* 196) *entity-pool* (target-pos 0) (the-as region #f))
+           )
+          ((and (>= (current-time) (+ (-> self start-time) (seconds 60)))
+                (< (-> self state-time) (+ (-> self start-time) (seconds 60)))
+                )
+           (talker-spawn-func (-> *talker-speech* 195) *entity-pool* (target-pos 0) (the-as region #f))
+           )
+          )
+        (set-time! (-> self state-time))
+        (set! (-> *game-info* counter) (the float (the-as int sv-16)))
+        (if (>= 1 (the-as int sv-16))
+            (gui-control-method-12
+              *gui-control*
+              self
+              (gui-channel art-load)
+              (gui-action queue)
+              "ecowells-victory"
+              0
+              -1.0
+              (new 'static 'sound-id)
+              )
             )
-          )
-        )
-      (when (!= sv-16 (-> self count))
-        (case sv-16
-          ((5)
-           (talker-spawn-func (-> *talker-speech* 198) *entity-pool* (target-pos 0) (the-as region #f))
-           )
-          ((4)
-           (talker-spawn-func (-> *talker-speech* 199) *entity-pool* (target-pos 0) (the-as region #f))
-           )
-          ((3)
-           (talker-spawn-func (-> *talker-speech* 200) *entity-pool* (target-pos 0) (the-as region #f))
-           )
-          ((2)
-           (talker-spawn-func (-> *talker-speech* 201) *entity-pool* (target-pos 0) (the-as region #f))
-           )
-          ((1)
-           (talker-spawn-func (-> *talker-speech* 202) *entity-pool* (target-pos 0) (the-as region #f))
-           )
-          )
-        (set! (-> self count) (the-as int sv-16))
-        )
-      (cond
-        ((and (>= (current-time) (+ #x80e8 (-> self start-time)))
-              (< (-> self state-time) (+ #x80e8 (-> self start-time)))
-              )
-         (talker-spawn-func (-> *talker-speech* 197) *entity-pool* (target-pos 0) (the-as region #f))
-         )
-        ((and (>= (current-time) (+ (-> self start-time) (seconds 90)))
-              (< (-> self state-time) (+ (-> self start-time) (seconds 90)))
-              )
-         (talker-spawn-func (-> *talker-speech* 196) *entity-pool* (target-pos 0) (the-as region #f))
-         )
-        ((and (>= (current-time) (+ (-> self start-time) (seconds 60)))
-              (< (-> self state-time) (+ (-> self start-time) (seconds 60)))
-              )
-         (talker-spawn-func (-> *talker-speech* 195) *entity-pool* (target-pos 0) (the-as region #f))
-         )
-        )
-      (set-time! (-> self state-time))
-      (set! (-> *game-info* counter) (the float (the-as int sv-16)))
-      (if (>= 1 (the-as int sv-16))
-          (gui-control-method-12
-            *gui-control*
-            self
-            (gui-channel art-load)
-            (gui-action queue)
-            "ecowells-victory"
-            0
-            -1.0
-            (new 'static 'sound-id)
+        (if (not *target*)
+            (go-virtual fail)
             )
-          )
-      (if (not *target*)
-          (go-virtual fail)
-          )
-      (if (zero? sv-16)
-          (go-virtual complete)
-          )
+        (if (zero? sv-16)
+            (go-virtual complete)
+            )
+        )
       (suspend)
       )
     (the-as entity-actor (go-virtual fail))
@@ -1892,3 +1824,7 @@
   0
   (none)
   )
+
+
+
+

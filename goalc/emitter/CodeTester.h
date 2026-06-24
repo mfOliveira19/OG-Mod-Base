@@ -8,9 +8,6 @@
  * The CodeTester can't be used for tests requiring the full GOAL language/linking.
  */
 
-#ifndef JAK_CODETESTER_H
-#define JAK_CODETESTER_H
-
 #include <cstring>
 #include <stdexcept>
 #include <string>
@@ -20,16 +17,28 @@
 
 #include "common/common_types.h"
 
+#include "goalc/emitter/InstructionSet.h"
+#include "goalc/emitter/ObjectGenerator.h"
+
 namespace emitter {
 class CodeTester {
+ private:
+  int code_buffer_size = 0;
+  int code_buffer_capacity = 0;
+  u8* code_buffer = nullptr;
+  RegisterInfo m_info;
+  ObjectGenerator m_gen;
+
  public:
   CodeTester();
+  CodeTester(InstructionSet instruction_set);
   std::string dump_to_hex_string(bool nospace = false);
+  ObjectGenerator generator() const { return m_gen; }
   void init_code_buffer(int capacity);
   void emit_push_all_gprs(bool exclude_rax = false);
   void emit_pop_all_gprs(bool exclude_rax = false);
-  void emit_push_all_xmms();
-  void emit_pop_all_xmms();
+  void emit_push_all_simd();
+  void emit_pop_all_simd();
   void emit_return();
   void emit(const Instruction& instr);
   u64 execute();
@@ -40,7 +49,9 @@ class CodeTester {
    */
   template <typename T>
   T execute_ret(u64 in0, u64 in1, u64 in2, u64 in3) {
+    // clang-format off
     u64 result_u64 = ((u64(*)(u64, u64, u64, u64))code_buffer)(in0, in1, in2, in3);
+    // clang-format on
     T result_T;
     memcpy(&result_T, &result_u64, sizeof(T));
     return result_T;
@@ -62,6 +73,7 @@ class CodeTester {
    * Should allow emitter tests which run code to do the right thing on windows.
    */
   Register get_c_abi_arg_reg(int i) {
+    // TODO ARM64 - x86 specific
 #ifdef _WIN32
     switch (i) {
       case 0:
@@ -126,12 +138,5 @@ class CodeTester {
 
   void clear();
   ~CodeTester();
-
- private:
-  int code_buffer_size = 0;
-  int code_buffer_capacity = 0;
-  u8* code_buffer = nullptr;
-  RegisterInfo m_info;
 };
 }  // namespace emitter
-#endif  // JAK_CODETESTER_H

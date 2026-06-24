@@ -286,27 +286,27 @@
       )
     (case arg0
       (((pickup-type eco-yellow))
-       (set! s5-0 (-> *part-group-id-table* 108))
-       (set! (-> this collect-effect) (-> *part-group-id-table* 115))
-       (set! (-> this collect-effect2) (-> *part-group-id-table* 109))
+       (set! s5-0 group-eco-yellow)
+       (set! (-> this collect-effect) group-yellow-collect)
+       (set! (-> this collect-effect2) group-eco-yellow-collect)
        (set! s4-0 (static-sound-spec "yel-eco-idle" :fo-max 15))
        )
       (((pickup-type eco-red))
-       (set! s5-0 (-> *part-group-id-table* 102))
-       (set! (-> this collect-effect) (-> *part-group-id-table* 116))
-       (set! (-> this collect-effect2) (-> *part-group-id-table* 103))
+       (set! s5-0 group-eco-red)
+       (set! (-> this collect-effect) group-red-collect)
+       (set! (-> this collect-effect2) group-eco-red-collect)
        (set! s4-0 (static-sound-spec "red-eco-idle" :fo-max 15))
        )
       (((pickup-type eco-blue))
-       (set! s5-0 (-> *part-group-id-table* 98))
-       (set! (-> this collect-effect) (-> *part-group-id-table* 114))
-       (set! (-> this collect-effect2) (-> *part-group-id-table* 99))
+       (set! s5-0 group-eco-blue)
+       (set! (-> this collect-effect) group-blue-collect)
+       (set! (-> this collect-effect2) group-eco-blue-collect)
        (set! s4-0 (static-sound-spec "blue-eco-idle" :fo-max 15))
        )
       (((pickup-type eco-green))
-       (set! s5-0 (-> *part-group-id-table* 83))
-       (set! (-> this collect-effect) (-> *part-group-id-table* 93))
-       (set! (-> this collect-effect2) (-> *part-group-id-table* 79))
+       (set! s5-0 group-eco-green)
+       (set! (-> this collect-effect) group-green-collect)
+       (set! (-> this collect-effect2) group-eco-green-collect)
        (set! s4-0 (static-sound-spec "green-eco-idle" :fo-max 15))
        )
       (((pickup-type health))
@@ -319,17 +319,17 @@
          (set! (-> v1-37 y) 2457.6)
          (set! (-> v1-37 w) 4096.0)
          )
-       (set! (-> this collect-effect) (-> *part-group-id-table* 93))
-       (set! (-> this collect-effect2) (-> *part-group-id-table* 79))
+       (set! (-> this collect-effect) group-green-collect)
+       (set! (-> this collect-effect2) group-eco-green-collect)
        (set! s4-0 (static-sound-spec "green-eco-idle" :fo-max 15))
        )
       (((pickup-type eco-pill-green))
-       (set! s5-0 (-> *part-group-id-table* 80))
-       (set! (-> this collect-effect2) (-> *part-group-id-table* 81))
+       (set! s5-0 group-eco-green-pill)
+       (set! (-> this collect-effect2) group-eco-green-pill-collect)
        )
       (((pickup-type eco-pill-dark))
-       (set! s5-0 (-> *part-group-id-table* 82))
-       (set! (-> this collect-effect) (-> *part-group-id-table* 92))
+       (set! s5-0 group-eco-dark-pill)
+       (set! (-> this collect-effect) group-eco-dark-pill-collect)
        )
       )
     (if s5-0
@@ -490,94 +490,45 @@
      )
     )
   (let ((s4-9 (handle->process arg0)))
-    (when (nonzero? (-> this collect-effect))
-      (let ((s5-1 (get-process *default-dead-pool* part-tracker #x4000)))
-        (when s5-1
-          (let ((t9-21 (method-of-type part-tracker activate)))
-            (t9-21 (the-as part-tracker s5-1) s4-9 (symbol->string (-> part-tracker symbol)) (the-as pointer #x70004000))
-            )
-          (let ((t9-22 run-function-in-process)
-                (a0-60 s5-1)
-                (a1-26 part-tracker-init)
-                (a2-11 (-> this collect-effect))
-                (a3-10 0)
-                (t0-8 part-tracker-track-target)
-                (t1-8 #f)
-                (t2-8 #f)
-                (t3-0 *launch-matrix*)
-                )
-            (set! (-> t3-0 trans quad) (-> this root root-prim prim-core world-sphere quad))
-            ((the-as (function object object object object object object object object none) t9-22)
-             a0-60
-             a1-26
-             a2-11
-             a3-10
-             t0-8
-             t1-8
-             t2-8
-             t3-0
-             )
-            )
-          (-> s5-1 ppointer)
+    (if (nonzero? (-> this collect-effect))
+        (part-tracker-spawn
+          :to s4-9
+          :group (-> this collect-effect)
+          :callback part-tracker-track-target
+          :mat-joint (-> this root root-prim prim-core world-sphere)
           )
         )
-      )
     )
-  (when (nonzero? (-> this collect-effect2))
-    (let ((s5-2 (get-process *default-dead-pool* part-tracker #x4000)))
-      (when s5-2
-        (let ((t9-24 (method-of-type part-tracker activate)))
-          (t9-24 (the-as part-tracker s5-2) this (symbol->string (-> part-tracker symbol)) (the-as pointer #x70004000))
-          )
-        (let ((t9-25 run-function-in-process)
-              (a0-63 s5-2)
-              (a1-29 part-tracker-init)
-              (a2-16 (-> this collect-effect2))
-              (a3-12 0)
-              (t0-9
-                (lambda ((arg0 part-tracker))
-                  (let ((v1-1 (handle->process (-> arg0 userdata))))
-                    (when (the-as process v1-1)
-                      (let* ((a0-9
-                               (the-as process (as-type (handle->process (-> (the-as collectable v1-1) pickup-handle)) process-focusable))
+  (if (nonzero? (-> this collect-effect2))
+      (part-tracker-spawn
+        :to this
+        :group (-> this collect-effect2)
+        :callback (lambda ((arg0 part-tracker))
+          (let ((v1-1 (handle->process (-> arg0 userdata))))
+            (when (the-as process v1-1)
+              (let* ((a0-9
+                       (the-as process (as-type (handle->process (-> (the-as collectable v1-1) pickup-handle)) process-focusable))
+                       )
+                     (a2-0 (if (not a0-9)
+                               (-> arg0 root trans)
+                               (get-trans (the-as process-focusable a0-9) 3)
                                )
-                             (a2-0 (if (not a0-9)
-                                       (-> arg0 root trans)
-                                       (get-trans (the-as process-focusable a0-9) 3)
-                                       )
-                                   )
-                             )
-                        (vector-lerp!
-                          (-> arg0 root trans)
-                          (-> arg0 offset)
-                          a2-0
-                          (/ (the float (- (current-time) (-> arg0 start-time))) (the float (-> arg0 part group duration)))
-                          )
-                        )
-                      )
-                    )
+                           )
+                     )
+                (vector-lerp!
+                  (-> arg0 root trans)
+                  (-> arg0 offset)
+                  a2-0
+                  (/ (the float (- (current-time) (-> arg0 start-time))) (the float (-> arg0 part group duration)))
                   )
                 )
-              (t1-13 (process->handle this))
-              (t2-9 #f)
-              (t3-1 *launch-matrix*)
               )
-          (set! (-> t3-1 trans quad) (-> this root root-prim prim-core world-sphere quad))
-          ((the-as (function object object object object object object object object none) t9-25)
-           a0-63
-           a1-29
-           a2-16
-           a3-12
-           t0-9
-           t1-13
-           t2-9
-           t3-1
-           )
+            )
           )
-        (-> s5-2 ppointer)
+        :userdata (process->handle this)
+        :mat-joint (-> this root root-prim prim-core world-sphere)
         )
       )
-    )
   (send-event (handle->process (-> this notify)) 'notify 'pickup)
   0
   (none)
@@ -2032,8 +1983,8 @@
       )
   (set-vector! (-> this draw color-mult) 0.8 0.8 0.8 1.0)
   (set-vector! (-> this draw color-emissive) 0.2 0.2 0.2 1.0)
-  (set! (-> this part) (create-launch-control (-> *part-group-id-table* 86) this))
-  (set! (-> this collect-effect) (-> *part-group-id-table* 87))
+  (set! (-> this part) (create-launch-control group-gem-glow this))
+  (set! (-> this collect-effect) group-gem-collect)
   0
   (none)
   )
@@ -2359,8 +2310,8 @@
   (set! (-> this notify) (the-as handle #f))
   (set! (-> this root pause-adjust-distance) 204800.0)
   (set! (-> this fact) (new 'process 'fact-info this (pickup-type trick-point) 100.0))
-  (set! (-> this part) (create-launch-control (-> *part-group-id-table* 94) this))
-  (set! (-> this collect-effect) (-> *part-group-id-table* 95))
+  (set! (-> this part) (create-launch-control group-skate-point this))
+  (set! (-> this collect-effect) group-skate-point-explode)
   0
   (none)
   )
@@ -2432,16 +2383,16 @@
   (set! (-> this fact) (new 'process 'fact-info this (-> this pickup-type) (-> this pickup-amount)))
   (case (-> this pickup-type)
     (((pickup-type ammo-yellow))
-     (set! (-> this collect-effect) (-> *part-group-id-table* 88))
+     (set! (-> this collect-effect) group-ammo-yellow-collect)
      )
     (((pickup-type ammo-red))
-     (set! (-> this collect-effect) (-> *part-group-id-table* 89))
+     (set! (-> this collect-effect) group-ammo-red-collect)
      )
     (((pickup-type ammo-blue))
-     (set! (-> this collect-effect) (-> *part-group-id-table* 90))
+     (set! (-> this collect-effect) group-ammo-blue-collect)
      )
     (((pickup-type ammo-dark))
-     (set! (-> this collect-effect) (-> *part-group-id-table* 91))
+     (set! (-> this collect-effect) group-ammo-dark-collect)
      )
     )
   0
@@ -2460,7 +2411,7 @@
        (the-as pair 0)
        )
      (set-vector! (-> this root scale) 2.5 2.5 2.5 1.0)
-     (set! (-> this ammo-effect) (-> *part-group-id-table* 108))
+     (set! (-> this ammo-effect) group-eco-yellow)
      )
     (((pickup-type ammo-red))
      (initialize-skeleton
@@ -2469,7 +2420,7 @@
        (the-as pair 0)
        )
      (set-vector! (-> this root scale) 4.0 4.0 4.0 1.0)
-     (set! (-> this ammo-effect) (-> *part-group-id-table* 102))
+     (set! (-> this ammo-effect) group-eco-red)
      )
     (((pickup-type ammo-blue))
      (initialize-skeleton
@@ -2478,7 +2429,7 @@
        (the-as pair 0)
        )
      (set-vector! (-> this root scale) 4.0 4.0 4.0 1.0)
-     (set! (-> this ammo-effect) (-> *part-group-id-table* 98))
+     (set! (-> this ammo-effect) group-eco-blue)
      )
     (((pickup-type ammo-dark))
      (initialize-skeleton
@@ -2487,7 +2438,7 @@
        (the-as pair 0)
        )
      (set-vector! (-> this root scale) 3.0 3.0 3.0 1.0)
-     (set! (-> this ammo-effect) (-> *part-group-id-table* 83))
+     (set! (-> this ammo-effect) group-eco-green)
      )
     (((pickup-type gun-yellow))
      (initialize-skeleton
@@ -2534,7 +2485,7 @@
      (logclear! (-> this flags) (collectable-flag fadeout))
      )
     (((pickup-type shield))
-     (set! (-> this ammo-effect) (-> *part-group-id-table* 80))
+     (set! (-> this ammo-effect) group-eco-green-pill)
      )
     (((pickup-type trick-point))
      )
@@ -2744,182 +2695,269 @@
 ;; WARN: Stack slot offset 36 signed mismatch
 ;; WARN: Stack slot offset 36 signed mismatch
 (defbehavior birth-pickup-at-point process ((arg0 vector) (arg1 pickup-type) (arg2 float) (arg3 symbol) (arg4 process-tree) (arg5 fact-info))
-  (local-vars (sv-32 vector) (sv-36 float) (sv-40 (pointer process)) (sv-48 int) (sv-56 fact-info) (sv-64 int))
-  (set! sv-32 (new-stack-vector0))
-  (set! sv-36 (res-lump-float
-                (if (and arg5 (nonzero? (-> arg5 process)))
-                    (-> arg5 process entity)
+  (let ((sv-32 (new-stack-vector0))
+        (sv-36 (res-lump-float
+                 (if (and arg5 (nonzero? (-> arg5 process)))
+                     (-> arg5 process entity)
+                     )
+                 'pickup-radius
+                 :default (cond
+                   ((= arg1 (pickup-type buzzer))
+                    0.0
                     )
-                'pickup-radius
-                :default (cond
-                  ((= arg1 (pickup-type buzzer))
-                   0.0
+                   ((= arg2 1.0)
+                    409.6
+                    )
+                   (else
+                     8192.0
+                     )
                    )
-                  ((= arg2 1.0)
-                   409.6
+                 )
+               )
+        (sv-40 (the-as (pointer process) #f))
+        )
+    (let ((sv-48 (the int arg2))
+          (sv-56 (new 'static 'fact-info))
+          )
+      (set! (-> sv-56 options) (actor-option))
+      (if arg5
+          (mem-copy! (&-> sv-56 type) (&-> arg5 type) 40)
+          )
+      (set! (-> sv-56 pickup-type) arg1)
+      (set! (-> sv-56 pickup-spawn-amount) 1.0)
+      (while (> sv-48 0)
+        (+! sv-48 -1)
+        (when arg3
+          (set-vector! sv-32 0.0 57001.605 sv-36 1.0)
+          (vector-rotate-around-y! sv-32 sv-32 (/ (* 65536.0 (the float sv-48)) arg2))
+          )
+        (let ((v1-23 arg1))
+          (set! sv-40
+                (cond
+                  ((= v1-23 (pickup-type eco-yellow))
+                   (process-spawn eco-yellow :init initialize-eco-by-other arg0 sv-32 sv-56 :from *pickup-dead-pool* :to arg4)
                    )
                   (else
-                    8192.0
+                    (cond
+                      ((= v1-23 (pickup-type eco-red))
+                       (let ((s1-2 (get-process *pickup-dead-pool* eco-red #x4000)))
+                         (set! sv-40
+                               (when s1-2
+                                 (let ((t9-7 (method-of-type eco-red activate)))
+                                   (t9-7 (the-as eco-red s1-2) arg4 (symbol->string (-> eco-red symbol)) (the-as pointer #x70004000))
+                                   )
+                                 (run-now-in-process s1-2 initialize-eco-by-other arg0 sv-32 sv-56)
+                                 (-> s1-2 ppointer)
+                                 )
+                               )
+                         )
+                       )
+                      ((= v1-23 (pickup-type eco-blue))
+                       (let ((s1-3 (get-process *pickup-dead-pool* eco-blue #x4000)))
+                         (set! sv-40
+                               (when s1-3
+                                 (let ((t9-10 (method-of-type eco-blue activate)))
+                                   (t9-10 (the-as eco-blue s1-3) arg4 (symbol->string (-> eco-blue symbol)) (the-as pointer #x70004000))
+                                   )
+                                 (run-now-in-process s1-3 initialize-eco-by-other arg0 sv-32 sv-56)
+                                 (-> s1-3 ppointer)
+                                 )
+                               )
+                         )
+                       )
+                      ((= v1-23 (pickup-type eco-green))
+                       (let ((s1-4 (get-process *pickup-dead-pool* eco-green #x4000)))
+                         (set! sv-40
+                               (when s1-4
+                                 (let ((t9-13 (method-of-type eco-green activate)))
+                                   (t9-13 (the-as eco-green s1-4) arg4 (symbol->string (-> eco-green symbol)) (the-as pointer #x70004000))
+                                   )
+                                 (run-now-in-process s1-4 initialize-eco-by-other arg0 sv-32 sv-56)
+                                 (-> s1-4 ppointer)
+                                 )
+                               )
+                         )
+                       )
+                      ((= v1-23 (pickup-type health))
+                       (set! (-> sv-56 pickup-spawn-amount) arg2)
+                       (let ((s1-5 (get-process *pickup-dead-pool* health #x4000)))
+                         (set! sv-40
+                               (when s1-5
+                                 (let ((t9-16 (method-of-type health activate)))
+                                   (t9-16 (the-as health s1-5) arg4 (symbol->string (-> health symbol)) (the-as pointer #x70004000))
+                                   )
+                                 (run-now-in-process s1-5 initialize-eco-by-other arg0 sv-32 sv-56)
+                                 (-> s1-5 ppointer)
+                                 )
+                               )
+                         )
+                       (set! sv-48 0)
+                       0
+                       )
+                      ((or (= v1-23 (pickup-type eco-pill-green)) (= v1-23 (pickup-type eco-pill-dark)))
+                       (let ((s1-6 (get-process *pickup-dead-pool* eco-pill #x4000)))
+                         (set! sv-40
+                               (when s1-6
+                                 (let ((t9-19 (method-of-type eco-pill activate)))
+                                   (t9-19 (the-as eco-pill s1-6) arg4 (symbol->string (-> eco-pill symbol)) (the-as pointer #x70004000))
+                                   )
+                                 (run-now-in-process s1-6 initialize-eco-by-other arg0 sv-32 sv-56)
+                                 (-> s1-6 ppointer)
+                                 )
+                               )
+                         )
+                       )
+                      ((or (= v1-23 (pickup-type ammo-yellow))
+                           (= v1-23 (pickup-type ammo-red))
+                           (= v1-23 (pickup-type ammo-blue))
+                           (= v1-23 (pickup-type ammo-dark))
+                           (= v1-23 (pickup-type shield))
+                           )
+                       (let* ((v1-56 arg1)
+                              (sv-64 (cond
+                                       ((= v1-56 (pickup-type ammo-red))
+                                        5
+                                        )
+                                       ((= v1-56 (pickup-type ammo-dark))
+                                        1
+                                        )
+                                       (else
+                                         10
+                                         )
+                                       )
+                                     )
+                              )
+                         (set! (-> sv-56 pickup-spawn-amount) (the float sv-64))
+                         (let ((s1-7 (get-process *pickup-dead-pool* ammo-collectable #x4000)))
+                           (set! sv-40 (when s1-7
+                                         (let ((t9-22 (method-of-type ammo-collectable activate)))
+                                           (t9-22
+                                             (the-as ammo-collectable s1-7)
+                                             arg4
+                                             (symbol->string (-> ammo-collectable symbol))
+                                             (the-as pointer #x70004000)
+                                             )
+                                           )
+                                         (run-now-in-process s1-7 initialize-ammo-by-other arg0 sv-32 sv-56)
+                                         (-> s1-7 ppointer)
+                                         )
+                                 )
+                           )
+                         (set! sv-48 (- sv-48 (+ sv-64 -1)))
+                         )
+                       )
+                      ((or (= v1-23 (pickup-type gun-yellow))
+                           (= v1-23 (pickup-type gun-red))
+                           (= v1-23 (pickup-type gun-blue))
+                           (= v1-23 (pickup-type gun-dark))
+                           (= v1-23 (pickup-type board))
+                           )
+                       (let ((s1-8 (get-process *pickup-dead-pool* upgrade-collectable #x4000)))
+                         (set! sv-40 (when s1-8
+                                       (let ((t9-25 (method-of-type upgrade-collectable activate)))
+                                         (t9-25
+                                           (the-as upgrade-collectable s1-8)
+                                           arg4
+                                           (symbol->string (-> upgrade-collectable symbol))
+                                           (the-as pointer #x70004000)
+                                           )
+                                         )
+                                       (run-now-in-process s1-8 initialize-upgrade-by-other arg0 sv-32 sv-56 (-> self entity))
+                                       (-> s1-8 ppointer)
+                                       )
+                               )
+                         )
+                       (set! sv-48 0)
+                       0
+                       )
+                      ((= v1-23 (pickup-type trick-point))
+                       (set! (-> sv-56 pickup-spawn-amount) arg2)
+                       (let ((s1-9 (get-process *pickup-dead-pool* trick-point #x4000)))
+                         (set! sv-40
+                               (when s1-9
+                                 (let ((t9-28 (method-of-type trick-point activate)))
+                                   (t9-28 (the-as trick-point s1-9) arg4 (symbol->string (-> trick-point symbol)) (the-as pointer #x70004000))
+                                   )
+                                 (run-now-in-process s1-9 initialize-ammo-by-other arg0 sv-32 sv-56)
+                                 (-> s1-9 ppointer)
+                                 )
+                               )
+                         )
+                       (set! sv-48 0)
+                       0
+                       )
+                      ((= v1-23 (pickup-type money))
+                       (let ((s1-10 (get-process *pickup-dead-pool* money #x4000)))
+                         (set! sv-40
+                               (when s1-10
+                                 (let ((t9-31 (method-of-type money activate)))
+                                   (t9-31 (the-as money s1-10) arg4 (symbol->string (-> money symbol)) (the-as pointer #x70004000))
+                                   )
+                                 (run-now-in-process s1-10 money-init-by-other arg0 sv-32 sv-56 (-> self entity))
+                                 (-> s1-10 ppointer)
+                                 )
+                               )
+                         )
+                       )
+                      ((= v1-23 (pickup-type trick-point))
+                       (let ((s1-11 (get-process *pickup-dead-pool* money #x4000)))
+                         (set! sv-40
+                               (when s1-11
+                                 (let ((t9-34 (method-of-type money activate)))
+                                   (t9-34 (the-as money s1-11) arg4 (symbol->string (-> money symbol)) (the-as pointer #x70004000))
+                                   )
+                                 (run-now-in-process s1-11 money-init-by-other arg0 sv-32 sv-56 (-> self entity))
+                                 (-> s1-11 ppointer)
+                                 )
+                               )
+                         )
+                       )
+                      ((= v1-23 (pickup-type gem))
+                       (if (>= (-> *game-info* live-gem-count) 20)
+                           (return (the-as (pointer process) #f))
+                           )
+                       (let ((s1-12 (get-process *pickup-dead-pool* gem #x4000)))
+                         (set! sv-40 (when s1-12
+                                       (let ((t9-37 (method-of-type gem activate)))
+                                         (t9-37 (the-as gem s1-12) arg4 (symbol->string (-> gem symbol)) (the-as pointer #x70004000))
+                                         )
+                                       (run-now-in-process s1-12 money-init-by-other arg0 sv-32 sv-56 (-> self entity))
+                                       (-> s1-12 ppointer)
+                                       )
+                               )
+                         )
+                       )
+                      ((= v1-23 (pickup-type skill))
+                       (when (>= arg2 (-> *FACT-bank* super-skill-inc))
+                         (set! (-> sv-56 pickup-spawn-amount) arg2)
+                         (set! sv-48 0)
+                         0
+                         )
+                       (let ((s1-13 (get-process *pickup-dead-pool* skill #x4000)))
+                         (set! sv-40
+                               (when s1-13
+                                 (let ((t9-40 (method-of-type skill activate)))
+                                   (t9-40 (the-as skill s1-13) arg4 (symbol->string (-> skill symbol)) (the-as pointer #x70004000))
+                                   )
+                                 (run-now-in-process s1-13 money-init-by-other arg0 sv-32 sv-56 (-> self entity))
+                                 (-> s1-13 ppointer)
+                                 )
+                               )
+                         )
+                       )
+                      (else
+                        (format 0 "ERROR: unknown type of eco ~d~%" arg1)
+                        )
+                      )
+                    sv-40
                     )
                   )
                 )
-        )
-  (set! sv-40 (the-as (pointer process) #f))
-  (set! sv-48 (the int arg2))
-  (set! sv-56 (new 'static 'fact-info))
-  (set! (-> sv-56 options) (actor-option))
-  (if arg5
-      (mem-copy! (&-> sv-56 type) (&-> arg5 type) 40)
-      )
-  (set! (-> sv-56 pickup-type) arg1)
-  (set! (-> sv-56 pickup-spawn-amount) 1.0)
-  (while (> sv-48 0)
-    (set! sv-48 (+ sv-48 -1))
-    (when arg3
-      (set-vector! sv-32 0.0 57001.605 sv-36 1.0)
-      (vector-rotate-around-y! sv-32 sv-32 (/ (* 65536.0 (the float sv-48)) arg2))
-      )
-    (case arg1
-      (((pickup-type eco-yellow))
-       (set! sv-40
-             (process-spawn eco-yellow :init initialize-eco-by-other arg0 sv-32 sv-56 :from *pickup-dead-pool* :to arg4)
-             )
-       )
-      (((pickup-type eco-red))
-       (set! sv-40
-             (process-spawn eco-red :init initialize-eco-by-other arg0 sv-32 sv-56 :from *pickup-dead-pool* :to arg4)
-             )
-       )
-      (((pickup-type eco-blue))
-       (set! sv-40
-             (process-spawn eco-blue :init initialize-eco-by-other arg0 sv-32 sv-56 :from *pickup-dead-pool* :to arg4)
-             )
-       )
-      (((pickup-type eco-green))
-       (set! sv-40
-             (process-spawn eco-green :init initialize-eco-by-other arg0 sv-32 sv-56 :from *pickup-dead-pool* :to arg4)
-             )
-       )
-      (((pickup-type health))
-       (set! (-> sv-56 pickup-spawn-amount) arg2)
-       (set! sv-40
-             (process-spawn health :init initialize-eco-by-other arg0 sv-32 sv-56 :from *pickup-dead-pool* :to arg4)
-             )
-       (set! sv-48 0)
-       0
-       )
-      (((pickup-type eco-pill-green) (pickup-type eco-pill-dark))
-       (set! sv-40
-             (process-spawn eco-pill :init initialize-eco-by-other arg0 sv-32 sv-56 :from *pickup-dead-pool* :to arg4)
-             )
-       )
-      (((pickup-type ammo-yellow)
-        (pickup-type ammo-red)
-        (pickup-type ammo-blue)
-        (pickup-type ammo-dark)
-        (pickup-type shield)
-        )
-       (let ((v1-56 arg1))
-         (set! sv-64 (cond
-                       ((= v1-56 (pickup-type ammo-red))
-                        5
-                        )
-                       ((= v1-56 (pickup-type ammo-dark))
-                        1
-                        )
-                       (else
-                         10
-                         )
-                       )
-               )
-         )
-       (set! (-> sv-56 pickup-spawn-amount) (the float sv-64))
-       (set! sv-40 (process-spawn
-                     ammo-collectable
-                     :init initialize-ammo-by-other
-                     arg0
-                     sv-32
-                     sv-56
-                     :from *pickup-dead-pool*
-                     :to arg4
-                     )
-             )
-       (set! sv-48 (- sv-48 (+ sv-64 -1)))
-       )
-      (((pickup-type gun-yellow)
-        (pickup-type gun-red)
-        (pickup-type gun-blue)
-        (pickup-type gun-dark)
-        (pickup-type board)
-        )
-       (set! sv-40 (process-spawn
-                     upgrade-collectable
-                     :init initialize-upgrade-by-other
-                     arg0
-                     sv-32
-                     sv-56
-                     (-> self entity)
-                     :from *pickup-dead-pool*
-                     :to arg4
-                     )
-             )
-       (set! sv-48 0)
-       0
-       )
-      (((pickup-type trick-point))
-       (set! (-> sv-56 pickup-spawn-amount) arg2)
-       (set! sv-40
-             (process-spawn trick-point :init initialize-ammo-by-other arg0 sv-32 sv-56 :from *pickup-dead-pool* :to arg4)
-             )
-       (set! sv-48 0)
-       0
-       )
-      (((pickup-type money))
-       (set! sv-40 (process-spawn money arg0 sv-32 sv-56 (-> self entity) :from *pickup-dead-pool* :to arg4))
-       )
-      (((pickup-type trick-point))
-       (set! sv-40 (process-spawn money arg0 sv-32 sv-56 (-> self entity) :from *pickup-dead-pool* :to arg4))
-       )
-      (((pickup-type gem))
-       (if (>= (-> *game-info* live-gem-count) 20)
-           (return (the-as (pointer process) #f))
-           )
-       (set! sv-40 (process-spawn
-                     gem
-                     :init money-init-by-other
-                     arg0
-                     sv-32
-                     sv-56
-                     (-> self entity)
-                     :from *pickup-dead-pool*
-                     :to arg4
-                     )
-             )
-       )
-      (((pickup-type skill))
-       (when (>= arg2 (-> *FACT-bank* super-skill-inc))
-         (set! (-> sv-56 pickup-spawn-amount) arg2)
-         (set! sv-48 0)
-         0
-         )
-       (set! sv-40 (process-spawn
-                     skill
-                     :init money-init-by-other
-                     arg0
-                     sv-32
-                     sv-56
-                     (-> self entity)
-                     :from *pickup-dead-pool*
-                     :to arg4
-                     )
-             )
-       )
-      (else
-        (format 0 "ERROR: unknown type of eco ~d~%" arg1)
+          )
         )
       )
+    sv-40
     )
-  sv-40
   )
 
 ;; definition for method 9 of type fact-info

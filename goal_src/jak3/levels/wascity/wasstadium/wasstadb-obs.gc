@@ -390,13 +390,13 @@
     (case message
       (('touch 'attack)
        (cond
-         ((logtest? (-> *part-group-id-table* 500 flags) (sp-group-flag sp13))
+         ((logtest? (-> group-arena-token-pickup flags) (sp-group-flag sp13))
           (vector-copy! (-> *launch-matrix* trans) (-> self root trans))
-          (part-tracker-spawn part-tracker-subsampler :to *entity-pool* :group (-> *part-group-id-table* 500))
+          (part-tracker-spawn part-tracker-subsampler :to *entity-pool* :group group-arena-token-pickup)
           )
          (else
            (vector-copy! (-> *launch-matrix* trans) (-> self root trans))
-           (part-tracker-spawn part-tracker :to *entity-pool* :group (-> *part-group-id-table* 500))
+           (part-tracker-spawn part-tracker :to *entity-pool* :group group-arena-token-pickup)
            )
          )
        (sound-play "arena-token")
@@ -430,13 +430,13 @@
     (set! (-> self shadow-h)
           (ppointer->handle
             (cond
-              ((logtest? (-> *part-group-id-table* 501 flags) (sp-group-flag sp13))
+              ((logtest? (-> group-arena-token-shadow flags) (sp-group-flag sp13))
                (vector-copy! (-> *launch-matrix* trans) (-> self gspot))
-               (part-tracker-spawn part-tracker-subsampler :to *entity-pool* :group (-> *part-group-id-table* 501))
+               (part-tracker-spawn part-tracker-subsampler :to *entity-pool* :group group-arena-token-shadow)
                )
               (else
                 (vector-copy! (-> *launch-matrix* trans) (-> self gspot))
-                (part-tracker-spawn part-tracker :to *entity-pool* :group (-> *part-group-id-table* 501))
+                (part-tracker-spawn part-tracker :to *entity-pool* :group group-arena-token-shadow)
                 )
               )
             )
@@ -553,7 +553,7 @@
     (the-as skeleton-group (art-group-get-by-name *level* "skel-arena-token" (the-as (pointer level) #f)))
     (the-as pair 0)
     )
-  (set! (-> this part) (create-launch-control (-> *part-group-id-table* 499) this))
+  (set! (-> this part) (create-launch-control group-arena-token this))
   (set! (-> this trans-y) (-> this root trans y))
   (set! (-> this offset) (rand-vu-float-range 0.0 4.0))
   (probe-background this)
@@ -741,6 +741,15 @@
 (define *arena-trainer-checkpoint-time* 0.0)
 
 (define *arena-trainer-checkpoint-tokens* (new 'static 'array uint64 2 #xffffffffffffffff #x0))
+
+;; og:preserve-this helper to reset these globals in between speedruns, otherwise new game can skip straight past tokens
+(defun reset-arena-trainer-globals ()
+  (set! *arena-trainer-checkpoint-valid* (the-as object #f))
+  (set! *arena-trainer-checkpoint-time* 0.0)
+  (set! (-> *arena-trainer-checkpoint-tokens* 0) #xffffffffffffffff)
+  (set! (-> *arena-trainer-checkpoint-tokens* 1) #x0)
+  (none)
+  )
 
 (deftype task-manager-arena-training (task-manager)
   ((judge-h            handle)
@@ -1115,6 +1124,8 @@
   )
 
 (defmethod init! ((this task-manager-arena-training))
+  ;; og:preserve-this increase stack for jetboard trick tracker
+  (stack-size-set! (-> this main-thread) 1024)
   (let ((t9-0 (method-of-type task-manager init!)))
     (t9-0 this)
     )
@@ -1125,7 +1136,6 @@
 
 ;; WARN: Return type mismatch object vs none.
 (defmethod set-time-limit ((this task-manager-arena-training))
-  (local-vars (sv-16 res-tag))
   (when (not *arena-trainer-checkpoint-valid*)
     (set! *arena-trainer-checkpoint-time* 0.0)
     (set! (-> *arena-trainer-checkpoint-tokens* 0) (the-as uint -1))
@@ -1139,12 +1149,13 @@
   (let ((a0-6 (entity-by-name "arena-trainer-1")))
     (when a0-6
       (set! (-> this entity) (the-as entity-actor a0-6))
-      (set! sv-16 (new 'static 'res-tag))
-      (let ((v0-5 (res-lump-data a0-6 'actor-groups pointer :tag-ptr (& sv-16))))
+      (let* ((sv-16 (new 'static 'res-tag))
+             (v0-5 (res-lump-data a0-6 'actor-groups (pointer actor-group) :tag-ptr (& sv-16)))
+             )
         (cond
           ((and v0-5 (nonzero? (-> sv-16 elt-count)))
            (set! (-> this actor-group-count) (the-as int (-> sv-16 elt-count)))
-           (set! (-> this actor-group) (the-as (pointer actor-group) v0-5))
+           (set! (-> this actor-group) v0-5)
            )
           (else
             (format 0 "ERROR: ~s: entity missing actor-group!~%" (game-task->string (-> this node-info task)))

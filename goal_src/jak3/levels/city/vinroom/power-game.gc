@@ -1248,7 +1248,7 @@
   (set! (-> *game-info* miss) 0.0)
   (set! (-> *game-info* miss-max) (the float (-> this miss-max)))
   (set! (-> this score-met) #f)
-  (set! (-> this score-part 0) (create-launch-control (-> *part-group-id-table* 912) this))
+  (set! (-> this score-part 0) (create-launch-control group-power-scoreboard-points this))
   (let ((v1-41 (-> this root root-prim)))
     (set! (-> v1-41 prim-core collide-as) (collide-spec))
     (set! (-> v1-41 prim-core collide-with) (collide-spec))
@@ -1485,21 +1485,70 @@
   )
 
 (defmethod power-game-method-40 ((this power-game) (arg0 int))
-  (let ((s3-0 (new 'stack-no-clear 'vector))
-        (gp-0 (new 'stack-no-clear 'vector))
+  ;; og:preserve-this support dpad inputs for pacman
+  ;; when enabled, dpad input will supercede stick input
+  (#cond
+    (PC_PORT
+      (cond
+        ((and (-> *pc-settings* pacman-dpad?)
+              (or (and (= arg0 0) (or (cpad-pressed? 0 up) (cpad-hold? 0 up)))
+                  (and (= arg0 1) (or (cpad-pressed? 0 right) (cpad-hold? 0 right)))
+                  (and (= arg0 2) (or (cpad-pressed? 0 down) (cpad-hold? 0 down)))
+                  (and (= arg0 3) (or (cpad-pressed? 0 left) (cpad-hold? 0 left)))
+                  ))
+          ;; clear dpad inputs when we have a match
+          ;; gives better control moving across 1 lane vs 2 lanes
+          (logclear!
+            (-> *cpad-list* cpads 0 button0-abs 0)
+            (pad-buttons up right down left)
+            )
+          (logclear!
+            (-> *cpad-list* cpads 0 button0-rel 0)
+            (pad-buttons up right down left)
+            )
+          ;; allow moving with dpad (added in pc port)
+          #t
+          )
+        (else
+          ;; allow moving with stick (original)
+          (let ((s3-0 (new 'stack-no-clear 'vector))
+                (gp-0 (new 'stack-no-clear 'vector))
+                )
+            (let ((s2-0 (new 'stack-no-clear 'matrix)))
+              (set! (-> s3-0 x) (sin (-> *cpad-list* cpads 0 stick0-dir)))
+              (set! (-> s3-0 y) 0.0)
+              (set! (-> s3-0 z) (cos (-> *cpad-list* cpads 0 stick0-dir)))
+              (set! (-> s3-0 w) 0.0)
+              (matrix-copy! s2-0 (matrix-local->world #t #f))
+              (vector-matrix*! s3-0 s3-0 s2-0)
+              (warp-vector-into-surface! gp-0 s3-0 *up-vector* s2-0)
+              )
+            (vector-float*! gp-0 gp-0 (-> *cpad-list* cpads 0 stick0-speed))
+            (let ((v1-8 (power-game-method-38 this (new 'stack-no-clear 'vector) arg0)))
+              (< 0.5 (vector-dot gp-0 v1-8))
+              )
+            )
+          )
         )
-    (let ((s2-0 (new 'stack-no-clear 'matrix)))
-      (set! (-> s3-0 x) (sin (-> *cpad-list* cpads 0 stick0-dir)))
-      (set! (-> s3-0 y) 0.0)
-      (set! (-> s3-0 z) (cos (-> *cpad-list* cpads 0 stick0-dir)))
-      (set! (-> s3-0 w) 0.0)
-      (matrix-copy! s2-0 (matrix-local->world #t #f))
-      (vector-matrix*! s3-0 s3-0 s2-0)
-      (warp-vector-into-surface! gp-0 s3-0 *up-vector* s2-0)
       )
-    (vector-float*! gp-0 gp-0 (-> *cpad-list* cpads 0 stick0-speed))
-    (let ((v1-8 (power-game-method-38 this (new 'stack-no-clear 'vector) arg0)))
-      (< 0.5 (vector-dot gp-0 v1-8))
+    (#t
+      (let ((s3-0 (new 'stack-no-clear 'vector))
+            (gp-0 (new 'stack-no-clear 'vector))
+            )
+        (let ((s2-0 (new 'stack-no-clear 'matrix)))
+          (set! (-> s3-0 x) (sin (-> *cpad-list* cpads 0 stick0-dir)))
+          (set! (-> s3-0 y) 0.0)
+          (set! (-> s3-0 z) (cos (-> *cpad-list* cpads 0 stick0-dir)))
+          (set! (-> s3-0 w) 0.0)
+          (matrix-copy! s2-0 (matrix-local->world #t #f))
+          (vector-matrix*! s3-0 s3-0 s2-0)
+          (warp-vector-into-surface! gp-0 s3-0 *up-vector* s2-0)
+          )
+        (vector-float*! gp-0 gp-0 (-> *cpad-list* cpads 0 stick0-speed))
+        (let ((v1-8 (power-game-method-38 this (new 'stack-no-clear 'vector) arg0)))
+          (< 0.5 (vector-dot gp-0 v1-8))
+          )
+        )
       )
     )
   )
@@ -1578,7 +1627,6 @@
   )
 
 (defmethod power-game-method-44 ((this power-game) (arg0 float) (arg1 float) (arg2 int) (arg3 int))
-  (local-vars (sv-128 int) (sv-144 vector))
   (the int arg0)
   (the int arg1)
   (let ((s3-0 (new 'stack-no-clear 'vector)))
@@ -1605,18 +1653,14 @@
            (vector+! s3-0 s3-0 (power-game-method-38 this (new 'stack-no-clear 'vector) arg2))
            )
           )
-        (let ((s1-3 add-debug-line)
-              (s0-6 #t)
-              )
-          (set! sv-128 577)
-          (set! sv-144 (get-center-pos! this (new 'stack-no-clear 'vector) (-> s2-0 x) (-> s2-0 z)))
-          (let ((a3-6 (get-center-pos! this (new 'stack-no-clear 'vector) (-> s3-0 x) (-> s3-0 z)))
-                (t0-1 (the-as uint #x800000ff))
-                (t1-0 #f)
-                (t2-0 -1)
-                )
-            (s1-3 s0-6 (the-as bucket-id sv-128) sv-144 a3-6 (the-as rgba t0-1) t1-0 (the-as rgba t2-0))
-            )
+        (add-debug-line
+          #t
+          (bucket-id debug-no-zbuf1)
+          (get-center-pos! this (new 'stack-no-clear 'vector) (-> s2-0 x) (-> s2-0 z))
+          (get-center-pos! this (new 'stack-no-clear 'vector) (-> s3-0 x) (-> s3-0 z))
+          (new 'static 'rgba :r #xff :a #x80)
+          #f
+          (the-as rgba -1)
           )
         (vector-copy! s2-0 s3-0)
         (+! arg3 -1)
@@ -1638,15 +1682,14 @@
   )
 
 (defmethod update-cam ((this power-game))
-  (local-vars (sv-48 vector) (sv-52 vector) (sv-56 power-game-cam-info))
   (let ((s4-0 (the-as power-game-player (handle->process (-> this player)))))
     (when s4-0
-      (let ((s5-0 (get-trans s4-0 9))
-            (s4-1 (the int (-> (get-trans s4-0 2) x)))
-            )
-        (set! sv-48 (vector-! (new 'stack-no-clear 'vector) s5-0 (new 'static 'vector :x 8.0 :z 7.0 :w 1.0)))
-        (set! sv-52 (get-center-pos! this (new 'stack-no-clear 'vector) (-> s5-0 x) (-> s5-0 z)))
-        (set! sv-56 (-> this cam-targ))
+      (let* ((s5-0 (get-trans s4-0 9))
+             (s4-1 (the int (-> (get-trans s4-0 2) x)))
+             (sv-48 (vector-! (new 'stack-no-clear 'vector) s5-0 (new 'static 'vector :x 8.0 :z 7.0 :w 1.0)))
+             (sv-52 (get-center-pos! this (new 'stack-no-clear 'vector) (-> s5-0 x) (-> s5-0 z)))
+             (sv-56 (-> this cam-targ))
+             )
         (* 16384.0 (the float (logand (- 6 (power-game-method-34 this (-> s5-0 x) (-> s5-0 z))) 3)))
         (let ((f30-1 (if (cpad-hold? 0 x)
                          131072.0
@@ -2098,13 +2141,13 @@
         )
       )
     (cond
-      ((logtest? (-> *part-group-id-table* 911 flags) (sp-group-flag sp13))
+      ((logtest? (-> group-player-die flags) (sp-group-flag sp13))
        (vector-copy! (-> *launch-matrix* trans) (-> self root trans))
-       (part-tracker-spawn part-tracker-subsampler :to self :group (-> *part-group-id-table* 911))
+       (part-tracker-spawn part-tracker-subsampler :to self :group group-player-die)
        )
       (else
         (vector-copy! (-> *launch-matrix* trans) (-> self root trans))
-        (part-tracker-spawn part-tracker :to self :group (-> *part-group-id-table* 911))
+        (part-tracker-spawn part-tracker :to self :group group-player-die)
         )
       )
     (sound-play "magic-poof-die")
@@ -2340,11 +2383,11 @@
     )
   :code (behavior ()
     (sound-play "switcher-appear")
-    (if (logtest? (-> *part-group-id-table* 907 flags) (sp-group-flag sp13))
+    (if (logtest? (-> group-switcher-charge flags) (sp-group-flag sp13))
         (part-tracker-spawn
           part-tracker-subsampler
           :to self
-          :group (-> *part-group-id-table* 907)
+          :group group-switcher-charge
           :duration (seconds 4)
           :target self
           :mat-joint (the-as object 0)
@@ -2352,7 +2395,7 @@
         (part-tracker-spawn
           part-tracker
           :to self
-          :group (-> *part-group-id-table* 907)
+          :group group-switcher-charge
           :duration (seconds 4)
           :target self
           :mat-joint (the-as object 0)
@@ -2495,13 +2538,13 @@
         )
       )
     (cond
-      ((logtest? (-> *part-group-id-table* 908 flags) (sp-group-flag sp13))
+      ((logtest? (-> group-switcher-die flags) (sp-group-flag sp13))
        (vector-copy! (-> *launch-matrix* trans) (-> self root trans))
-       (part-tracker-spawn part-tracker-subsampler :to self :group (-> *part-group-id-table* 908))
+       (part-tracker-spawn part-tracker-subsampler :to self :group group-switcher-die)
        )
       (else
         (vector-copy! (-> *launch-matrix* trans) (-> self root trans))
-        (part-tracker-spawn part-tracker :to self :group (-> *part-group-id-table* 908))
+        (part-tracker-spawn part-tracker :to self :group group-switcher-die)
         )
       )
     (logior! (-> self focus-status) (focus-status dead))
@@ -2747,21 +2790,15 @@
 (defstate die (power-game-zapper)
   :virtual #t
   :code (behavior ()
-    (if (logtest? (-> *part-group-id-table* 908 flags) (sp-group-flag sp13))
+    (if (logtest? (-> group-switcher-die flags) (sp-group-flag sp13))
         (part-tracker-spawn
           part-tracker-subsampler
           :to self
-          :group (-> *part-group-id-table* 908)
+          :group group-switcher-die
           :target self
           :mat-joint (the-as object 0)
           )
-        (part-tracker-spawn
-          part-tracker
-          :to self
-          :group (-> *part-group-id-table* 908)
-          :target self
-          :mat-joint (the-as object 0)
-          )
+        (part-tracker-spawn part-tracker :to self :group group-switcher-die :target self :mat-joint (the-as object 0))
         )
     (logior! (-> self focus-status) (focus-status dead))
     (ja-channel-push! 1 (seconds 0.05))
@@ -2905,13 +2942,13 @@
   :virtual #t
   :code (behavior ()
     (cond
-      ((logtest? (-> *part-group-id-table* 910 flags) (sp-group-flag sp13))
+      ((logtest? (-> group-glyph-die flags) (sp-group-flag sp13))
        (vector-copy! (-> *launch-matrix* trans) (-> self root trans))
-       (part-tracker-spawn part-tracker-subsampler :to *entity-pool* :group (-> *part-group-id-table* 910))
+       (part-tracker-spawn part-tracker-subsampler :to *entity-pool* :group group-glyph-die)
        )
       (else
         (vector-copy! (-> *launch-matrix* trans) (-> self root trans))
-        (part-tracker-spawn part-tracker :to *entity-pool* :group (-> *part-group-id-table* 910))
+        (part-tracker-spawn part-tracker :to *entity-pool* :group group-glyph-die)
         )
       )
     (sound-play "glyph-kill")
@@ -2957,13 +2994,13 @@
     (-> self local z)
     )
   (cond
-    ((logtest? (-> *part-group-id-table* 909 flags) (sp-group-flag sp13))
+    ((logtest? (-> group-glyph-charge flags) (sp-group-flag sp13))
      (vector-copy! (-> *launch-matrix* trans) (-> self root trans))
-     (part-tracker-spawn part-tracker-subsampler :to self :group (-> *part-group-id-table* 909))
+     (part-tracker-spawn part-tracker-subsampler :to self :group group-glyph-charge)
      )
     (else
       (vector-copy! (-> *launch-matrix* trans) (-> self root trans))
-      (part-tracker-spawn part-tracker :to self :group (-> *part-group-id-table* 909))
+      (part-tracker-spawn part-tracker :to self :group group-glyph-charge)
       )
     )
   (go-virtual active)

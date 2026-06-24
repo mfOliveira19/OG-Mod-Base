@@ -497,7 +497,6 @@
       )
     )
   :trans (behavior ()
-    (local-vars (sv-128 symbol) (sv-144 vector))
     (sound-play "prec-generator" :id (-> self sound-id) :position (-> self root trans))
     (when (< (the-as time-frame (-> self next-lightning-time)) (current-time))
       (process-drawable-shock-effect
@@ -553,9 +552,9 @@
                 (s2-0 (-> *lightning-spec-id-table* 37))
                 (s1-0 90)
                 (s0-0 #f)
+                (sv-128 (the-as symbol #f))
+                (sv-144 (new 'stack-no-clear 'vector))
                 )
-            (set! sv-128 (the-as symbol #f))
-            (set! sv-144 (new 'stack-no-clear 'vector))
             (set! (-> sv-144 x) (-> (target-pos 0) x))
             (let* ((f30-0 (-> (target-pos 0) y))
                    (f28-0 4096.0)
@@ -568,18 +567,16 @@
               )
             (set! (-> sv-144 z) (-> (target-pos 0) z))
             (set! (-> sv-144 w) 1.0)
-            (let ((t3-0 (-> self root trans)))
-              ((the-as (function object object object object object object object object none) s5-2)
-               s4-0
-               s3-0
-               s2-0
-               s1-0
-               s0-0
-               sv-128
-               sv-144
-               t3-0
-               )
-              )
+            ((the-as (function object object object object object object object object none) s5-2)
+             s4-0
+             s3-0
+             s2-0
+             s1-0
+             s0-0
+             sv-128
+             sv-144
+             (-> self root trans)
+             )
             )
           (-> gp-2 ppointer)
           )
@@ -707,13 +704,13 @@
   :enter (behavior ()
     (set-time! (-> self state-time))
     (cond
-      ((logtest? (-> *part-group-id-table* 1313 flags) (sp-group-flag sp13))
+      ((logtest? (-> group-precura-generator-explode flags) (sp-group-flag sp13))
        (vector-copy! (-> *launch-matrix* trans) (-> self root trans))
-       (part-tracker-spawn part-tracker-subsampler :to *entity-pool* :group (-> *part-group-id-table* 1313))
+       (part-tracker-spawn part-tracker-subsampler :to *entity-pool* :group group-precura-generator-explode)
        )
       (else
         (vector-copy! (-> *launch-matrix* trans) (-> self root trans))
-        (part-tracker-spawn part-tracker :to *entity-pool* :group (-> *part-group-id-table* 1313))
+        (part-tracker-spawn part-tracker :to *entity-pool* :group group-precura-generator-explode)
         )
       )
     (when (type? (-> self root) collide-shape)
@@ -897,13 +894,13 @@
   :enter (behavior ()
     (set-time! (-> self state-time))
     (cond
-      ((logtest? (-> *part-group-id-table* 1313 flags) (sp-group-flag sp13))
+      ((logtest? (-> group-precura-generator-explode flags) (sp-group-flag sp13))
        (vector-copy! (-> *launch-matrix* trans) (-> self root trans))
-       (part-tracker-spawn part-tracker-subsampler :to *entity-pool* :group (-> *part-group-id-table* 1313))
+       (part-tracker-spawn part-tracker-subsampler :to *entity-pool* :group group-precura-generator-explode)
        )
       (else
         (vector-copy! (-> *launch-matrix* trans) (-> self root trans))
-        (part-tracker-spawn part-tracker :to *entity-pool* :group (-> *part-group-id-table* 1313))
+        (part-tracker-spawn part-tracker :to *entity-pool* :group group-precura-generator-explode)
         )
       )
     (when (type? (-> self root) collide-shape)
@@ -1125,13 +1122,13 @@
   :enter (behavior ()
     (set-time! (-> self state-time))
     (cond
-      ((logtest? (-> *part-group-id-table* 1313 flags) (sp-group-flag sp13))
+      ((logtest? (-> group-precura-generator-explode flags) (sp-group-flag sp13))
        (vector-copy! (-> *launch-matrix* trans) (-> self root trans))
-       (part-tracker-spawn part-tracker-subsampler :to *entity-pool* :group (-> *part-group-id-table* 1313))
+       (part-tracker-spawn part-tracker-subsampler :to *entity-pool* :group group-precura-generator-explode)
        )
       (else
         (vector-copy! (-> *launch-matrix* trans) (-> self root trans))
-        (part-tracker-spawn part-tracker :to *entity-pool* :group (-> *part-group-id-table* 1313))
+        (part-tracker-spawn part-tracker :to *entity-pool* :group group-precura-generator-explode)
         )
       )
     (sound-stop (-> self sound-id))
@@ -1192,7 +1189,6 @@
 ;; INFO: Used lq/sq
 (defmethod init-from-entity! ((this precur-generator-c) (arg0 entity-actor))
   "Set up a newly created process from the entity that created it."
-  (local-vars (sv-16 res-tag))
   (stack-size-set! (-> this main-thread) 512)
   (let ((s4-0 (new 'process 'collide-shape this (collide-list-enum usually-hit-by-player))))
     (set! (-> s4-0 penetrated-by) (penetrate))
@@ -1227,12 +1223,13 @@
     )
   (set! (-> this next-lightning-time) (the-as uint 0))
   (set! (-> this entity) arg0)
-  (set! sv-16 (new 'static 'res-tag))
-  (let ((v1-19 (res-lump-data arg0 'actor-groups pointer :tag-ptr (& sv-16))))
+  (let* ((sv-16 (new 'static 'res-tag))
+         (v1-19 (res-lump-data arg0 'actor-groups (pointer actor-group) :tag-ptr (& sv-16)))
+         )
     (cond
       ((and v1-19 (nonzero? (-> sv-16 elt-count)))
        (set! (-> this actor-group-count) (the-as int (-> sv-16 elt-count)))
-       (set! (-> this actor-group) (the-as (pointer actor-group) v1-19))
+       (set! (-> this actor-group) v1-19)
        )
       (else
         (format 0 "ERROR: entity missing actor-group!~%")
@@ -1396,13 +1393,13 @@
     (logior! (-> self draw status) (draw-control-status no-draw))
     (transform-post)
     (cond
-      ((logtest? (-> *part-group-id-table* 1318 flags) (sp-group-flag sp13))
+      ((logtest? (-> group-gem-explosion flags) (sp-group-flag sp13))
        (vector-copy! (-> *launch-matrix* trans) (-> self root trans))
-       (part-tracker-spawn part-tracker-subsampler :to *entity-pool* :group (-> *part-group-id-table* 1318))
+       (part-tracker-spawn part-tracker-subsampler :to *entity-pool* :group group-gem-explosion)
        )
       (else
         (vector-copy! (-> *launch-matrix* trans) (-> self root trans))
-        (part-tracker-spawn part-tracker :to *entity-pool* :group (-> *part-group-id-table* 1318))
+        (part-tracker-spawn part-tracker :to *entity-pool* :group group-gem-explosion)
         )
       )
     (sound-play "gem-explode")
@@ -1446,7 +1443,7 @@
   (set! (-> self sound-id) (new-sound-id))
   (vector-copy! (-> self offset-vec) arg2)
   (set! (-> self ang-vel) arg1)
-  (set! (-> self part) (create-launch-control (-> *part-group-id-table* 1317) self))
+  (set! (-> self part) (create-launch-control group-gem-d-smoke self))
   (vector-copy! (-> self root trans) arg0)
   (vector-copy! (-> self init-pos) arg0)
   (initialize-skeleton
@@ -1639,13 +1636,13 @@
   :enter (behavior ()
     (set-time! (-> self state-time))
     (cond
-      ((logtest? (-> *part-group-id-table* 1313 flags) (sp-group-flag sp13))
+      ((logtest? (-> group-precura-generator-explode flags) (sp-group-flag sp13))
        (vector-copy! (-> *launch-matrix* trans) (-> self root trans))
-       (part-tracker-spawn part-tracker-subsampler :to *entity-pool* :group (-> *part-group-id-table* 1313))
+       (part-tracker-spawn part-tracker-subsampler :to *entity-pool* :group group-precura-generator-explode)
        )
       (else
         (vector-copy! (-> *launch-matrix* trans) (-> self root trans))
-        (part-tracker-spawn part-tracker :to *entity-pool* :group (-> *part-group-id-table* 1313))
+        (part-tracker-spawn part-tracker :to *entity-pool* :group group-precura-generator-explode)
         )
       )
     (sound-stop (-> self sound-id))
@@ -1696,26 +1693,26 @@
       (rand-vu-sphere-point! gp-0 105472.0)
       (set! (-> gp-0 y) -20480.0)
       (cond
-        ((logtest? (-> *part-group-id-table* 1313 flags) (sp-group-flag sp13))
+        ((logtest? (-> group-precura-generator-explode flags) (sp-group-flag sp13))
          (vector-copy! (-> *launch-matrix* trans) (vector+! gp-0 (-> self root trans) gp-0))
-         (part-tracker-spawn part-tracker-subsampler :to *entity-pool* :group (-> *part-group-id-table* 1313))
+         (part-tracker-spawn part-tracker-subsampler :to *entity-pool* :group group-precura-generator-explode)
          )
         (else
           (vector-copy! (-> *launch-matrix* trans) (vector+! gp-0 (-> self root trans) gp-0))
-          (part-tracker-spawn part-tracker :to *entity-pool* :group (-> *part-group-id-table* 1313))
+          (part-tracker-spawn part-tracker :to *entity-pool* :group group-precura-generator-explode)
           )
         )
       (sound-play "gem-explode")
       (rand-vu-sphere-point! gp-0 105472.0)
       (set! (-> gp-0 y) -32768.0)
       (cond
-        ((logtest? (-> *part-group-id-table* 1313 flags) (sp-group-flag sp13))
+        ((logtest? (-> group-precura-generator-explode flags) (sp-group-flag sp13))
          (vector-copy! (-> *launch-matrix* trans) (vector+! gp-0 (-> self root trans) gp-0))
-         (part-tracker-spawn part-tracker-subsampler :to *entity-pool* :group (-> *part-group-id-table* 1313))
+         (part-tracker-spawn part-tracker-subsampler :to *entity-pool* :group group-precura-generator-explode)
          )
         (else
           (vector-copy! (-> *launch-matrix* trans) (vector+! gp-0 (-> self root trans) gp-0))
-          (part-tracker-spawn part-tracker :to *entity-pool* :group (-> *part-group-id-table* 1313))
+          (part-tracker-spawn part-tracker :to *entity-pool* :group group-precura-generator-explode)
           )
         )
       )
@@ -1738,26 +1735,26 @@
       (rand-vu-sphere-point! gp-4 105472.0)
       (set! (-> gp-4 y) -61440.0)
       (cond
-        ((logtest? (-> *part-group-id-table* 1313 flags) (sp-group-flag sp13))
+        ((logtest? (-> group-precura-generator-explode flags) (sp-group-flag sp13))
          (vector-copy! (-> *launch-matrix* trans) (vector+! gp-4 (-> self root trans) gp-4))
-         (part-tracker-spawn part-tracker-subsampler :to *entity-pool* :group (-> *part-group-id-table* 1313))
+         (part-tracker-spawn part-tracker-subsampler :to *entity-pool* :group group-precura-generator-explode)
          )
         (else
           (vector-copy! (-> *launch-matrix* trans) (vector+! gp-4 (-> self root trans) gp-4))
-          (part-tracker-spawn part-tracker :to *entity-pool* :group (-> *part-group-id-table* 1313))
+          (part-tracker-spawn part-tracker :to *entity-pool* :group group-precura-generator-explode)
           )
         )
       (sound-play "gem-explode")
       (rand-vu-sphere-point! gp-4 105472.0)
       (set! (-> gp-4 y) -20480.0)
       (cond
-        ((logtest? (-> *part-group-id-table* 1313 flags) (sp-group-flag sp13))
+        ((logtest? (-> group-precura-generator-explode flags) (sp-group-flag sp13))
          (vector-copy! (-> *launch-matrix* trans) (vector+! gp-4 (-> self root trans) gp-4))
-         (part-tracker-spawn part-tracker-subsampler :to *entity-pool* :group (-> *part-group-id-table* 1313))
+         (part-tracker-spawn part-tracker-subsampler :to *entity-pool* :group group-precura-generator-explode)
          )
         (else
           (vector-copy! (-> *launch-matrix* trans) (vector+! gp-4 (-> self root trans) gp-4))
-          (part-tracker-spawn part-tracker :to *entity-pool* :group (-> *part-group-id-table* 1313))
+          (part-tracker-spawn part-tracker :to *entity-pool* :group group-precura-generator-explode)
           )
         )
       )
@@ -1769,26 +1766,26 @@
       (rand-vu-sphere-point! gp-8 105472.0)
       (set! (-> gp-8 y) -61440.0)
       (cond
-        ((logtest? (-> *part-group-id-table* 1313 flags) (sp-group-flag sp13))
+        ((logtest? (-> group-precura-generator-explode flags) (sp-group-flag sp13))
          (vector-copy! (-> *launch-matrix* trans) (vector+! gp-8 (-> self root trans) gp-8))
-         (part-tracker-spawn part-tracker-subsampler :to *entity-pool* :group (-> *part-group-id-table* 1313))
+         (part-tracker-spawn part-tracker-subsampler :to *entity-pool* :group group-precura-generator-explode)
          )
         (else
           (vector-copy! (-> *launch-matrix* trans) (vector+! gp-8 (-> self root trans) gp-8))
-          (part-tracker-spawn part-tracker :to *entity-pool* :group (-> *part-group-id-table* 1313))
+          (part-tracker-spawn part-tracker :to *entity-pool* :group group-precura-generator-explode)
           )
         )
       (sound-play "gem-explode")
       (rand-vu-sphere-point! gp-8 105472.0)
       (set! (-> gp-8 y) -20480.0)
       (cond
-        ((logtest? (-> *part-group-id-table* 1313 flags) (sp-group-flag sp13))
+        ((logtest? (-> group-precura-generator-explode flags) (sp-group-flag sp13))
          (vector-copy! (-> *launch-matrix* trans) (vector+! gp-8 (-> self root trans) gp-8))
-         (part-tracker-spawn part-tracker-subsampler :to *entity-pool* :group (-> *part-group-id-table* 1313))
+         (part-tracker-spawn part-tracker-subsampler :to *entity-pool* :group group-precura-generator-explode)
          )
         (else
           (vector-copy! (-> *launch-matrix* trans) (vector+! gp-8 (-> self root trans) gp-8))
-          (part-tracker-spawn part-tracker :to *entity-pool* :group (-> *part-group-id-table* 1313))
+          (part-tracker-spawn part-tracker :to *entity-pool* :group group-precura-generator-explode)
           )
         )
       )
@@ -1804,7 +1801,6 @@
 ;; INFO: Used lq/sq
 (defmethod init-from-entity! ((this precur-generator-d) (arg0 entity-actor))
   "Set up a newly created process from the entity that created it."
-  (local-vars (sv-16 res-tag))
   (let ((s4-0 (new 'process 'collide-shape this (collide-list-enum usually-hit-by-player))))
     (set! (-> s4-0 penetrated-by) (penetrate))
     (let ((s3-0 (new 'process 'collide-shape-prim-group s4-0 (the-as uint 1) 0)))
@@ -1839,12 +1835,13 @@
   (set! (-> this entity) arg0)
   (set! (-> this sound-id) (new-sound-id))
   (set! (-> this animation-speed) 0.5)
-  (set! sv-16 (new 'static 'res-tag))
-  (let ((v1-18 (res-lump-data arg0 'actor-groups pointer :tag-ptr (& sv-16))))
+  (let* ((sv-16 (new 'static 'res-tag))
+         (v1-18 (res-lump-data arg0 'actor-groups (pointer actor-group) :tag-ptr (& sv-16)))
+         )
     (cond
       ((and v1-18 (nonzero? (-> sv-16 elt-count)))
        (set! (-> this actor-group-count) (the-as int (-> sv-16 elt-count)))
-       (set! (-> this actor-group) (the-as (pointer actor-group) v1-18))
+       (set! (-> this actor-group) v1-18)
        )
       (else
         (format 0 "ERROR: entity missing actor-group!~%")
@@ -2092,7 +2089,7 @@
     (the-as pair 0)
     )
   (quaternion-copy! (-> this start-quat) (-> this root quat))
-  (set! (-> this part) (create-launch-control (-> *part-group-id-table* 1314) this))
+  (set! (-> this part) (create-launch-control group-platform-effect this))
   (let* ((s5-2 (-> this part))
          (s4-2 (method-of-object s5-2 set-local-space-info))
          (s3-1 (add-connection *part-local-space-engine* this local-space-proc-joint 4 0 0))
@@ -2824,3 +2821,7 @@
     (transform-post)
     )
   )
+
+
+
+

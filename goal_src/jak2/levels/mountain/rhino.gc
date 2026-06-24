@@ -321,13 +321,9 @@
 (set! (-> *rhino-nav-enemy-info* fact-defaults) *fact-info-enemy-defaults*)
 
 (defmethod hit-stomach? ((this rhino) (arg0 process) (arg1 event-message-block))
-  (let* ((gp-0 (-> arg1 param 0))
-         (s5-0 arg0)
-         (s2-0 (if (type? s5-0 process-drawable)
-                   s5-0
-                   )
-               )
-         )
+  (let ((gp-0 (-> arg1 param 0))
+        (s2-0 (the-as process (as-type arg0 process-drawable)))
+        )
     (cond
       ((and (-> this can-hit?) gp-0 ((method-of-type touching-shapes-entry prims-touching?)
                                      (the-as touching-shapes-entry gp-0)
@@ -368,20 +364,6 @@
 (defmethod general-event-handler ((this rhino) (arg0 process) (arg1 int) (arg2 symbol) (arg3 event-message-block))
   "Handles various events for the enemy
    @TODO - unsure if there is a pattern for the events and this should have a more specific name"
-  (local-vars
-    (sv-96 int)
-    (sv-112 symbol)
-    (sv-128 symbol)
-    (sv-144 symbol)
-    (sv-160 vector)
-    (sv-176 matrix)
-    (sv-192 int)
-    (sv-208 symbol)
-    (sv-224 symbol)
-    (sv-240 symbol)
-    (sv-256 vector)
-    (sv-272 matrix)
-    )
   (case arg2
     (('charge)
      (if (-> this wall)
@@ -408,15 +390,11 @@
         (kill-prefer-falling this)
         )
        (else
-         (let* ((s5-0 arg0)
-                (s2-0 (if (type? s5-0 process-drawable)
-                          s5-0
-                          )
-                      )
-                (s3-0 (new 'stack-no-clear 'vector))
-                (s4-0 (new 'stack-no-clear 'vector))
-                (s5-1 (new 'stack-no-clear 'vector))
-                )
+         (let ((s2-0 (the-as process (as-type arg0 process-drawable)))
+               (s3-0 (new 'stack-no-clear 'vector))
+               (s4-0 (new 'stack-no-clear 'vector))
+               (s5-1 (new 'stack-no-clear 'vector))
+               )
            (vector-z-quaternion! s3-0 (-> this root quat))
            (vector-x-quaternion! s4-0 (-> this root quat))
            (vector-! s5-1 (-> (the-as process-focusable s2-0) root trans) (-> this root trans))
@@ -461,78 +439,24 @@
      )
     (('event-slide-poof)
      (let ((s5-2 (-> arg3 param 1)))
-       (cond
-         ((= (-> this root ground-pat material) (pat-material grass))
-          (let ((s4-1 (get-process *default-dead-pool* part-tracker #x4000)))
-            (when s4-1
-              (let ((t9-14 (method-of-type part-tracker activate)))
-                (t9-14 (the-as part-tracker s4-1) this (symbol->string (-> part-tracker symbol)) (the-as pointer #x70004000))
-                )
-              (let ((s3-1 run-function-in-process)
-                    (s2-1 s4-1)
-                    (s1-0 part-tracker-init)
-                    (s0-0 (-> *part-group-id-table* 351))
-                    )
-                (set! sv-96 0)
-                (set! sv-112 (the-as symbol #f))
-                (set! sv-128 (the-as symbol #f))
-                (set! sv-144 (the-as symbol #f))
-                (set! sv-176 *launch-matrix*)
-                (set! sv-160 (-> sv-176 trans))
-                (let ((v1-52 (-> (vector<-cspace! (new 'stack-no-clear 'vector) (-> this node-list data s5-2)) quad)))
-                  (set! (-> sv-160 quad) v1-52)
-                  )
-                ((the-as (function object object object object object object object object none) s3-1)
-                 s2-1
-                 s1-0
-                 s0-0
-                 sv-96
-                 sv-112
-                 sv-128
-                 sv-144
-                 sv-176
-                 )
-                )
-              (-> s4-1 ppointer)
-              )
-            )
-          )
-         (else
-           (let ((s4-2 (get-process *default-dead-pool* part-tracker #x4000)))
-             (when s4-2
-               (let ((t9-18 (method-of-type part-tracker activate)))
-                 (t9-18 (the-as part-tracker s4-2) this (symbol->string (-> part-tracker symbol)) (the-as pointer #x70004000))
-                 )
-               (let ((s3-2 run-function-in-process)
-                     (s2-2 s4-2)
-                     (s1-1 part-tracker-init)
-                     (s0-1 (-> *part-group-id-table* 350))
-                     )
-                 (set! sv-192 0)
-                 (set! sv-208 (the-as symbol #f))
-                 (set! sv-224 (the-as symbol #f))
-                 (set! sv-240 (the-as symbol #f))
-                 (set! sv-272 *launch-matrix*)
-                 (set! sv-256 (-> sv-272 trans))
-                 (let ((v1-64 (-> (vector<-cspace! (new 'stack-no-clear 'vector) (-> this node-list data s5-2)) quad)))
-                   (set! (-> sv-256 quad) v1-64)
-                   )
-                 ((the-as (function object object object object object object object object none) s3-2)
-                  s2-2
-                  s1-1
-                  s0-1
-                  sv-192
-                  sv-208
-                  sv-224
-                  sv-240
-                  sv-272
-                  )
-                 )
-               (-> s4-2 ppointer)
-               )
+       (if (= (-> this root ground-pat material) (pat-material grass))
+           (part-tracker-spawn
+             :to this
+             :group group-rhino-slide-poof-grs
+             :callback (the-as symbol #f)
+             :userdata (the-as symbol #f)
+             :target (the-as symbol #f)
+             :mat-joint (vector<-cspace! (new 'stack-no-clear 'vector) (-> this node-list data s5-2))
+             )
+           (part-tracker-spawn
+             :to this
+             :group group-rhino-slide-poof-pmt
+             :callback (the-as symbol #f)
+             :userdata (the-as symbol #f)
+             :target (the-as symbol #f)
+             :mat-joint (vector<-cspace! (new 'stack-no-clear 'vector) (-> this node-list data s5-2))
              )
            )
-         )
        )
      )
     (('interesting)
@@ -734,13 +658,9 @@
 
 ;; WARN: Return type mismatch symbol vs object.
 (defmethod enemy-method-75 ((this rhino) (arg0 process) (arg1 event-message-block))
-  (let* ((touch-entry (the-as touching-shapes-entry (-> arg1 param 0)))
-         (s3-0 arg0)
-         (v1-0 (if (type? s3-0 process-focusable)
-                   s3-0
-                   )
-               )
-         )
+  (let ((touch-entry (the-as touching-shapes-entry (-> arg1 param 0)))
+        (v1-0 (the-as object (as-type arg0 process-focusable)))
+        )
     (when (and (the-as uint touch-entry) v1-0)
       (cond
         ((and (focus-test? this dangerous) ((method-of-type touching-shapes-entry prims-touching-action?)
@@ -782,18 +702,14 @@
       'attack-or-shove
       'attack
       )
-  (let* ((s2-0 (if (-> this smush-target)
-                   'smush
-                   (-> this enemy-info attack-mode)
-                   )
-               )
-         (s1-0 arg0)
-         (a0-3 (if (type? s1-0 process-focusable)
-                   s1-0
-                   )
-               )
-         (s1-1 (new 'stack-no-clear 'vector))
-         )
+  (let ((s2-0 (if (-> this smush-target)
+                  'smush
+                  (-> this enemy-info attack-mode)
+                  )
+              )
+        (a0-3 (the-as process (as-type arg0 process-focusable)))
+        (s1-1 (new 'stack-no-clear 'vector))
+        )
     (vector-! s1-1 (get-trans (the-as process-focusable a0-3) 0) (-> this root trans))
     (set! (-> s1-1 y) 0.0)
     (vector-normalize! s1-1 1.0)

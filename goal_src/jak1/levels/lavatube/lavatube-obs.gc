@@ -390,9 +390,9 @@
           (set! (-> self leak s5-1 first-frame) #f)
           (let ((s4-1 (new 'stack-no-clear 'matrix)))
             (matrix-transpose! s4-1 gp-0)
-            (vector-matrix*! (the-as vector (-> self leak s5-1)) (the-as vector (-> self leak s5-1)) s4-1)))
+            (vector-matrix*! (-> self leak s5-1 offset) (-> self leak s5-1 offset) s4-1)))
         (let ((s4-2 (new 'stack-no-clear 'vector)))
-          (vector-matrix*! s4-2 (the-as vector (-> self leak s5-1)) gp-0)
+          (vector-matrix*! s4-2 (-> self leak s5-1 offset) gp-0)
           (vector+! s4-2 s4-2 (-> self root trans))
           (spawn (-> self part) s4-2)))))
   (if (< (vector-vector-xz-distance-squared (-> self root trans) (camera-pos)) 1073741800.0)
@@ -410,7 +410,7 @@
       (let ((gp-1 (new 'stack-no-clear 'vector)))
         (set! (-> gp-1 quad) (-> self root trans quad))
         (+! (-> gp-1 y) -49152.0)
-        (process-spawn part-tracker :init part-tracker-init (-> *part-group-id-table* 541) 600 #f #f #f gp-1 :to *entity-pool*))
+        (process-spawn part-tracker :init part-tracker-init group-darkecobarrel-explode 600 #f #f #f gp-1 :to *entity-pool*))
       (suspend)
       (set-time! (-> self state-time))
       (until (time-elapsed? (-> self state-time) (seconds 1))
@@ -508,7 +508,7 @@
     (backup-collide-with-as s2-0)
     (set! (-> self root) s2-0))
   (darkecobarrel-base-init arg0)
-  (set! (-> self part) (create-launch-control (-> *part-group-id-table* 540) self))
+  (set! (-> self part) (create-launch-control group-darkecobarrel-hit self))
   (set! (-> self speed) arg1)
   (set! (-> self start-time) arg2)
   (set! (-> self sync) arg3)
@@ -559,14 +559,13 @@
           (ja :num! (seek!))))))
 
 (defmethod init-from-entity! ((this darkecobarrel) (arg0 entity-actor))
-  (local-vars (sv-16 res-tag))
   (set! (-> this root) (the-as collide-shape-moving (new 'process 'trsqv)))
   (darkecobarrel-base-init arg0)
   (set! (-> this sound) (new 'process 'ambient-sound (static-sound-spec "lav-dark-eco" :fo-max 30) (-> this root trans)))
   (logior! (-> this draw status) (draw-status hidden))
   (set! (-> this speed) (/ 300.0 (res-lump-float (-> this entity) 'speed :default 61440.0)))
-  (set! sv-16 (new 'static 'res-tag))
-  (let ((s5-1 (res-lump-data arg0 'delay pointer :tag-ptr (& sv-16))))
+  (let* ((sv-16 (new 'static 'res-tag))
+         (s5-1 (res-lump-data arg0 'delay pointer :tag-ptr (& sv-16))))
     (cond
       (s5-1
        (set! (-> this spawn-array) (new 'process 'boxed-array time-frame (the-as int (-> sv-16 elt-count))))
@@ -800,7 +799,7 @@
       (let ((gp-1 (new 'stack-no-clear 'vector)))
         (set! (-> gp-1 quad) (-> self root trans quad))
         (+! (-> gp-1 y) -73728.0)
-        (process-spawn part-tracker :init part-tracker-init (-> *part-group-id-table* 542) 600 #f #f #f gp-1 :to *entity-pool*))
+        (process-spawn part-tracker :init part-tracker-init group-chainmine-explode 600 #f #f #f gp-1 :to *entity-pool*))
       (suspend)
       (set-time! (-> self state-time))
       (until (time-elapsed? (-> self state-time) (seconds 1))
@@ -937,7 +936,7 @@
       (process-spawn part-tracker
                      :init
                      part-tracker-init
-                     (-> *part-group-id-table* 543)
+                     group-lavaballoon
                      -1
                      #f
                      #f
@@ -982,7 +981,7 @@
     (set! (-> this root) s4-0))
   (process-drawable-from-entity! this arg0)
   (initialize-skeleton this *lavaballoon-sg* '())
-  (set! (-> this part) (create-launch-control (-> *part-group-id-table* 543) this))
+  (set! (-> this part) (create-launch-control group-lavaballoon this))
   (set! (-> this root pause-adjust-distance) 122880.0)
   (set! (-> this path) (new 'process 'path-control this 'path 0.0))
   (logior! (-> this path flags) (path-control-flag display draw-line draw-point draw-text))

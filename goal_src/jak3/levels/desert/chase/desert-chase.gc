@@ -154,18 +154,13 @@
   (set! (-> this ptracker-proc)
         (process->handle
           (-> (cond
-                ((logtest? (-> *part-group-id-table* 454 flags) (sp-group-flag sp13))
+                ((logtest? (-> group-catapult-embers-fire flags) (sp-group-flag sp13))
                  (vector-copy! (-> *launch-matrix* trans) (-> this root trans))
-                 (part-tracker-spawn
-                   part-tracker-subsampler
-                   :to this
-                   :group (-> *part-group-id-table* 454)
-                   :duration (seconds 3)
-                   )
+                 (part-tracker-spawn part-tracker-subsampler :to this :group group-catapult-embers-fire :duration (seconds 3))
                  )
                 (else
                   (vector-copy! (-> *launch-matrix* trans) (-> this root trans))
-                  (part-tracker-spawn part-tracker :to this :group (-> *part-group-id-table* 454) :duration (seconds 3))
+                  (part-tracker-spawn part-tracker :to this :group group-catapult-embers-fire :duration (seconds 3))
                   )
                 )
               0
@@ -193,7 +188,7 @@
   (let ((f0-5 1092.2667))
     (quaternion-axis-angle! (-> this tumble-quat) 1.0 0.0 0.0 f0-5)
     )
-  (set! (-> this part) (create-launch-control (-> *part-group-id-table* 454) this))
+  (set! (-> this part) (create-launch-control group-catapult-embers-fire this))
   (set! (-> this ptracker-proc) (the-as handle #f))
   (none)
   )
@@ -291,13 +286,13 @@
     (('die)
      (activate! *camera-smush-control* 2048.0 30 150 1.0 0.8 (-> *display* camera-clock))
      (cond
-       ((logtest? (-> *part-group-id-table* 456 flags) (sp-group-flag sp13))
+       ((logtest? (-> group-catapult-target-scorched-earth flags) (sp-group-flag sp13))
         (vector-copy! (-> *launch-matrix* trans) (-> self root trans))
-        (part-tracker-spawn part-tracker-subsampler :to *entity-pool* :group (-> *part-group-id-table* 456))
+        (part-tracker-spawn part-tracker-subsampler :to *entity-pool* :group group-catapult-target-scorched-earth)
         )
        (else
          (vector-copy! (-> *launch-matrix* trans) (-> self root trans))
-         (part-tracker-spawn part-tracker :to *entity-pool* :group (-> *part-group-id-table* 456))
+         (part-tracker-spawn part-tracker :to *entity-pool* :group group-catapult-target-scorched-earth)
          )
        )
      (let ((gp-2 (quaternion-copy! (new 'stack-no-clear 'quaternion) (-> self root quat)))
@@ -366,7 +361,7 @@
 (defbehavior catapult-target-init-by-other catapult-target ((arg0 vector))
   (set! (-> self root) (new 'process 'trsqv))
   (vector-copy! (-> self root trans) arg0)
-  (set! (-> self part) (create-launch-control (-> *part-group-id-table* 455) self))
+  (set! (-> self part) (create-launch-control group-catapult-target-glow self))
   (go-virtual idle)
   )
 
@@ -473,9 +468,7 @@
       (send-event (handle->process gp-5) 'ai-set-target-speed 122880.0)
       (send-event (handle->process gp-5) 'ai-set-target-position *stronghold-vehicle-stop-point*)
       )
-    (while (let ((f0-1 81920.0))
-             (< (* f0-1 f0-1) (vector-vector-distance-squared (target-pos 0) *stronghold-vehicle-stop-point*))
-             )
+    (while (< (square 81920.0) (vector-vector-distance-squared (target-pos 0) *stronghold-vehicle-stop-point*))
       (suspend)
       )
     (process-spawn
@@ -1041,10 +1034,8 @@
           (vector-copy! s5-0 (-> a1-4 root root-prim prim-core world-sphere))
           )
         )
-      (let ((f0-1 (vector-vector-distance-squared (-> this root trans) s5-0))
-            (f1-1 (+ 12288.0 (-> s5-0 w)))
-            )
-        (when (>= (* f1-1 f1-1) f0-1)
+      (let ((f0-1 (vector-vector-distance-squared (-> this root trans) s5-0)))
+        (when (>= (square (+ 12288.0 (-> s5-0 w))) f0-1)
           (sound-play "artifact-pickup")
           (deactivate this)
           )
@@ -1239,11 +1230,8 @@
 (defmethod deschase-vehicle-control-method-10 ((this deschase-vehicle-control))
   (let ((v1-3 (as-type (handle->process (-> this vehicle)) process-focusable)))
     (when v1-3
-      (let* ((s5-1 (-> this path node (-> this i-node)))
-             (f0-0 (vector-vector-distance-squared (-> v1-3 root trans) (-> s5-1 position)))
-             (f1-0 40960.0)
-             )
-        (when (< f0-0 (* f1-0 f1-0))
+      (let ((s5-1 (-> this path node (-> this i-node))))
+        (when (< (vector-vector-distance-squared (-> v1-3 root trans) (-> s5-1 position)) (square 40960.0))
           (let ((v1-7 (-> s5-1 next-node)))
             (if (!= v1-7 -1)
                 (set! (-> this i-node) v1-7)

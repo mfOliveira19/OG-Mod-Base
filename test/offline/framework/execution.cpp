@@ -104,7 +104,7 @@ OfflineTestCompileResult compile(OfflineTestDecompiler& dc,
                                  const OfflineTestWorkGroup& work_group,
                                  const OfflineTestConfig& config) {
   OfflineTestCompileResult result;
-  Compiler compiler(game_name_to_version(config.game_name));
+  Compiler compiler(game_name_to_version(config.game_name), emitter::InstructionSet::X86);
 
   compiler.run_front_end_on_file(
       {"decompiler", "config", game_name_to_all_types[config.game_name]});
@@ -112,10 +112,19 @@ OfflineTestCompileResult compile(OfflineTestDecompiler& dc,
       {"test", "decompiler", "reference", config.game_name, "decompiler-macros.gc"});
   if (config.game_name == "jak2") {
     compiler.run_front_end_on_file({"goal_src", "jak2", "engine", "data", "art-elts.gc"});
+    compiler.run_front_end_on_file({"goal_src", "jak2", "engine", "data", "joint-nodes.gc"});
+    compiler.run_front_end_on_file({"goal_src", "jak2", "engine", "data", "textures.gc"});
+    compiler.run_front_end_on_file({"goal_src", "jak2", "engine", "data", "part-groups.gc"});
   } else if (config.game_name == "jak1") {
     compiler.run_front_end_on_file({"goal_src", "jak1", "engine", "data", "art-elts.gc"});
+    compiler.run_front_end_on_file({"goal_src", "jak1", "engine", "data", "joint-nodes.gc"});
+    compiler.run_front_end_on_file({"goal_src", "jak1", "engine", "data", "textures.gc"});
+    compiler.run_front_end_on_file({"goal_src", "jak1", "engine", "data", "part-groups.gc"});
   } else if (config.game_name == "jak3") {
     compiler.run_front_end_on_file({"goal_src", "jak3", "engine", "data", "art-elts.gc"});
+    compiler.run_front_end_on_file({"goal_src", "jak3", "engine", "data", "joint-nodes.gc"});
+    compiler.run_front_end_on_file({"goal_src", "jak3", "engine", "data", "textures.gc"});
+    compiler.run_front_end_on_file({"goal_src", "jak3", "engine", "data", "part-groups.gc"});
   }
 
   int total_lines = 0;

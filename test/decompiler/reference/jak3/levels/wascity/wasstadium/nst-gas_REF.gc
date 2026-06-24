@@ -364,7 +364,7 @@
   (let ((t9-0 (method-of-type task-manager init!)))
     (t9-0 this)
     )
-  (let ((a0-2 (-> *part-group-id-table* 640)))
+  (let ((a0-2 group-nest-fog))
     (if (nonzero? a0-2)
         (set! (-> this part) (create-launch-control a0-2 this))
         )
@@ -385,7 +385,7 @@
          )
     (when v1-5
       (let ((f0-0 (-> (the-as task-manager-nest-cocoon-gas v1-5) poison-level)))
-        (set! (-> arg1 fade w) (* 0.006666667 (lerp 4.0 12.0 (* f0-0 f0-0))))
+        (set! (-> arg1 fade w) (* 0.006666667 (lerp 4.0 12.0 (square f0-0))))
         )
       )
     )

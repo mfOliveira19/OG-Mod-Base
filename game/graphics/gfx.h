@@ -6,8 +6,10 @@
  */
 
 #include <array>
+#include <atomic>
 #include <functional>
 #include <memory>
+#include <vector>
 
 #include "common/common_types.h"
 #include "common/util/FileUtil.h"
@@ -50,8 +52,8 @@ struct GfxRendererModule {
 
 // runtime settings
 static constexpr int PAT_MOD_COUNT = 4;
-static constexpr int PAT_EVT_COUNT = 15;
-static constexpr int PAT_MAT_COUNT = 29;
+static constexpr int PAT_EVT_COUNT = 20;
+static constexpr int PAT_MAT_COUNT = 34;
 struct GfxGlobalSettings {
   bool debug = true;  // graphics debugging
 
@@ -66,6 +68,10 @@ struct GfxGlobalSettings {
 
   // multi-sampled anti-aliasing sample count. 1 = disabled.
   int msaa_samples = 1;
+
+  // brightness and contrast values set from GOAL (see jak 3)
+  int brightness_contrast_color = 0;
+  int brightness_contrast_alpha = 128;
 
   // current renderer
   const GfxRendererModule* renderer;
@@ -97,7 +103,7 @@ struct GfxGlobalSettings {
   enum CollisionRendererMode { None, Mode, Event, Material, Skip, SkipHide } collision_mode = Mode;
   std::array<u32, (PAT_MOD_COUNT + 31) / 32> collision_mode_mask = {UINT32_MAX};
   std::array<u32, (PAT_EVT_COUNT + 31) / 32> collision_event_mask = {UINT32_MAX};
-  std::array<u32, (PAT_MAT_COUNT + 31) / 32> collision_material_mask = {UINT32_MAX};
+  std::array<u32, (PAT_MAT_COUNT + 31) / 32> collision_material_mask = {UINT32_MAX, UINT32_MAX};
   u32 collision_skip_mask = 0;
   u32 collision_skip_hide_mask = 0;
   bool collision_skip_nomask_allowed = true;
@@ -139,5 +145,13 @@ bool CollisionRendererGetMask(GfxGlobalSettings::CollisionRendererMode mode, s64
 void CollisionRendererSetMask(GfxGlobalSettings::CollisionRendererMode mode, s64 mask_id);
 void CollisionRendererClearMask(GfxGlobalSettings::CollisionRendererMode mode, s64 mask_id);
 void CollisionRendererSetMode(GfxGlobalSettings::CollisionRendererMode mode);
+
+struct SplashScreen {
+  std::vector<u8> data;
+  int width = 0;
+  int height = 0;
+  std::atomic<bool> ready{false};
+};
+extern SplashScreen g_splash;
 
 }  // namespace Gfx

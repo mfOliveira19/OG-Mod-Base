@@ -1,6 +1,6 @@
 /*
   Simple DirectMedia Layer
-  Copyright (C) 1997-2025 Sam Lantinga <slouken@libsdl.org>
+  Copyright (C) 1997-2026 Sam Lantinga <slouken@libsdl.org>
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -105,7 +105,7 @@ bool GDK_RegisterChangeNotifications(void)
         SDL_LogDebug(SDL_LOG_CATEGORY_APPLICATION, "[GDK] in RegisterAppConstrainedChangeNotification handler");
         SDL_VideoDevice *_this = SDL_GetVideoDevice();
         if (_this) {
-            if (constrained) {
+            if (constrained && !((_this->windows) && _this->windows->text_input_active)) {
                 SDL_SetKeyboardFocus(NULL);
             } else {
                 SDL_SetKeyboardFocus(_this->windows);

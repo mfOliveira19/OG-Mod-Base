@@ -16,6 +16,7 @@
 #include "goalc/compiler/symbol_info.h"
 #include "goalc/data_compiler/game_text_common.h"
 #include "goalc/debugger/Debugger.h"
+#include "goalc/emitter/InstructionSet.h"
 #include "goalc/emitter/Register.h"
 #include "goalc/listener/Listener.h"
 #include "goalc/make/MakeSystem.h"
@@ -46,6 +47,7 @@ struct GlobalConstantInfo {
 class Compiler {
  public:
   Compiler(GameVersion version,
+           emitter::InstructionSet instr_set,
            const std::optional<REPL::Config> repl_config = {},
            const std::string& user_profile = "#f",
            std::unique_ptr<REPL::Wrapper> repl = nullptr);
@@ -118,6 +120,7 @@ class Compiler {
 
  private:
   GameVersion m_version;
+  emitter::InstructionSet m_instr_set;
   TypeSystem m_ts;
   std::unique_ptr<GlobalEnv> m_global_env = nullptr;
   std::unique_ptr<None> m_none = nullptr;
@@ -730,6 +733,7 @@ class Compiler {
   Val* compile_size_of(const goos::Object& form, const goos::Object& rest, Env* env);
   ConstPropResult const_prop_size_of(const goos::Object& form, const goos::Object& rest, Env* env);
   Val* compile_psize_of(const goos::Object& form, const goos::Object& rest, Env* env);
+  Val* compile_offset_of(const goos::Object& form, const goos::Object& rest, Env* env);
   Val* compile_current_method_id(const goos::Object& form, const goos::Object& rest, Env* env);
   Val* compile_current_method_type(const goos::Object& form, const goos::Object& rest, Env* env);
   Val* compile_cast_to_method_type(const goos::Object& form, const goos::Object& rest, Env* env);

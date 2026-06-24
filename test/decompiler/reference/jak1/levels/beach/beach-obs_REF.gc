@@ -396,7 +396,7 @@
   (set! (-> this distance) (res-lump-float arg0 'distance :default 3072.0))
   (set! (-> this position) 0)
   (set! (-> this max-position) (res-lump-value arg0 'num-positions int :default (the-as uint128 3)))
-  (set! (-> this part) (create-launch-control (-> *part-group-id-table* 155) this))
+  (set! (-> this part) (create-launch-control group-beach-grotto-pole-rocks this))
   (set! (-> this position) (-> this entity extra perm user-int16 0))
   (move-grottopole-to-position this)
   (go grottopole-idle)
@@ -592,7 +592,6 @@
     (set-time! (-> self state-time))
     )
   :code (behavior ((arg0 symbol))
-    (local-vars (sv-128 symbol))
     (ja-channel-set! 0)
     (clear-collide-with-as (-> self root))
     (ja-post)
@@ -609,7 +608,7 @@
       (process-spawn
         part-tracker
         :init part-tracker-init
-        (-> *part-group-id-table* 156)
+        group-beach-harvester-rock-explosion
         -1
         #f
         #f
@@ -623,7 +622,7 @@
              (f1-2 (- (-> s5-1 z) (-> v1-14 z)))
              (f2-1 7372.8)
              (f30-0 5734.4)
-             (f2-2 (/ f2-1 (sqrtf (+ (* f0-1 f0-1) (* f1-2 f1-2)))))
+             (f2-2 (/ f2-1 (sqrtf (+ (square f0-1) (square f1-2)))))
              (f28-0 (* f0-1 f2-2))
              (f26-0 (* f1-2 f2-2))
              (s4-0 (new-stack-vector0))
@@ -660,31 +659,32 @@
         )
       )
     (when (or (-> self link prev) (-> self link next))
-      (set! sv-128 (the-as symbol #f))
-      (apply-all (-> self link) actor-link-subtask-complete-hook (& sv-128))
-      (when sv-128
-        (suspend-for (seconds 0.5)
-          )
-        (let ((gp-1 (cond
-                      (arg0
-                        (the-as int #f)
-                        )
-                      (else
-                        (ambient-hint-spawn "gamcam10" (the-as vector #f) *entity-pool* 'camera)
-                        (ppointer->handle
-                          (process-spawn pov-camera (-> self root trans) *beachcam-sg* (-> self name) 0 #f '() :to self)
+      (let ((sv-128 (the-as symbol #f)))
+        (apply-all (-> self link) actor-link-subtask-complete-hook (& sv-128))
+        (when sv-128
+          (suspend-for (seconds 0.5)
+            )
+          (let ((gp-1 (cond
+                        (arg0
+                          (the-as int #f)
+                          )
+                        (else
+                          (ambient-hint-spawn "gamcam10" (the-as vector #f) *entity-pool* 'camera)
+                          (ppointer->handle
+                            (process-spawn pov-camera (-> self root trans) *beachcam-sg* (-> self name) 0 #f '() :to self)
+                            )
                           )
                         )
                       )
-                    )
+                )
+            (process-drawable-birth-fuel-cell (the-as entity #f) (the-as vector #f) #f)
+            (while (handle->process (the-as handle gp-1))
+              (suspend)
               )
-          (process-drawable-birth-fuel-cell (the-as entity #f) (the-as vector #f) #f)
-          (while (handle->process (the-as handle gp-1))
+            )
+          (while (-> self child)
             (suspend)
             )
-          )
-        (while (-> self child)
-          (suspend)
           )
         )
       )
