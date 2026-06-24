@@ -337,9 +337,7 @@
       (when a0-4
         (let ((a0-5 (get-trans a0-4 0)))
           (when (and (>= (- (-> a0-5 y) (-> self root trans y)) -6144.0)
-                     (let ((f0-18 11264.0))
-                       (>= (* f0-18 f0-18) (vector-vector-xz-distance-squared a0-5 (-> self root trans)))
-                       )
+                     (>= (square 11264.0) (vector-vector-xz-distance-squared a0-5 (-> self root trans)))
                      )
             (if (time-elapsed? (-> self last-recharge-time) (seconds 1))
                 (sound-play "oxygen-recharge")
@@ -371,7 +369,7 @@
    - sounds"
   (set! (-> this root) (new 'process 'trsqv))
   (process-drawable-from-entity! this arg0)
-  (set! (-> this part) (create-launch-control (-> *part-group-id-table* 500) this))
+  (set! (-> this part) (create-launch-control group-bubbler-streams this))
   (set! (-> this rod-of-god-scale) 1.0)
   (set! (-> this ambient-id) (sound-play "bubbler" :position (-> this root trans)))
   (go (method-of-object this idle))
@@ -590,7 +588,6 @@
    - collision information
    - loading the skeleton group / bones
    - sounds"
-  (local-vars (sv-16 res-tag))
   (let ((s4-0 (new 'process 'collide-shape this (collide-list-enum usually-hit-by-player))))
     (let ((s3-0 (new 'process 'collide-shape-prim-mesh s4-0 (the-as uint 0) (the-as uint 0))))
       (set! (-> s3-0 prim-core collide-as) (collide-spec obstacle camera-blocker pusher))
@@ -611,8 +608,9 @@
     )
   (process-drawable-from-entity! this arg0)
   (-> this root)
-  (set! sv-16 (new 'static 'res-tag))
-  (let ((v1-16 (res-lump-data arg0 'trans-offset (pointer float) :tag-ptr (& sv-16))))
+  (let* ((sv-16 (new 'static 'res-tag))
+         (v1-16 (res-lump-data arg0 'trans-offset (pointer float) :tag-ptr (& sv-16)))
+         )
     (when v1-16
       (+! (-> this root trans x) (-> v1-16 0))
       (+! (-> this root trans y) (-> v1-16 1))
@@ -1053,7 +1051,7 @@
       ((= arg1 (+ (-> this num-joints) -1))
        (let ((v1-4 (new 'stack-no-clear 'vector)))
          (set! (-> v1-4 quad) (-> arg2 entity trans quad))
-         (vector-! v1-4 v1-4 (the-as vector (-> this chain-joints arg1)))
+         (vector-! v1-4 v1-4 (-> this chain-joints arg1 position))
          (vector+float*! arg0 arg0 v1-4 1.0)
          )
        )
@@ -1069,7 +1067,7 @@
             (set! (-> v1-7 quad) (-> this chain-joints (+ arg1 1) position quad))
             )
           )
-        (vector-! v1-7 v1-7 (the-as vector (-> this chain-joints arg1)))
+        (vector-! v1-7 v1-7 (-> this chain-joints arg1 position))
         (.lvf vf1 (&-> v1-7 quad))
         (.add.w.vf.x vf2 vf0 vf0)
         (.mul.vf vf1 vf1 vf1)
@@ -1092,7 +1090,7 @@
                   )
                 )
               )
-        (vector-! v1-11 v1-11 (the-as vector (-> this chain-joints arg1)))
+        (vector-! v1-11 v1-11 (-> this chain-joints arg1 position))
         (.lvf vf1 (&-> v1-11 quad))
         (.add.w.vf.x vf2 vf0 vf0)
         (.mul.vf vf1 vf1 vf1)
@@ -1215,7 +1213,7 @@
         )
       (quaternion-copy! (-> gp-0 spawn-quat) (-> self root quat))
       (set! (-> gp-0 radius) 16384.0)
-      (set! (-> gp-0 group) (-> *part-group-id-table* 501))
+      (set! (-> gp-0 group) group-under-mine-explode)
       (set! (-> gp-0 collide-with)
             (collide-spec backgnd jak crate civilian enemy obstacle vehicle-sphere hit-by-others-list player-list pusher)
             )
@@ -1293,10 +1291,8 @@
           (.add.mul.y.vf.x acc vf2 vf1 acc)
           (.add.mul.z.vf.x vf1 vf2 vf1 acc)
           (.mov a0-8 vf1)
-          (let ((f0-9 a0-8)
-                (f1-4 28672.0)
-                )
-            (if (< (* f1-4 f1-4) f0-9)
+          (let ((f0-9 a0-8))
+            (if (< (square 28672.0) f0-9)
                 (vector-float*! v1-21 v1-21 (/ 28672.0 (sqrtf f0-9)))
                 )
             )
@@ -1309,7 +1305,7 @@
               (gp-1 (quaternion->matrix (new 'stack-no-clear 'matrix) (-> self head-mod quat)))
               )
           (dotimes (v1-27 (min 8 (the-as int (-> self chain num-joints))))
-            (vector+! s5-1 s5-1 (the-as vector (-> self chain chain-joints v1-27)))
+            (vector+! s5-1 s5-1 (-> self chain chain-joints v1-27 position))
             )
           (vector-float*! s5-1 s5-1 (/ 1.0 (the float (min 8 (the-as int (-> self chain num-joints))))))
           (vector-!
@@ -1453,12 +1449,7 @@
 
 (defmethod commited-to-ride? ((this under-lift))
   "@returns if the target is considered within the elevator area enough to begin descending/ascending"
-  (let* ((gp-0 *target*)
-         (a0-2 (if (type? gp-0 process-focusable)
-                   gp-0
-                   )
-               )
-         )
+  (let ((a0-2 (the-as target (as-type *target* process-focusable))))
     (when a0-2
       (let* ((v1-1 (get-trans a0-2 0))
              (gp-2 (vector-! (new 'stack-no-clear 'vector) v1-1 (-> this root trans)))
@@ -2029,12 +2020,8 @@
   )
 
 (defmethod draw ((this hud-mech-air-tank))
-  (set-hud-piece-position!
-    (the-as hud-sprite (-> this sprites))
-    (the int (+ 472.0 (* 100.0 (-> this offset))))
-    208
-    )
-  (set-as-offset-from! (-> this sprites 1) (the-as vector4w (-> this sprites)) 0 51)
+  (set-hud-piece-position! (-> this sprites 0) (the int (+ 472.0 (* 100.0 (-> this offset)))) 208)
+  (set-as-offset-from! (-> this sprites 1) (-> this sprites 0 pos) 0 51)
   (set! (-> this sprites 0 scale-x) 0.8)
   (set! (-> this sprites 0 scale-y) 0.8)
   (set! (-> this sprites 1 scale-x) 0.8)
@@ -2043,8 +2030,8 @@
   (set! (-> this sprites 3 scale-y) 0.8)
   (set! (-> this sprites 2 scale-x) 3.2)
   (set! (-> this sprites 2 scale-y) (* 4.56 (- 1.0 (-> *game-info* air-supply))))
-  (set-as-offset-from! (-> this sprites 2) (the-as vector4w (-> this sprites)) 0 2)
-  (set-as-offset-from! (-> this sprites 3) (the-as vector4w (-> this sprites)) -30 -20)
+  (set-as-offset-from! (-> this sprites 2) (-> this sprites 0 pos) 0 2)
+  (set-as-offset-from! (-> this sprites 3) (-> this sprites 0 pos) -30 -20)
   ((method-of-type hud draw) this)
   0
   (none)

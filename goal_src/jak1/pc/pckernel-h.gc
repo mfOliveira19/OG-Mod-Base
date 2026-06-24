@@ -401,7 +401,7 @@
     (set! (-> obj longjump-enabled?) #t)
     (set! (-> obj mouse-wheel-behavior) 1)
     (set! (-> obj fov) 90.0)
-    (set! (-> obj mod-sfx-volume) 35.0)
+    (set! (-> obj mod-sfx-volume) 15.0)
     (set! (-> obj hev-sounds?) #t)
     (set! (-> obj teleport-effect?) #t)
     (set! (-> obj show-speed?) #f)

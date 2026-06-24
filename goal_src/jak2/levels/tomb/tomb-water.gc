@@ -62,13 +62,9 @@
     )
   :trans (behavior ()
     (when (logtest? (actor-option user17) (-> self fact options))
-      (let* ((gp-0 *target*)
-             (a0-3 (if (type? gp-0 process-focusable)
-                       gp-0
-                       )
-                   )
-             (s4-0 (-> self root trans))
-             )
+      (let ((a0-3 (the-as target (as-type *target* process-focusable)))
+            (s4-0 (-> self root trans))
+            )
         (when a0-3
           (let* ((s3-0 (get-trans a0-3 0))
                  (s5-0 (vector-normalize! (vector-! (new 'stack-no-clear 'vector) s3-0 s4-0) 1.0))
@@ -123,7 +119,8 @@
       )
     )
   :code (behavior ((arg0 time-frame))
-    (suspend-for arg0)
+    (suspend-for arg0
+      )
     (ja-no-eval :group! tomb-door-open-ja :num! (seek!) :frame-num 0.0)
     (until (ja-done? 0)
       (-> self root quat)
@@ -312,7 +309,6 @@
    - collision information
    - loading the skeleton group / bones
    - sounds"
-  (local-vars (sv-16 res-tag))
   (let ((s4-0 (new 'process 'collide-shape this (collide-list-enum usually-hit-by-player))))
     (let ((s3-0 (new 'process 'collide-shape-prim-group s4-0 (the-as uint 2) 0)))
       (set! (-> s4-0 total-prims) (the-as uint 3))
@@ -358,8 +354,9 @@
     )
   (set! (-> this offset-index) 0)
   (set! (-> this key-index) 0)
-  (set! sv-16 (new 'static 'res-tag))
-  (let ((v1-33 (res-lump-data (-> this entity) 'actor-groups pointer :tag-ptr (& sv-16))))
+  (let* ((sv-16 (new 'static 'res-tag))
+         (v1-33 (res-lump-data (-> this entity) 'actor-groups pointer :tag-ptr (& sv-16)))
+         )
     (cond
       ((and v1-33 (nonzero? (-> sv-16 elt-count)))
        (set! (-> this actor-group) (the-as (pointer actor-group) v1-33))
@@ -858,14 +855,6 @@
   :virtual #t
   :event tomb-plat-simon-handler
   :enter (behavior ()
-    (local-vars
-      (sv-96 target)
-      (sv-128 vector)
-      (sv-136 int)
-      (sv-144 int)
-      (sv-160 int)
-      (sv-176 (function vector vector float))
-      )
     (set-time! (-> self state-time))
     (set! (-> self plat-idx) 0)
     (dotimes (gp-0 (-> self plat-count))
@@ -873,72 +862,52 @@
           (send-event (handle->process (-> self plat gp-0)) 'die-unmaskable)
           )
       )
-    (let ((gp-1 *target*))
-      (set! sv-96 (if (type? gp-1 process-focusable)
-                      gp-1
-                      )
+    (let ((sv-96 (the-as target (as-type *target* process-focusable))))
+      (dotimes (gp-2 (-> self plat-count))
+        (let ((sv-128 (get-point-in-path! (-> self path) (new 'stack-no-clear 'vector) (the float gp-2) 'exact))
+              (sv-136 -1)
+              )
+          (dotimes (v1-20 (+ (-> self plat-seq-count) -1))
+            (if (= gp-2 (-> self plat-seq v1-20))
+                (set! sv-136 (the-as int (-> self plat-seq (+ v1-20 1))))
+                )
             )
-      )
-    (dotimes (gp-2 (-> self plat-count))
-      (set! sv-128 (get-point-in-path! (-> self path) (new 'stack-no-clear 'vector) (the float gp-2) 'exact))
-      (set! sv-136 -1)
-      (dotimes (v1-20 (+ (-> self plat-seq-count) -1))
-        (if (= gp-2 (-> self plat-seq v1-20))
-            (set! sv-136 (the-as int (-> self plat-seq (+ v1-20 1))))
-            )
-        )
-      (let ((v1-26 (the int (* 0.000061035156 (+ 40960000.0 (-> sv-128 x)))))
-            (a0-21 (the int (* 0.000061035156 (+ 40960000.0 (-> sv-128 z)))))
-            )
-        (set! sv-144 (logand (logior (logand v1-26 1) (* a0-21 2)) 3))
-        )
-      (let* ((s5-0 (get-process *default-dead-pool* tomb-simon-block #x4000))
-             (s4-0 (when s5-0
-                     (let ((t9-4 (method-of-type tomb-simon-block activate)))
-                       (t9-4
-                         (the-as tomb-simon-block s5-0)
-                         self
-                         (symbol->string (-> tomb-simon-block symbol))
-                         (the-as pointer #x70004000)
+          (let* ((v1-26 (the int (* 0.000061035156 (+ 40960000.0 (-> sv-128 x)))))
+                 (a0-21 (the int (* 0.000061035156 (+ 40960000.0 (-> sv-128 z)))))
+                 (sv-144 (logand (logior (logand v1-26 1) (* a0-21 2)) 3))
+                 (s5-0 (get-process *default-dead-pool* tomb-simon-block #x4000))
+                 (s4-0 (when s5-0
+                         (let ((t9-4 (method-of-type tomb-simon-block activate)))
+                           (t9-4
+                             (the-as tomb-simon-block s5-0)
+                             self
+                             (symbol->string (-> tomb-simon-block symbol))
+                             (the-as pointer #x70004000)
+                             )
+                           )
+                         (run-now-in-process
+                           s5-0
+                           tomb-simon-block-init-by-other
+                           sv-128
+                           gp-2
+                           sv-136
+                           (the int (* 0.00012207031 (vector-vector-xz-distance (get-trans sv-96 0) sv-128)))
+                           sv-144
+                           )
+                         (-> s5-0 ppointer)
                          )
                        )
-                     (let ((s4-1 run-function-in-process)
-                           (s3-0 s5-0)
-                           (s2-0 tomb-simon-block-init-by-other)
-                           (s1-0 sv-128)
-                           (s0-0 gp-2)
-                           )
-                       (set! sv-160 sv-136)
-                       (let ((f30-0 0.00012207031))
-                         (set! sv-176 vector-vector-xz-distance)
-                         (let* ((a0-26 (get-trans sv-96 0))
-                                (a1-9 sv-128)
-                                (t1-0 (the int (* f30-0 (sv-176 a0-26 a1-9))))
-                                (t2-0 sv-144)
-                                )
-                           ((the-as (function object object object object object object object none) s4-1)
-                            s3-0
-                            s2-0
-                            s1-0
-                            s0-0
-                            sv-160
-                            t1-0
-                            t2-0
-                            )
-                           )
-                         )
-                       )
-                     (-> s5-0 ppointer)
-                     )
-                   )
-             )
-        (send-event (ppointer->process s4-0) 'reparent)
-        (set! (-> self plat gp-2) (ppointer->handle s4-0))
+                 )
+            (send-event (ppointer->process s4-0) 'reparent)
+            (set! (-> self plat gp-2) (ppointer->handle s4-0))
+            )
+          )
         )
       )
     )
   :code (behavior ()
-    (suspend-for (seconds 2))
+    (suspend-for (seconds 2)
+      )
     (go-virtual show-sequence)
     )
   )
@@ -1019,13 +988,13 @@
    - collision information
    - loading the skeleton group / bones
    - sounds"
-  (local-vars (sv-16 res-tag))
   (set! (-> this root) (new 'process 'trsqv))
   (process-drawable-from-entity! this arg0)
   (change-parent this *pusher-pool*)
   (set! (-> this notify-actor) (entity-actor-lookup arg0 'alt-actor 0))
-  (set! sv-16 (new 'static 'res-tag))
-  (let ((v1-2 (res-lump-data (-> this entity) 'plat-seq pointer :tag-ptr (& sv-16))))
+  (let* ((sv-16 (new 'static 'res-tag))
+         (v1-2 (res-lump-data (-> this entity) 'plat-seq pointer :tag-ptr (& sv-16)))
+         )
     (cond
       ((and v1-2 (nonzero? (-> sv-16 elt-count)))
        (set! (-> this plat-seq-count) (the-as int (-> sv-16 elt-count)))
@@ -1123,12 +1092,7 @@
        (go-virtual dangerous)
        )
       (('ridden 'bonk)
-       (let* ((gp-0 *target*)
-              (a0-12 (if (type? gp-0 process-focusable)
-                         gp-0
-                         )
-                     )
-              )
+       (let ((a0-12 (the-as target (as-type *target* process-focusable))))
          (when a0-12
            (let ((v1-6 (get-trans a0-12 0))
                  (a0-14 (-> self root trans))
@@ -1179,13 +1143,9 @@
       (('touch 'ridden 'bonk 'edge-grabbed)
        (set-time! (-> self ride-timer))
        (when (logtest? (-> self flags) (simon-block-flags dangerous))
-         (let* ((gp-0 *target*)
-                (a0-10 (if (type? gp-0 process-focusable)
-                           gp-0
-                           )
-                       )
-                (v1-10 (new 'stack-no-clear 'vector))
-                )
+         (let ((a0-10 (the-as target (as-type *target* process-focusable)))
+               (v1-10 (new 'stack-no-clear 'vector))
+               )
            (set! (-> v1-10 x) 0.0)
            (set! (-> v1-10 y) 0.0)
            (set! (-> v1-10 z) 1.0)
@@ -1292,12 +1252,7 @@
     (set-time! (-> self ride-timer))
     )
   :trans (behavior ()
-    (let* ((gp-0 *target*)
-           (a0-1 (if (type? gp-0 process-focusable)
-                     gp-0
-                     )
-                 )
-           )
+    (let ((a0-1 (the-as target (as-type *target* process-focusable))))
       (when a0-1
         (let ((v1-2 (get-trans a0-1 0))
               (a0-3 (-> self root trans))
@@ -1395,9 +1350,11 @@
   :virtual #t
   :code (behavior ()
     (set! (-> self move-rate) (* 4096.0 (rand-vu-float-range 0.5 1.5)))
-    (suspend-for (seconds 0.25))
+    (suspend-for (seconds 0.25)
+      )
     (logclear! (-> self root root-prim prim-core action) (collide-action rideable))
-    (suspend-for (seconds 1))
+    (suspend-for (seconds 1)
+      )
     (cleanup-for-death self)
     )
   :post (behavior ()
@@ -1789,7 +1746,8 @@
             )
           )
         )
-      (suspend-for (seconds 0.45))
+      (suspend-for (seconds 0.45)
+        )
       )
     #f
     )
@@ -1850,12 +1808,7 @@
     )
   :code sleep-code
   :post (behavior ()
-    (let* ((s5-0 *target*)
-           (gp-0 (if (type? s5-0 process-focusable)
-                     s5-0
-                     )
-                 )
-           )
+    (let ((gp-0 (the-as target (as-type *target* process-focusable))))
       (when gp-0
         (when (and (not (logtest? (-> self flags) (tomb-vibe-flags tovflags-1)))
                    (< (vector-vector-distance (-> self root trans) (get-trans gp-0 0)) 102400.0)
@@ -1927,7 +1880,8 @@
     0
     )
   :code (behavior ()
-    (suspend-for (seconds 0.2))
+    (suspend-for (seconds 0.2)
+      )
     (persist-with-delay
       *setting-control*
       (the-as symbol (process->ppointer self))
@@ -1937,7 +1891,8 @@
       0.0
       (+ (-> self pat-tbl (-> self pat-index)) 18)
       )
-    (suspend-for (seconds 0.2))
+    (suspend-for (seconds 0.2)
+      )
     (process-grab? *target* #f)
     (let ((gp-2 (current-time))
           (s5-0 540)
@@ -1970,36 +1925,7 @@
         (transform-post)
         )
       (else
-        (let ((gp-1 (get-process *default-dead-pool* part-tracker #x4000)))
-          (when gp-1
-            (let ((t9-3 (method-of-type part-tracker activate)))
-              (t9-3 (the-as part-tracker gp-1) self (symbol->string (-> part-tracker symbol)) (the-as pointer #x70004000))
-              )
-            (let ((t9-4 run-function-in-process)
-                  (a0-4 gp-1)
-                  (a1-3 part-tracker-init)
-                  (a2-5 (-> *part-group-id-table* 686))
-                  (a3-1 450)
-                  (t0-0 #f)
-                  (t1-0 #f)
-                  (t2-0 #f)
-                  (t3-0 *launch-matrix*)
-                  )
-              (set! (-> t3-0 trans quad) (-> self spawn-pos quad))
-              ((the-as (function object object object object object object object object none) t9-4)
-               a0-4
-               a1-3
-               a2-5
-               a3-1
-               t0-0
-               t1-0
-               t2-0
-               t3-0
-               )
-              )
-            (-> gp-1 ppointer)
-            )
-          )
+        (part-tracker-spawn :to self :group group-tomb-vibe-dust-puff :duration 450 :mat-joint (-> self spawn-pos))
         (ja-no-eval :group! tomb-vibe-fall-ja :num! (seek!) :frame-num 0.0)
         (until (ja-done? 0)
           (transform-post)
@@ -2029,7 +1955,6 @@
    - collision information
    - loading the skeleton group / bones
    - sounds"
-  (local-vars (sv-16 res-tag) (sv-32 res-tag))
   (with-pp
     (let ((s4-0 (new 'process 'collide-shape this (collide-list-enum hit-by-player))))
       (let ((s3-0 (new 'process 'collide-shape-prim-group s4-0 (the-as uint 2) 0)))
@@ -2075,8 +2000,9 @@
     (set! (-> this fact)
           (new 'process 'fact-info this (pickup-type eco-pill-random) (-> *FACT-bank* default-eco-pill-green-inc))
           )
-    (set! sv-16 (new 'static 'res-tag))
-    (let ((v1-26 (res-lump-data (-> this entity) 'vibe-pattern pointer :tag-ptr (& sv-16))))
+    (let* ((sv-16 (new 'static 'res-tag))
+           (v1-26 (res-lump-data (-> this entity) 'vibe-pattern pointer :tag-ptr (& sv-16)))
+           )
       (cond
         ((and v1-26 (nonzero? (-> sv-16 elt-count)))
          (set! (-> this pat-tbl) (the-as (pointer int32) v1-26))
@@ -2089,8 +2015,9 @@
           )
         )
       )
-    (set! sv-32 (new 'static 'res-tag))
-    (let ((v1-33 (res-lump-data (-> this entity) 'actor-groups pointer :tag-ptr (& sv-32))))
+    (let* ((sv-32 (new 'static 'res-tag))
+           (v1-33 (res-lump-data (-> this entity) 'actor-groups pointer :tag-ptr (& sv-32)))
+           )
       (cond
         ((and v1-33 (nonzero? (-> sv-32 elt-count)))
          (set! (-> this actor-group) (the-as (pointer actor-group) v1-33))
@@ -2174,12 +2101,7 @@
 (defstate idle (tomb-water-trap)
   :virtual #t
   :trans (behavior ()
-    (let* ((gp-0 *target*)
-           (a0-1 (if (type? gp-0 process-focusable)
-                     gp-0
-                     )
-                 )
-           )
+    (let ((a0-1 (the-as target (as-type *target* process-focusable))))
       (if (and a0-1 (box-vector-inside? (-> self run-bbox) (get-trans a0-1 0)))
           (go-virtual running)
           )
@@ -2227,8 +2149,7 @@
     (until #f
       (set! (-> self can-exit-running?) #f)
       (let ((gp-0 0))
-        (suspend-for
-          (-> self on-duration)
+        (suspend-for (-> self on-duration)
           (when (< (-> self harmless-time) (current-time))
             (tomb-water-trap-method-22 self)
             (dotimes (s4-0 (+ (-> self path curve num-cverts) -1))
@@ -2270,10 +2191,10 @@
         )
       (set! (-> self can-exit-running?) #t)
       (let ((gp-1 90))
-        (suspend-for gp-1)
+        (suspend-for gp-1
+          )
         (let ((s5-2 #f))
-          (suspend-for
-            (the-as time-frame (- (- (-> self sync period) (the-as uint (-> self on-duration))) (the-as uint gp-1)))
+          (suspend-for (the-as time-frame (- (- (-> self sync period) (the-as uint (-> self on-duration))) (the-as uint gp-1)))
             (when (and (not s5-2) (time-elapsed? time (seconds 0.3)))
               (set! s5-2 #t)
               (set-tombc-electricity-scale! 0.0)
@@ -2321,12 +2242,7 @@
       )
     (let ((f30-0 (probe-using-line-sphere *collide-cache* s4-0)))
       (when (>= f30-0 0.0)
-        (let* ((s2-0 (-> s4-0 best-other-tri collide-ptr))
-               (s4-1 (if (type? s2-0 collide-shape-prim-sphere)
-                         (the-as collide-shape-prim-sphere s2-0)
-                         )
-                     )
-               )
+        (let ((s4-1 (as-type (-> s4-0 best-other-tri collide-ptr) collide-shape-prim-sphere)))
           (when s4-1
             (let ((s2-2 (vector+float*! (new 'stack-no-clear 'vector) arg0 s3-1 f30-0)))
               (tomb-water-trap-method-24 this arg0 s2-2 (the int (* 3.0 (rand-vu-float-range 5.0 11.0))))
@@ -2458,7 +2374,7 @@
                            :sound #f
                            )
         )
-  (set! (-> this part) (create-launch-control (-> *part-group-id-table* 696) this))
+  (set! (-> this part) (create-launch-control group-tomb-water-trap-hit this))
   (let ((a3-3 (new 'stack-no-clear 'vector)))
     (set! (-> a3-3 x) (* 0.5 (+ (-> this bbox min x) (-> this bbox max x))))
     (set! (-> a3-3 y) (* 0.5 (+ (-> this bbox min y) (-> this bbox max y))))
@@ -2521,12 +2437,7 @@
     )
   :trans (behavior ()
     (when (time-elapsed? (-> self state-time) (-> self timeout))
-      (let* ((s5-0 *target*)
-             (gp-0 (if (type? s5-0 process-focusable)
-                       s5-0
-                       )
-                   )
-             )
+      (let ((gp-0 (the-as target (as-type *target* process-focusable))))
         (cond
           (gp-0
             (let* ((s5-1 (camera-pos))

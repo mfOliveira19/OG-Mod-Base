@@ -572,7 +572,8 @@ Val* Compiler::compile_defmethod(const goos::Object& form, const goos::Object& _
     IRegConstraint constr;
     constr.instr_idx = 0;  // constraint at function start
     auto ireg_arg = new_func_env->make_ireg(
-        lambda.params.at(i).type, arg_regs.at(i).is_gpr() ? RegClass::GPR_64 : RegClass::INT_128);
+        lambda.params.at(i).type,
+        arg_regs.at(i).is_gpr(m_instr_set) ? RegClass::GPR_64 : RegClass::INT_128);
     ireg_arg->mark_as_settable();
     constr.ireg = ireg_arg->ireg();
     constr.desired_register = arg_regs.at(i);
@@ -609,8 +610,9 @@ Val* Compiler::compile_defmethod(const goos::Object& form, const goos::Object& _
   func_block_env->emit_ir<IR_ValueReset>(form, reset_args_for_coloring);
 
   for (u32 i = 0; i < lambda.params.size(); i++) {
-    auto ireg = new_func_env->make_ireg(
-        lambda.params.at(i).type, arg_regs.at(i).is_gpr() ? RegClass::GPR_64 : RegClass::INT_128);
+    auto ireg = new_func_env->make_ireg(lambda.params.at(i).type, arg_regs.at(i).is_gpr(m_instr_set)
+                                                                      ? RegClass::GPR_64
+                                                                      : RegClass::INT_128);
     ireg->mark_as_settable();
     if (!new_func_env->params.insert({m_goos.intern_ptr(lambda.params.at(i).name), ireg}).second) {
       throw_compiler_error(form, "defmethod has multiple arguments named {}",
@@ -1612,6 +1614,26 @@ Compiler::ConstPropResult Compiler::const_prop_size_of(const goos::Object& form,
 
 Val* Compiler::compile_psize_of(const goos::Object& form, const goos::Object& rest, Env* env) {
   return compile_integer((get_size_for_size_of(form, rest) + 0xf) & ~0xf, env);
+}
+
+Val* Compiler::compile_offset_of(const goos::Object& form, const goos::Object& rest, Env* env) {
+  auto args = get_va(form, rest);
+  va_check(form, args, {goos::ObjectType::SYMBOL, goos::ObjectType::SYMBOL}, {});
+  auto type_to_look_for = args.unnamed.at(0).as_symbol();
+  if (!m_ts.fully_defined_type_exists(type_to_look_for.name_ptr)) {
+    throw_compiler_error(form, "The type {} could not be found or was not fully defined.",
+                         args.unnamed.at(0).print());
+  }
+  auto type = m_ts.lookup_type(type_to_look_for.name_ptr);
+  auto field_name = args.unnamed.at(1).as_symbol().name_ptr;
+  auto as_struct = dynamic_cast<StructureType*>(type);
+  if (as_struct) {
+    auto info = m_ts.lookup_field_info(type->get_name(), field_name);
+    auto off = as_struct->is_boxed() ? info.field.offset() - 4 : info.field.offset();
+    return compile_integer(off, env);
+  } else {
+    throw_compiler_error(form, "The type {} is not a reference type.", args.unnamed.at(0).print());
+  }
 }
 
 Val* Compiler::compile_current_method_id(const goos::Object& form,

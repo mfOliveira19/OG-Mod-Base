@@ -378,41 +378,7 @@
                   (set! (-> s2-0 quad) (-> this root trans quad))
                   (when (logtest? (water-flags touch-water) (-> s3-0 flags))
                     (set! (-> s2-0 y) (-> s3-0 trans y))
-                    (let ((s3-1 (get-process *default-dead-pool* part-tracker #x4000)))
-                      (when s3-1
-                        (let ((t9-2 (method-of-type part-tracker activate)))
-                          (t9-2
-                            (the-as part-tracker s3-1)
-                            *entity-pool*
-                            (symbol->string (-> part-tracker symbol))
-                            (the-as pointer #x70004000)
-                            )
-                          )
-                        (let ((t9-3 run-function-in-process)
-                              (a0-26 s3-1)
-                              (a1-6 part-tracker-init)
-                              (a2-6 (-> *part-group-id-table* 121))
-                              (a3-1 0)
-                              (t0-0 #f)
-                              (t1-0 #f)
-                              (t2-0 #f)
-                              (t3-0 *launch-matrix*)
-                              )
-                          (set! (-> t3-0 trans quad) (-> s2-0 quad))
-                          ((the-as (function object object object object object object object object none) t9-3)
-                           a0-26
-                           a1-6
-                           a2-6
-                           a3-1
-                           t0-0
-                           t1-0
-                           t2-0
-                           t3-0
-                           )
-                          )
-                        (-> s3-1 ppointer)
-                        )
-                      )
+                    (part-tracker-spawn :to *entity-pool* :group group-part-water-splash :mat-joint s2-0)
                     (sound-play "splash-out")
                     )
                   )
@@ -512,7 +478,6 @@
   )
 
 (defmethod hopper-method-178 ((this hopper))
-  (local-vars (sv-752 vector))
   (rlet ((acc :class vf)
          (vf0 :class vf)
          (vf4 :class vf)
@@ -564,28 +529,29 @@
                    (when (not (add-root-sphere-to-hash! (-> this nav) a1-3 #x8006c))
                      (when (< (-> this best-score) f30-0)
                        (set! (-> this best-score) f30-0)
-                       (let ((s2-0 (new 'stack-no-clear 'vector)))
-                         (set! sv-752 (new 'stack-no-clear 'vector))
-                         (let ((s3-1 (new 'stack 'collide-query)))
-                           (let ((s0-0 (-> this nav))
-                                 (s1-0 s2-0)
-                                 )
-                             (let* ((v1-21 s5-0)
-                                    (a0-10 (-> s0-0 state mesh))
-                                    (t9-4 (method-of-object a0-10 project-point-onto-plane-of-poly-local))
-                                    (a2-5 s1-0)
-                                    (t0-1 (vector-! (new 'stack-no-clear 'vector) v1-21 (-> s0-0 state mesh bounds)))
-                                    )
-                               (t9-4 a0-10 s4-0 a2-5 sv-752 t0-1)
-                               )
-                             (vector+! s1-0 s1-0 (-> s0-0 state mesh bounds))
+                       (let ((s2-0 (new 'stack-no-clear 'vector))
+                             (sv-752 (new 'stack-no-clear 'vector))
+                             (s3-1 (new 'stack 'collide-query))
                              )
-                           0
-                           (set! (-> s5-0 y) (-> s2-0 y))
-                           (if (enemy-above-ground? this s3-1 s5-0 (collide-spec backgnd) 8192.0 81920.0 1024.0)
-                               (set! (-> s5-0 y) (-> s3-1 best-other-tri intersect y))
+                         (let ((s0-0 (-> this nav))
+                               (s1-0 s2-0)
                                )
+                           (let ((v1-21 s5-0))
+                             (project-point-onto-plane-of-poly-local
+                               (-> s0-0 state mesh)
+                               s4-0
+                               s1-0
+                               sv-752
+                               (vector-! (new 'stack-no-clear 'vector) v1-21 (-> s0-0 state mesh bounds))
+                               )
+                             )
+                           (vector+! s1-0 s1-0 (-> s0-0 state mesh bounds))
                            )
+                         0
+                         (set! (-> s5-0 y) (-> s2-0 y))
+                         (if (enemy-above-ground? this s3-1 s5-0 (collide-spec backgnd) 8192.0 81920.0 1024.0)
+                             (set! (-> s5-0 y) (-> s3-1 best-other-tri intersect y))
+                             )
                          )
                        (set! (-> this best-point quad) (-> s5-0 quad))
                        )
@@ -677,7 +643,7 @@
                 (let ((s4-2 (new 'stack-no-clear 'vector))
                       (f28-0 (if (zero? s5-0)
                                  (rnd-float-range self 4096.0 8192.0)
-                                 (rnd-float-range self 8192.0 (fmin 40960.0 (fmax 16384.0 (* 0.5 f30-0))))
+                                 (rnd-float-range self 8192.0 (fmin 40960.0 (fmax 16384.0 (/ f30-0 2))))
                                  )
                              )
                       )
@@ -694,6 +660,8 @@
                 )
               (set! (-> self best-score) -2.0)
               (set! (-> self origin quad) (-> self root trans quad))
+              ;; og:preserve-this
+              ; (b! #t cfg-17)
               (until (not (hopper-method-178 self))
                 (empty)
                 )
@@ -917,11 +885,11 @@
   (none)
   )
 
-(defmethod relocate ((this hopper) (arg0 int))
+(defmethod relocate ((this hopper) (offset int))
   (if (nonzero? (-> this path-intro))
-      (&+! (-> this path-intro) arg0)
+      (&+! (-> this path-intro) offset)
       )
-  (call-parent-method this arg0)
+  (call-parent-method this offset)
   )
 
 (defmethod init-enemy-collision! ((this hopper))

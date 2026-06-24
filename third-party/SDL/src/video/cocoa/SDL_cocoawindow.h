@@ -1,6 +1,6 @@
 /*
   Simple DirectMedia Layer
-  Copyright (C) 1997-2025 Sam Lantinga <slouken@libsdl.org>
+  Copyright (C) 1997-2026 Sam Lantinga <slouken@libsdl.org>
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -122,6 +122,7 @@ typedef enum
 - (void)touchesMovedWithEvent:(NSEvent *)theEvent;
 - (void)touchesEndedWithEvent:(NSEvent *)theEvent;
 - (void)touchesCancelledWithEvent:(NSEvent *)theEvent;
+- (void)magnifyWithEvent:(NSEvent *) theEvent;
 
 // Touch event handling
 - (void)handleTouches:(NSTouchPhase)phase withEvent:(NSEvent *)theEvent;
@@ -140,19 +141,20 @@ typedef enum
 @property(nonatomic) SDL_Window *window;
 @property(nonatomic) NSWindow *nswindow;
 @property(nonatomic) NSView *sdlContentView;
+@property(nonatomic) NSRect viewport;
 @property(nonatomic) NSMutableArray *nscontexts;
 @property(nonatomic) BOOL in_blocking_transition;
 @property(nonatomic) BOOL fullscreen_space_requested;
 @property(nonatomic) BOOL was_zoomed;
 @property(nonatomic) NSInteger window_number;
 @property(nonatomic) NSInteger flash_request;
-@property(nonatomic) SDL_Window *keyboard_focus;
 @property(nonatomic) SDL3Cocoa_WindowListener *listener;
 @property(nonatomic) NSModalSession modal_session;
 @property(nonatomic) SDL_CocoaVideoData *videodata;
 @property(nonatomic) bool pending_size;
 @property(nonatomic) bool pending_position;
 @property(nonatomic) bool border_toggled;
+@property(nonatomic) bool has_modal_dialog;
 
 #ifdef SDL_VIDEO_OPENGL_EGL
 @property(nonatomic) EGLSurface egl_surface;

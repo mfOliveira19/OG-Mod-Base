@@ -376,7 +376,7 @@
 )
 
 (defun spawn-gauss ((arg0 vector))
-  (when (and (not (process-by-name 'gauss-plant-boss-collectable *active-pool*)) (not (logtest? (-> *hl-weapons* owned-weapons) (owned-weapons gauss))))
+  (when (and (not (process-by-name 'gauss-plant-boss-collectable *active-pool*)) (not (-> *pc-settings* all-weapons?)) (not (logtest? (-> *hl-weapons* owned-weapons) (owned-weapons gauss))))
     (let ((s1-0 (new-stack-vector0)))
         (set-vector! s1-0 (meters -8.0) 57001.605 1.0 1.0)
         (set-vector! arg0 (-> arg0 x) (- (-> arg0 y) (meters 1.0)) (-> arg0 z) 0.0)

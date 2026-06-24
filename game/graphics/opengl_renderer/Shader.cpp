@@ -135,6 +135,8 @@ ShaderLibrary::ShaderLibrary(GameVersion version) {
   at(ShaderId::VIEWMODEL) = {"viewmodel", version};
   at(ShaderId::CROSSHAIR) = {"crosshair", version};
   at(ShaderId::MUZZLE_FLASH) = {"muzzle_flash", version};
+  at(ShaderId::SIMPLE_TEXTURE) = {"simple_texture", version};
+  at(ShaderId::SLOW_TIME) = {"slow_time", version};
 
   for (auto& shader : m_shaders) {
     ASSERT_MSG(shader.okay(), "error compiling shader");

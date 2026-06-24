@@ -286,7 +286,7 @@
   (set! (-> this blend) 1.0)
   (set! (-> this draw light-index) (the-as uint 30))
   (set! (-> this speak-effect?) #f)
-  (set! (-> this part) (create-launch-control (-> *part-group-id-table* 122) this))
+  (set! (-> this part) (create-launch-control group-talkbox-speak this))
   (none)
   )
 
@@ -411,6 +411,9 @@
         )
       )
     )
+  ;; og:preserve-this pc port trick tracker
+  (#when PC_PORT
+    (render-combo *board-trick-tracker*))
   0
   (none)
   )
@@ -440,6 +443,10 @@
            (when s4-0
              (change-parent self (ppointer->process s4-0))
              (focus-on! (-> self focus) (the-as process-focusable s5-2))
+             ;; og:preserve-this pc port trick tracker
+             (#when PC_PORT
+              (end-combo! *board-trick-tracker*)
+              (reset-combo! *board-trick-tracker*))
              (go-virtual enter)
              )
            )

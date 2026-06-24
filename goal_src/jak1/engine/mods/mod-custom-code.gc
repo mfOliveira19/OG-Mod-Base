@@ -116,6 +116,9 @@
       (when (>= *green-flash-current* *green-flash-times*)
         (set! *green-flash-active* #f))))
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Begin function defintions.
+;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defun handle-draw-and-input-stuff ()
   ;; Set the camera to first-person when we are a normal state (ground, air, etc.) and not in a cutscene

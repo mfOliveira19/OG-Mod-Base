@@ -92,7 +92,12 @@ void unpack_entry(FILE* fp,
                   const IsoFile::Entry& entry,
                   const fs::path& dest,
                   bool print_progress) {
-  fs::path path_to_entry = dest / entry.name;
+  std::string patched_name = entry.name;
+  if (entry.name == "WATER_AN.CGO") {
+    lg::warn("Detected WATER_AN.CGO, renaming to the proper WATER-AN.CGO");
+    patched_name = "WATER-AN.CGO";
+  }
+  fs::path path_to_entry = dest / patched_name;
   if (entry.is_dir) {
     fs::create_directory(path_to_entry);
     for (const auto& child : entry.children) {
@@ -100,16 +105,33 @@ void unpack_entry(FILE* fp,
     }
   } else {
     if (print_progress) {
-      lg::info("Extracting {}, size 0x{:x} offset 0x{:x}...", entry.name, entry.size,
+      lg::info("Extracting {}, size 0x{:x} offset 0x{:x}...", patched_name, entry.size,
                entry.offset_in_file);
     }
     std::vector<u8> buffer(entry.size);
     if (fseek_64(fp, entry.offset_in_file, SEEK_SET)) {
       ASSERT_MSG(false, "Failed to fseek iso when unpacking");
     }
-    if (fread(buffer.data(), buffer.size(), 1, fp) != 1) {
-      ASSERT_MSG(false, "Failed to fread iso when unpacking");
+
+    // https://github.com/open-goal/jak-project/issues/3979
+    // some people rarely get errors here, instead of trying to do a single fread
+    // let fread read in chunks so that we get a little more observability (see how many bytes it
+    // _can_ read)
+    //
+    // additionally, try to log the actual error
+    const auto bytes_read = fread(buffer.data(), 1, buffer.size(), fp);
+    if (bytes_read != buffer.size()) {
+      lg::error("did not read {} bytes, only read {}, in entry: {}", buffer.size(), bytes_read,
+                patched_name);
+      if (feof(fp)) {
+        lg::error("reached end of file before reading all expected bytes");
+      }
+      if (ferror(fp)) {
+        lg::error("generic error reading from file");
+      }
+      ASSERT_MSG(false, "Failed to fread iso entry when unpacking");
     }
+
     file_util::write_binary_file(path_to_entry.string(), buffer.data(), buffer.size());
     iso.files_extracted++;
     if (iso.shouldHash) {

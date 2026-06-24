@@ -559,7 +559,6 @@
 (defstate citb-robotboss-idle (citb-robotboss)
   :event
     (behavior ((proc process) (argc int) (message symbol) (block event-message-block))
-      (local-vars (sv-96 int) (sv-112 int))
       (the-as symbol
               (cond
                 ((= message 'shield-off)
@@ -570,15 +569,7 @@
                 ((= message 'shield-on) (let ((v0-3 #t)) (set! (-> self shield-on) v0-3) v0-3))
                 ((= message 'die) (cleanup-for-death self) (the-as symbol (deactivate self)))
                 ((or (= message 'touch) (= message 'attack))
-                 (let ((s4-0 sound-play-by-name)
-                       (s3-0 (make-u128 #x7061 (the-as uint #x7a2d646c65696873)))
-                       (s2-0 (new-sound-id))
-                       (s1-0 1024)
-                       (s0-0 0))
-                   (set! sv-96 0)
-                   (set! sv-112 1)
-                   (let ((t2-1 (target-pos 0)))
-                     (s4-0 (the-as sound-name s3-0) s2-0 s1-0 s0-0 sv-96 (the-as sound-group sv-112) (the-as symbol t2-1))))
+                 (sound-play "shield-zap" :position (the-as symbol (target-pos 0)))
                  (the-as symbol
                          (send-event proc 'shove (-> block param 0) (static-attack-info ((shove-up (meters 2)) (shove-back (meters 3))))))))))
   :code
@@ -645,7 +636,7 @@
     (set! (-> this root) s4-0))
   (process-drawable-from-entity! this arg0)
   (initialize-skeleton this *citb-robotboss-sg* '())
-  (set! (-> this part) (create-launch-control (-> *part-group-id-table* 601) this))
+  (set! (-> this part) (create-launch-control group-citb-robotboss-shield this))
   (logclear! (-> this mask) (process-mask actor-pause))
   (set! (-> this shield-on) #t)
   (set! (-> this sound) (new 'process 'ambient-sound (static-sound-spec "robotcage-lp" :fo-max 150) (-> this root trans)))
@@ -723,8 +714,8 @@
   (set! (-> this root) (new 'process 'trsqv))
   (process-drawable-from-entity! this arg0)
   (initialize-skeleton this *citb-coil-sg* '())
-  (set! (-> this part) (create-launch-control (-> *part-group-id-table* 596) this))
-  (set! (-> this part-off) (create-launch-control (-> *part-group-id-table* 602) this))
+  (set! (-> this part) (create-launch-control group-citb-coil-glow this))
+  (set! (-> this part-off) (create-launch-control group-citb-coil-off this))
   (let ((v1-9 (entity-actor-lookup (-> this entity) 'state-actor 0)))
     (if (not v1-9) (set! v1-9 (-> this entity)))
     (if (logtest? (-> v1-9 extra perm status) (entity-perm-status complete)) (go citb-coil-broken) (go citb-coil-idle)))
@@ -924,7 +915,7 @@
       (process-spawn part-tracker
                      :init
                      part-tracker-init
-                     (-> *part-group-id-table* 598)
+                     group-citb-generator-break
                      -1
                      #f
                      #f
@@ -992,9 +983,9 @@
     (when (-> this mushroom)
       (+! (-> this mushroom-pos x) (* 19251.2 (sin f30-0)))
       (+! (-> this mushroom-pos z) (* 19251.2 (cos f30-0)))))
-  (set! (-> this part) (create-launch-control (-> *part-group-id-table* 600) this))
-  (set! (-> this part-broken) (create-launch-control (-> *part-group-id-table* 597) this))
-  (set! (-> this part-mushroom) (create-launch-control (-> *part-group-id-table* 599) this))
+  (set! (-> this part) (create-launch-control group-citb-generator-on this))
+  (set! (-> this part-broken) (create-launch-control group-citb-generator-off this))
+  (set! (-> this part-mushroom) (create-launch-control group-citb-generator-mushroom-on this))
   (set! (-> this sound) (new 'process 'ambient-sound (static-sound-spec "mushroom-gen" :fo-max 20) (-> this root trans)))
   0
   (none))

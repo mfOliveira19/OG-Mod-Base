@@ -1,5 +1,5 @@
 /*
-  Copyright (C) 1997-2025 Sam Lantinga <slouken@libsdl.org>
+  Copyright (C) 1997-2026 Sam Lantinga <slouken@libsdl.org>
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -97,7 +97,7 @@ int main(int argc, char *argv[])
                     }
 
                     if (e.key.key == SDLK_M) {
-                        if (SDL_SetWindowParent(w2, w2)) {
+                        if (SDL_SetWindowParent(w2, w1)) {
                             if (SDL_SetWindowModal(w2, true)) {
                                 SDL_SetWindowTitle(w2, "Modal Window");
                             }

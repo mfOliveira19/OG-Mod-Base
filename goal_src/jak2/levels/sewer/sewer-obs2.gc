@@ -47,12 +47,7 @@
 
 (defmethod commited-to-ride? ((this sew-elevator))
   "@returns if the target is considered within the elevator area enough to begin descending/ascending"
-  (let* ((target *target*)
-         (target-proc (if (type? target process-focusable)
-                          target
-                          )
-                      )
-         )
+  (let ((target-proc (the-as target (as-type *target* process-focusable))))
     (when target-proc
       (let* ((target-pos (get-trans target-proc 0))
              (dist-from-center (vector-! (new 'stack-no-clear 'vector) target-pos (-> this root trans)))
@@ -321,7 +316,6 @@
    - collision information
    - loading the skeleton group / bones
    - sounds"
-  (local-vars (tag-1 res-tag) (tag-2 res-tag))
   (let ((cshape (new 'process 'collide-shape-moving this (collide-list-enum usually-hit-by-player))))
     (set! (-> cshape dynam) (copy *standard-dynamics* 'process))
     (set! (-> cshape reaction) cshape-reaction-default)
@@ -353,13 +347,15 @@
   (set! (-> this spin) 0.0)
   (set! (-> this spin-rate) 0.0)
   (set! (-> this joint) (new 'process 'joint-mod-rotate-local this 4 #f))
-  (set! tag-1 (new 'static 'res-tag))
-  (set! (-> this actor-group)
-        (res-lump-data (-> this entity) 'actor-groups (pointer actor-group) :tag-ptr (& tag-1))
-        )
-  (set! (-> this actor-group-count) (the-as int (-> tag-1 elt-count)))
-  (set! tag-2 (new 'static 'res-tag))
-  (let ((data (res-lump-data (-> this entity) 'extra-float-param pointer :tag-ptr (& tag-2))))
+  (let ((tag-1 (new 'static 'res-tag)))
+    (set! (-> this actor-group)
+          (res-lump-data (-> this entity) 'actor-groups (pointer actor-group) :tag-ptr (& tag-1))
+          )
+    (set! (-> this actor-group-count) (the-as int (-> tag-1 elt-count)))
+    )
+  (let* ((tag-2 (new 'static 'res-tag))
+         (data (res-lump-data (-> this entity) 'extra-float-param pointer :tag-ptr (& tag-2)))
+         )
     (if (and data (nonzero? (-> tag-2 elt-count)))
         (set! (-> this water-height) (-> (the-as (pointer float) data)))
         (set! (-> this water-height) 0.0)
@@ -667,7 +663,6 @@
    - collision information
    - loading the skeleton group / bones
    - sounds"
-  (local-vars (sv-16 collide-shape-prim-mesh) (sv-32 symbol) (sv-48 type) (sv-64 collide-shape-moving))
   (stack-size-set! (-> this main-thread) 512)
   (let ((cshape (new 'process 'collide-shape-moving this (collide-list-enum usually-hit-by-player))))
     (set! (-> cshape dynam) (copy *standard-dynamics* 'process))
@@ -704,23 +699,18 @@
              (s1-0 (car s2-0))
              )
         (while (not (null? s2-0))
-          (let ((_prim-mesh (method-of-type collide-shape-prim-mesh new)))
-            (set! sv-32 'process)
-            (set! sv-48 collide-shape-prim-mesh)
-            (set! sv-64 cshape)
-            (let ((a3-2 (command-get-int (car s1-0) 0))
-                  (t0-1 0)
+          (let ((sv-16
+                  (new 'process 'collide-shape-prim-mesh cshape (the-as uint (command-get-int (car s1-0) 0)) (the-as uint 0))
                   )
-              (set! sv-16 (_prim-mesh sv-32 sv-48 sv-64 (the-as uint a3-2) (the-as uint t0-1)))
+                )
+            (let ((s0-1 sv-16))
+              (set! (-> s0-1 prim-core collide-as) (-> prim-group prim-core collide-as))
+              (set! (-> s0-1 prim-core collide-with) (-> prim-group prim-core collide-with))
+              (set! (-> s0-1 prim-core action) (-> prim-group prim-core action))
+              (set! (-> s0-1 transform-index) (command-get-int (car (cdr s1-0)) 0))
               )
+            (set-vector! (-> sv-16 local-sphere) 0.0 0.0 0.0 (command-get-float (car (cdr (cdr s1-0))) 0.0))
             )
-          (let ((s0-1 sv-16))
-            (set! (-> s0-1 prim-core collide-as) (-> prim-group prim-core collide-as))
-            (set! (-> s0-1 prim-core collide-with) (-> prim-group prim-core collide-with))
-            (set! (-> s0-1 prim-core action) (-> prim-group prim-core action))
-            (set! (-> s0-1 transform-index) (command-get-int (car (cdr s1-0)) 0))
-            )
-          (set-vector! (-> sv-16 local-sphere) 0.0 0.0 0.0 (command-get-float (car (cdr (cdr s1-0))) 0.0))
           (set! s2-0 (cdr s2-0))
           (set! s1-0 (car s2-0))
           )
@@ -770,12 +760,7 @@
   :event (behavior ((proc process) (argc int) (message symbol) (block event-message-block))
     (case message
       (('touch 'attack)
-       (let* ((_proc proc)
-              (focus-proc (if (type? _proc process-focusable)
-                              (the-as process-focusable _proc)
-                              )
-                          )
-              )
+       (let ((focus-proc (as-type proc process-focusable)))
          (when focus-proc
            (let ((a0-4
                    (vector-normalize!
@@ -830,36 +815,7 @@
     (logior! (-> self draw status) (draw-control-status no-draw))
     (sound-play "sew-mine-b")
     (process-spawn touch-tracker :init touch-tracker-init (-> self root trans) #x47200000 30 :to self)
-    (let ((part (get-process *default-dead-pool* part-tracker #x4000)))
-      (when part
-        (let ((func (method-of-type part-tracker activate)))
-          (func (the-as part-tracker part) self (symbol->string (-> part-tracker symbol)) (the-as pointer #x70004000))
-          )
-        (let ((t9-7 run-function-in-process)
-              (a0-8 part)
-              (a1-6 part-tracker-init)
-              (a2-10 (-> *part-group-id-table* 124))
-              (a3-4 0)
-              (t0-2 #f)
-              (t1-1 #f)
-              (t2-1 #f)
-              (t3-0 *launch-matrix*)
-              )
-          (set! (-> t3-0 trans quad) (-> self root trans quad))
-          ((the-as (function object object object object object object object object none) t9-7)
-           a0-8
-           a1-6
-           a2-10
-           a3-4
-           t0-2
-           t1-1
-           t2-1
-           t3-0
-           )
-          )
-        (-> part ppointer)
-        )
-      )
+    (part-tracker-spawn :to self :group group-crate-explode :mat-joint (-> self root trans))
     (cleanup-for-death self)
     (suspend-for (seconds 2)
       )
@@ -868,7 +824,7 @@
 
 (defmethod init-mine! ((this sew-mine))
   "Initializes the mine's particles and sets `last-time` to `0`"
-  (set! (-> this part) (create-launch-control (-> *part-group-id-table* 345) this))
+  (set! (-> this part) (create-launch-control group-sew-mine-light this))
   (set! (-> this last-time) 0)
   0
   (none)
@@ -1489,12 +1445,7 @@
     (logior! (-> self draw status) (draw-control-status no-draw))
     )
   :trans (behavior ()
-    (let* ((target *target*)
-           (target-proc (if (type? target process-focusable)
-                            target
-                            )
-                        )
-           )
+    (let ((target-proc (the-as target (as-type *target* process-focusable))))
       (when target-proc
         (cond
           ((< (vector-vector-distance (-> self root trans) (get-trans target-proc 0)) 20480.0)

@@ -114,7 +114,6 @@
    hud-normal
    hud-waiting))
 
-
 (define *fp-hud-stack* (malloc 'global #x3800))
 
 (defmethod deactivate ((this first-person-hud))
@@ -134,7 +133,7 @@
   (when (< (-> self nb-of-particles) (-> self max-nb-of-particles))
     (let ((gp-0 (-> self nb-of-particles)))
       (set! (-> self particles gp-0) (new 'static 'hud-particle))
-      (set! (-> self particles gp-0 part) (create-launch-control (-> *part-group-id-table* 611) self))
+      (set! (-> self particles gp-0 part) (create-launch-control group-part-first-person-hud-left self))
       (set! (-> self particles gp-0 init-pos x) -320.0)
       (set! (-> self particles gp-0 init-pos y) 254.0)
       (set! (-> self particles gp-0 init-pos z) 15.0)
@@ -143,7 +142,7 @@
   (when (< (-> self nb-of-particles) (-> self max-nb-of-particles))
     (let ((gp-1 (-> self nb-of-particles)))
       (set! (-> self particles gp-1) (new 'static 'hud-particle))
-      (set! (-> self particles gp-1 part) (create-launch-control (-> *part-group-id-table* 612) self))
+      (set! (-> self particles gp-1 part) (create-launch-control group-part-first-person-hud-right self))
       (set! (-> self particles gp-1 init-pos x) -320.0)
       (set! (-> self particles gp-1 init-pos y) 192.0)
       (set! (-> self particles gp-1 init-pos z) 15.0)
@@ -152,7 +151,7 @@
   (when (< (-> self nb-of-particles) (-> self max-nb-of-particles))
     (let ((gp-2 (-> self nb-of-particles)))
       (set! (-> self particles gp-2) (new 'static 'hud-particle))
-      (set! (-> self particles gp-2 part) (create-launch-control (-> *part-group-id-table* 613) self))
+      (set! (-> self particles gp-2 part) (create-launch-control group-part-first-person-hud-selector self))
       (set! (-> self particles gp-2 init-pos x) 256.0)
       (set! (-> self particles gp-2 init-pos y) 244.0)
       (set! (-> self particles gp-2 init-pos z) 15.0)
@@ -341,7 +340,6 @@
         (camera-change-to (the-as string 'base) 60 #f)))
   :trans
     (behavior ()
-      (local-vars (sv-48 vector))
       (rlet ((vf0 :class vf)
              (vf4 :class vf)
              (vf5 :class vf)
@@ -364,15 +362,20 @@
                 (let ((s3-0 run-function-in-process)
                       (s2-0 s4-0)
                       (s1-0 projectile-init-by-other)
-                      (s0-0 (-> self entity)))
-                  (set! sv-48 s5-1)
+                      (s0-0 (-> self entity))
+                      (sv-48 s5-1))
                   (let ((v0-3 (camera-pos))) (.mov.vf.w vf6 vf0) (.lvf vf4 (&-> v0-3 quad)))
                   (.lvf vf5 (&-> s5-1 quad))
                   (.add.vf.xyz vf6 vf4 vf5)
                   (.svf (&-> sv-48 quad) vf6)
-                  (let ((t1-0 (if (>= (-> self fact eco-level) (-> *FACT-bank* eco-level-max)) 56 40))
-                        (t2-0 #f))
-                    ((the-as (function object object object object object object object none) s3-0) s2-0 s1-0 s0-0 sv-48 gp-1 t1-0 t2-0)))
+                  ((the-as (function object object object object object object object none) s3-0)
+                   s2-0
+                   s1-0
+                   s0-0
+                   sv-48
+                   gp-1
+                   (if (>= (-> self fact eco-level) (-> *FACT-bank* eco-level-max)) 56 40)
+                   #f))
                 (-> s4-0 ppointer))))
           (set-time! (-> self control unknown-dword82)))
         (when (cpad-pressed? (-> self control cpad number) triangle)
@@ -420,7 +423,6 @@
       (target-exit))
   :trans
     (behavior ()
-      (local-vars (sv-48 vector))
       (rlet ((vf0 :class vf)
              (vf4 :class vf)
              (vf5 :class vf)
@@ -443,15 +445,20 @@
                 (let ((s3-0 run-function-in-process)
                       (s2-0 s4-0)
                       (s1-0 projectile-init-by-other)
-                      (s0-0 (-> self entity)))
-                  (set! sv-48 s5-1)
+                      (s0-0 (-> self entity))
+                      (sv-48 s5-1))
                   (let ((v0-4 (camera-pos))) (.mov.vf.w vf6 vf0) (.lvf vf4 (&-> v0-4 quad)))
                   (.lvf vf5 (&-> s5-1 quad))
                   (.add.vf.xyz vf6 vf4 vf5)
                   (.svf (&-> sv-48 quad) vf6)
-                  (let ((t1-0 (if (>= (-> self fact eco-level) (-> *FACT-bank* eco-level-max)) 120 104))
-                        (t2-0 #f))
-                    ((the-as (function object object object object object object object none) s3-0) s2-0 s1-0 s0-0 sv-48 gp-1 t1-0 t2-0)))
+                  ((the-as (function object object object object object object object none) s3-0)
+                   s2-0
+                   s1-0
+                   s0-0
+                   sv-48
+                   gp-1
+                   (if (>= (-> self fact eco-level) (-> *FACT-bank* eco-level-max)) 120 104)
+                   #f))
                 (-> s4-0 ppointer))))
           (set-time! (-> self control unknown-dword82)))))
   :code
@@ -817,7 +824,7 @@
           (target-compute-edge-rider)
           (compute-alignment! (-> self align))
           (when (not (logtest? (-> self align flags) (align-flags disabled)))
-            (vector-matrix*! s4-0 (the-as vector (-> self align delta)) (-> self control unknown-matrix01))
+            (vector-matrix*! s4-0 (-> self align delta trans) (-> self control unknown-matrix01))
             (move-by-vector! (-> self control) s4-0))
           (suspend)
           (ja :num! (seek!))))
@@ -843,7 +850,7 @@
         (until (ja-done? 0)
           (compute-alignment! (-> self align))
           (when (not (logtest? (-> self align flags) (align-flags disabled)))
-            (vector-matrix*! gp-0 (the-as vector (-> self align delta)) (-> self control unknown-matrix01))
+            (vector-matrix*! gp-0 (-> self align delta trans) (-> self control unknown-matrix01))
             (move-by-vector! (-> self control) gp-0))
           (suspend)
           (ja :num! (seek! (ja-aframe (the-as float 191.0) 0)))))
@@ -1768,7 +1775,7 @@
       (send-event (ppointer->process (-> self sidekick)) 'matrix 'normal)
       (send-event (ppointer->process (-> self sidekick)) 'shadow #t)
       (let ((gp-0 (joint-node eichar-lod0-jg main))
-            (a1-2 (&-> (-> self control) unknown-qword00)))
+            (a1-2 (&-> self control unknown-qword00)))
         (cond
           ((not (-> self control temp-spool)))
           ((not (logtest? (-> self draw status) (draw-status hidden)))
