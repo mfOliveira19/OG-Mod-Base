@@ -18,10 +18,7 @@ jobs:
 
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v6
-        with:
-          fetch-depth: 0
-          fetch-tags: true
+        uses: actions/checkout@v7
 
       - name: Install NASM
         # TODO - Simplify this with just the first command once choco 2.0 rolls out everywhere
