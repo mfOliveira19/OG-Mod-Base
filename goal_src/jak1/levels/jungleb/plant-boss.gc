@@ -1133,9 +1133,11 @@
                                   (the float (-> self entity extra perm task))
                                   #f
                                   self
-                                  (the-as fact-info #f))
-            (spawn-gauss (-> self node-list data 42 bone transform vector 3))
-                                  )))
+                                  (the-as fact-info #f))))
+                ;; If we do not own the gauss, we spawn it again even if we have already collected the cell
+                (when (not (logtest? (-> *hl-weapons* owned-weapons) (owned-weapons gauss)))
+                  (spawn-gauss (-> self node-list data 42 bone transform vector 3))
+                ))
         (else
          (let ((s4-0 #f)
                (s5-2 #f))
